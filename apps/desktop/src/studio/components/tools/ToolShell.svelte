@@ -295,7 +295,10 @@
 		white-space: nowrap;
 	}
 
+	/* positioned, so what a field hides for screen readers (absolute, 1 px) stays inside the scrolling form:
+	   placed by the window instead, it made the whole window scrollable once the form was taller than it */
 	.form {
+		position: relative;
 		min-height: 0;
 		flex: 1;
 		padding: 16px;
