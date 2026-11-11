@@ -1,0 +1,77 @@
+# Polyzon Maker for macOS, built on a GitHub Mac by hand only (Actions → Mac build → Run workflow).
+# Unsigned: ad-hoc signed for the system to start it, no Developer ID, no notarization, no update signatures, and
+# nothing published. The disk images stay here as an artifact for a week. No secrets: the signing key never comes here.
+name: Mac build
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build for Apple Silicon and Intel
+        run: sh apps/desktop/release-mac.sh --unsigned
+
+      - name: Look at what was built
+        run: |
+          for chip in aarch64 x86_64; do
+            app="apps/desktop/src-tauri/target/$chip-apple-darwin/release/bundle/macos/Polyzon Maker.app"
+            [ -d "$app" ] || { echo "no app for $chip"; continue; }
+            echo "== $chip"
+            ls "$app/Contents/MacOS"
+            lipo -archs "$app/Contents/MacOS/polyzon-maker"
+            codesign -dv "$app" 2>&1 | grep -E 'Signature|Identifier|Format' || true
+          done
+          ls -la apps/desktop/release/*/
+
+      - name: Start it once
+        run: |
+          app="apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Polyzon Maker.app"
+          "$app/Contents/MacOS/polyzon-maker" > start.log 2>&1 &
+          pid=$!
+          sleep 30
+          screencapture -x start.png || true
+          if kill -0 "$pid" 2>/dev/null; then echo "still running after 30 s"; kill "$pid"; else echo "it stopped:"; cat start.log; exit 1; fi
+
+      - name: An agent's MCP session
+        continue-on-error: true
+        timeout-minutes: 15
+        run: |
+          python3 -u .github/scripts/mcp-check.py "apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Polyzon Maker.app" 2>&1 | tee mcp.log
+          exit "${PIPESTATUS[0]}"
+
+      - name: Keep the crash reports
+        if: always()
+        run: |
+          mkdir -p crashes
+          cp ~/Library/Logs/DiagnosticReports/*olyzon* crashes/ 2>/dev/null || true
+          ls -la crashes
+          pkill -f "Contents/MacOS/polyzon-maker" || true
+
+      - name: Open the disk image as a person does
+        run: |
+          hdiutil attach "$(ls apps/desktop/release/aarch64/*.dmg)"
+          ls -la "/Volumes/Polyzon Maker"
+          open "/Volumes/Polyzon Maker"
+          sleep 8
+          screencapture -x window.png || true
+          hdiutil detach "/Volumes/Polyzon Maker" || hdiutil detach -force "/Volumes/Polyzon Maker"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: polyzon-maker-mac
+          retention-days: 7
+          path: |
+            apps/desktop/release/*/*.dmg
+            start.png
+            start.log
+            window.png
+            mcp.log
+            crashes/

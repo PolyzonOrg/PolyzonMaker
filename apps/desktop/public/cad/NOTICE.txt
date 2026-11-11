@@ -1,0 +1,11 @@
+The CAD page runs two geometry kernels that are not part of Polyzon Maker's own code and are not under
+its MIT licence, each as a separate WebAssembly file in the app's assets:
+
+OpenCascade Technology, built for the web as replicad-opencascadejs, is under the GNU Lesser General
+Public License, version 2.1, with the OCCT exception. Its source is at
+https://github.com/Open-Cascade-SAS/OCCT and https://github.com/sgenoud/replicad, and the file can be
+replaced with another build of the same interface.
+
+Manifold is under the Apache License 2.0, https://github.com/elalish/manifold
+
+replicad is under the MIT licence, https://github.com/sgenoud/replicad

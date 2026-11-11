@@ -1,0 +1,49 @@
+{
+	"name": "@polyzon/mesh-kit",
+	"version": "0.1.0",
+	"description": "Print preparation for 3D meshes: repair, watertight solid, simplify, flat bottom, scale, hollow, cut to fit the bed, STL and 3MF. Runs in Node and in Web Workers.",
+	"license": "MIT",
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/PolyzonOrg/PolyzonArk.git",
+		"directory": "packages/mesh-kit"
+	},
+	"keywords": [
+		"3d-printing",
+		"mesh",
+		"stl",
+		"3mf",
+		"manifold",
+		"repair"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist",
+		"LICENSE",
+		"README.md"
+	],
+	"sideEffects": false,
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"manifold-3d": "3.2.1",
+		"meshoptimizer": "^1.3.0"
+	},
+	"devDependencies": {
+		"@types/node": "^24.19.2",
+		"typescript": "5.9.3",
+		"vitest": "4.1.12"
+	}
+}

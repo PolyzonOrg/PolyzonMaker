@@ -1,0 +1,36 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_cable_clip_preset_usb = (p?: Params, o?: Options) => say("Charger, tape-on", "Зарядка на скотч", p, o);
+export const t_cable_clip_preset_lan = (p?: Params, o?: Options) => say("LAN saddle clip", "Скоба для LAN", p, o);
+export const t_cable_clip_preset_pc = (p?: Params, o?: Options) => say("5-cable comb", "Гребёнка на 5 проводов", p, o);
+export const t_cable_clip_preset_desk = (p?: Params, o?: Options) => say("Desk edge", "На край стола", p, o);
+export const t_cable_clip_preset_bundle = (p?: Params, o?: Options) => say("3-cable saddle clip", "Скоба на 3 провода", p, o);
+export const t_cable_clip_kind_saddle = (p?: Params, o?: Options) => say("screw-on saddle clip", "скоба на саморезы", p, o);
+export const t_cable_clip_kind_tape = (p?: Params, o?: Options) => say("tape-on clip", "клипса на скотч", p, o);
+export const t_cable_clip_kind_comb = (p?: Params, o?: Options) => say("comb", "гребёнка", p, o);
+export const t_cable_clip_kind_desk = (p?: Params, o?: Options) => say("desk-edge clip", "клипса на край стола", p, o);
+export const t_cable_clip_summary_desk = (p?: Params, o?: Options) => say("For a {cable} mm cable on a {desk} mm desktop. Prints on its side so the clip won't crack at the bend.", "Под провод {cable} мм на столешнице {desk} мм. Печатается на боку — так клипса не треснет на изгибе.", p, o);
+export const t_cable_clip_summary_tape = (p?: Params, o?: Options) => say("For a {cable} mm cable: the cable snaps in from above, and the pad takes double-sided tape.", "Под провод {cable} мм: провод защёлкивается сверху, площадка — под двусторонний скотч.", p, o);
+export const t_cable_clip_summary_comb_one = (p?: Params, o?: Options) => say("For a {cable} mm cable: it snaps into the slot; two screw holes.", "Под провод {cable} мм: провода защёлкиваются в прорези, два отверстия под саморезы.", p, o);
+export const t_cable_clip_summary_comb_many = (p?: Params, o?: Options) => say({"one":"For {n} cable, {cable} mm: it snaps into the slot; two screw holes.","other":"For {n} cables, {cable} mm each: they snap into the slots; two screw holes."}, {"one":"Под {n} провод по {cable} мм: провода защёлкиваются в прорези, два отверстия под саморезы.","few":"Под {n} провода по {cable} мм: провода защёлкиваются в прорези, два отверстия под саморезы.","many":"Под {n} проводов по {cable} мм: провода защёлкиваются в прорези, два отверстия под саморезы.","other":"Под {n} провода по {cable} мм: провода защёлкиваются в прорези, два отверстия под саморезы."}, p, o);
+export const t_cable_clip_summary_saddle_one = (p?: Params, o?: Options) => say("For a {cable} mm cable, two holes for {screw} mm screws.", "Под провод {cable} мм, два отверстия под саморезы {screw} мм.", p, o);
+export const t_cable_clip_summary_saddle_many = (p?: Params, o?: Options) => say({"one":"For {n} cable, {cable} mm, two holes for {screw} mm screws.","other":"For {n} cables, {cable} mm each, two holes for {screw} mm screws."}, {"one":"Под {n} провод по {cable} мм, два отверстия под саморезы {screw} мм.","few":"Под {n} провода по {cable} мм, два отверстия под саморезы {screw} мм.","many":"Под {n} проводов по {cable} мм, два отверстия под саморезы {screw} мм.","other":"Под {n} провода по {cable} мм, два отверстия под саморезы {screw} мм."}, p, o);
+export const t_cable_clip_header_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Cable clips”: {kind}", "Polyzon Maker — «Кабельные клипсы»: {kind}", p, o);
+export const t_cable_clip_header_print = (p?: Params, o?: Options) => say("No supports", "Без поддержек", p, o);
+export const t_cable_clip_choice_saddle = (p?: Params, o?: Options) => say("Screw-on saddle", "Скоба на саморезы", p, o);
+export const t_cable_clip_choice_tape = (p?: Params, o?: Options) => say("Tape-on clip", "Клипса на скотч", p, o);
+export const t_cable_clip_choice_comb = (p?: Params, o?: Options) => say("Comb", "Гребёнка", p, o);
+export const t_cable_clip_choice_desk = (p?: Params, o?: Options) => say("Desk edge", "На край стола", p, o);
+export const t_cable_clip_filename = (p?: Params, o?: Options) => say("cable-clip", "klipsa", p, o);
+export const t_cable_clip_kind = (p?: Params, o?: Options) => say("What you need", "Что нужно", p, o);
+export const t_cable_clip_group_cable = (p?: Params, o?: Options) => say("Cable", "Провод", p, o);
+export const t_cable_clip_cable = (p?: Params, o?: Options) => say("Cable diameter", "Диаметр провода", p, o);
+export const t_cable_clip_cable_hint = (p?: Params, o?: Options) => say("Measure it with calipers: a charger cable is 3–4 mm, LAN 5–6, an extension cord 7–9.", "Измерьте штангенциркулем: зарядка — 3–4 мм, LAN — 5–6, удлинитель — 7–9.", p, o);
+export const t_cable_clip_count = (p?: Params, o?: Options) => say("Number of cables", "Сколько проводов", p, o);
+export const t_cable_clip_gap = (p?: Params, o?: Options) => say("Cable spacing", "Между проводами", p, o);
+export const t_cable_clip_clearance_hint = (p?: Params, o?: Options) => say("How loosely the cable sits.", "Насколько свободно сидит провод.", p, o);
+export const t_cable_clip_group_clip = (p?: Params, o?: Options) => say("Clip", "Клипса", p, o);
+export const t_cable_clip_thickness_hint = (p?: Params, o?: Options) => say("Thinner snaps on more easily; thicker holds tighter.", "Тоньше — защёлкивается легче, толще — держит крепче.", p, o);
+export const t_cable_clip_desk = (p?: Params, o?: Options) => say("Desktop thickness", "Толщина столешницы", p, o);
+export const t_cable_clip_screw = (p?: Params, o?: Options) => say("Screw hole", "Отверстие под саморез", p, o);

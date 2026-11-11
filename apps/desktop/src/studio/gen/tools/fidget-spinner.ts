@@ -1,0 +1,30 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_fidget_spinner_preset_tri = (p?: Params, o?: Options) => say("Three arms, bearings", "Три лепестка, подшипники", p, o);
+export const t_fidget_spinner_preset_nuts = (p?: Params, o?: Options) => say("M8 nuts", "С гайками M8", p, o);
+export const t_fidget_spinner_preset_coins = (p?: Params, o?: Options) => say("Coins ({coin})", "С монетами {coin}", p, o);
+export const t_fidget_spinner_preset_bar = (p?: Params, o?: Options) => say("Two arms", "Два лепестка", p, o);
+export const t_fidget_spinner_weight_bearing = (p?: Params, o?: Options) => say("608 bearings", "Подшипники 608", p, o);
+export const t_fidget_spinner_weight_nut = (p?: Params, o?: Options) => say("M8 nuts", "Гайки M8", p, o);
+export const t_fidget_spinner_weight_coin = (p?: Params, o?: Options) => say("Coins", "Монеты", p, o);
+export const t_fidget_spinner_weight_none = (p?: Params, o?: Options) => say("No weights", "Без грузиков", p, o);
+export const t_fidget_spinner_group_spinner = (p?: Params, o?: Options) => say("Spinner", "Спиннер", p, o);
+export const t_fidget_spinner_lobes = (p?: Params, o?: Options) => say("Arms", "Лепестков", p, o);
+export const t_fidget_spinner_weights = (p?: Params, o?: Options) => say("Weights in the arms", "Грузики в лепестках", p, o);
+export const t_fidget_spinner_weights_hint = (p?: Params, o?: Options) => say("The heavier the arms, the longer it spins. A 608 bearing is 22 × 7 mm; an M8 nut is 13 mm across flats.", "Чем тяжелее лепестки, тем дольше крутится. Подшипник 608 — 22 × 7 мм, гайка M8 — 13 мм под ключ.", p, o);
+export const t_fidget_spinner_coin = (p?: Params, o?: Options) => say("Coin diameter", "Диаметр монеты", p, o);
+export const t_fidget_spinner_coin_size = (p?: Params, o?: Options) => say("{coin} ({d} mm)", "{coin} — {d} мм", p, o);
+export const t_fidget_spinner_coin_hint = (p?: Params, o?: Options) => say("Two coins per pocket: {coins}.", "{coins}; по две в гнездо.", p, o);
+export const t_fidget_spinner_group_bearing = (p?: Params, o?: Options) => say("Bearing", "Подшипник", p, o);
+export const t_fidget_spinner_clearance = (p?: Params, o?: Options) => say("Bearing clearance", "Зазор в подшипнике", p, o);
+export const t_fidget_spinner_clearance_hint = (p?: Params, o?: Options) => say("A 608-size bearing prints inside the spinner. After printing, turn the ring until the rollers move freely.", "Подшипник 608 печатается внутри спиннера. После печати покрутите кольцо, пока ролики не пойдут свободно.", p, o);
+export const t_fidget_spinner_caps = (p?: Params, o?: Options) => say("Finger caps", "Крышечки под пальцы", p, o);
+export const t_fidget_spinner_caps_hint = (p?: Params, o?: Options) => say("Two washers with a pin: they press into the bearing from both sides.", "Две шайбы со штифтом: вставляются в подшипник с двух сторон.", p, o);
+export const t_fidget_spinner_summary_lobes = (p?: Params, o?: Options) => say({"one":"{n} arm","other":"{n} arms"}, {"one":"{n} лепесток","few":"{n} лепестка","many":"{n} лепестков","other":"{n} лепестка"}, p, o);
+export const t_fidget_spinner_summary_bearing = (p?: Params, o?: Options) => say("{lobes}, {span} mm across, {thickness} mm thick; 608 bearings in the arms.", "{lobes}, размах {span} мм, толщина {thickness} мм; в лепестках — подшипники 608.", p, o);
+export const t_fidget_spinner_summary_nut = (p?: Params, o?: Options) => say("{lobes}, {span} mm across, {thickness} mm thick; M8 nuts in the arms.", "{lobes}, размах {span} мм, толщина {thickness} мм; в лепестках — гайки M8.", p, o);
+export const t_fidget_spinner_summary_coin = (p?: Params, o?: Options) => say("{lobes}, {span} mm across, {thickness} mm thick; ⌀ {coin} mm coins in the arms.", "{lobes}, размах {span} мм, толщина {thickness} мм; в лепестках — монеты ⌀ {coin} мм.", p, o);
+export const t_fidget_spinner_summary_none = (p?: Params, o?: Options) => say("{lobes}, {span} mm across, {thickness} mm thick; no weights in the arms.", "{lobes}, размах {span} мм, толщина {thickness} мм; в лепестках — без грузиков.", p, o);
+export const t_fidget_spinner_scad_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Fidget spinner”", "Polyzon Maker — «Спиннер»", p, o);
+export const t_fidget_spinner_scad_print = (p?: Params, o?: Options) => say("The 608 bearing prints in place; after printing, turn the ring to break the rollers loose", "Подшипник 608 печатается внутри; после печати проверните кольцо, чтобы ролики отлипли", p, o);

@@ -1,0 +1,75 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Подставка</title>
+<style>
+	:root {
+		color-scheme: light dark;
+		font: 14px system-ui, sans-serif;
+	}
+	body {
+		margin: 0;
+		padding: 24px;
+		display: grid;
+		gap: 12px;
+		max-width: 320px;
+	}
+	label {
+		display: grid;
+		gap: 4px;
+	}
+	input,
+	button {
+		height: 38px;
+		padding: 0 12px;
+		border: 0;
+		border-radius: 12px;
+		font: inherit;
+	}
+	output {
+		min-height: 20px;
+	}
+</style>
+<script src="maker.js"></script>
+<script src="footprint.js"></script>
+
+<label>Диаметр, мм <input id="wide" type="number" value="90" min="10" max="300" /></label>
+<label>Высота, мм <input id="high" type="number" value="4" min="1" max="50" /></label>
+<button id="make">Сделать</button>
+<output id="note"></output>
+
+<script>
+	/** A closed cylinder as a binary STL: a header, a count, and 50 bytes for each triangle. */
+	function cylinder(diameter, height, sides = 96) {
+		const r = diameter / 2;
+		const rim = (i, z) => [r * Math.cos((i / sides) * 2 * Math.PI), r * Math.sin((i / sides) * 2 * Math.PI), z];
+		const triangles = [];
+		for (let i = 0; i < sides; i++) {
+			const [a, b, c, d] = [rim(i, 0), rim(i + 1, 0), rim(i, height), rim(i + 1, height)];
+			triangles.push([[0, 0, 0], b, a], [[0, 0, height], c, d], [a, b, d], [a, d, c]);
+		}
+		const file = new DataView(new ArrayBuffer(84 + triangles.length * 50));
+		file.setUint32(80, triangles.length, true);
+		triangles.forEach((triangle, t) => {
+			triangle.flat().forEach((v, i) => file.setFloat32(84 + t * 50 + 12 + i * 4, v, true));
+		});
+		return new Uint8Array(file.buffer);
+	}
+
+	document.getElementById('make').onclick = async () => {
+		const [wide, high] = [Number(document.getElementById('wide').value), Number(document.getElementById('high').value)];
+		try {
+			const job = await maker.library.add(`Подставка ${wide} мм`, cylinder(wide, high));
+			await maker.open(job.id);
+		} catch (error) {
+			document.getElementById('note').textContent = error.message;
+		}
+	};
+
+	// «Подставка под модель» on a model's page opens this one with that model: its base sets the size
+	maker.on('command', async ({ command, job }) => {
+		if (command !== 'fit' || !job) return;
+		const { wide, deep } = await footprint(job);
+		document.getElementById('wide').value = Math.max(wide, deep) + 10;
+		document.getElementById('note').textContent = `По основанию модели: ${wide} × ${deep} мм`;
+	});
+</script>

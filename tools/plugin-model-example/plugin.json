@@ -1,0 +1,33 @@
+{
+	"id": "lathe",
+	"name": "Ваза по силуэту",
+	"version": "1.0.0",
+	"author": "Polyzon",
+	"description": "Ваза для печати по силуэту того, что на картинке. Пример модели из плагина: ей не нужно ничего скачивать.",
+	"permissions": ["program"],
+	"contributes": {
+		"models": [
+			{
+				"id": "vase",
+				"name": "Ваза по силуэту",
+				"kind": "3d",
+				"quality": 1,
+				"summary": {
+					"en": "A vase turned from the silhouette of what is in the picture, 100 mm tall, in seconds.",
+					"ru": "Ваза, выточенная по силуэту того, что на картинке, высотой 100 мм, за секунды."
+				},
+				"publisher": "Polyzon",
+				"license": "MIT",
+				"license_url": "https://opensource.org/license/mit",
+				"source_url": "https://maker.polyzon.org",
+				"runtime": { "python": "3.12", "adapter": "lathe.py" },
+				"presets": [{ "id": "smooth", "args": ["--sides", "192"], "time_factor": 1.5 }],
+				"targets": [
+					{ "os": "windows", "device": "cpu", "ref_seconds": 5, "min_ram_mb": 1000, "disk_gb": 0.1 },
+					{ "os": "linux", "device": "cpu", "ref_seconds": 5, "min_ram_mb": 1000, "disk_gb": 0.1 },
+					{ "os": "macos", "device": "cpu", "ref_seconds": 5, "min_ram_mb": 1000, "disk_gb": 0.1 }
+				]
+			}
+		]
+	}
+}

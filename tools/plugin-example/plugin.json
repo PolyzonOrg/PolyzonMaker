@@ -1,0 +1,12 @@
+{
+	"id": "coaster",
+	"name": "Подставка",
+	"version": "1.1.0",
+	"author": "Polyzon",
+	"description": "Круглая подставка нужного размера: сразу в библиотеку и на печать. На странице модели показывает её основание и делает подставку под неё.",
+	"permissions": ["jobs.read", "library.add"],
+	"contributes": {
+		"panels": [{ "id": "base", "title": "Подставка", "file": "panel.html", "where": "result", "height": 120 }],
+		"commands": [{ "id": "fit", "title": "Подставка под модель", "where": "result" }]
+	}
+}

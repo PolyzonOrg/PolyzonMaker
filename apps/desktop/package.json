@@ -1,0 +1,42 @@
+{
+	"name": "polyzon-maker",
+	"private": true,
+	"version": "0.3.2",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"test": "vitest run",
+		"check": "svelte-check --tsconfig ./tsconfig.json",
+		"tauri": "tauri"
+	},
+	"dependencies": {
+		"@codemirror/autocomplete": "6.20.3",
+		"@codemirror/commands": "6.11.1",
+		"@codemirror/lang-javascript": "6.2.5",
+		"@codemirror/language": "6.12.4",
+		"@codemirror/lint": "6.9.7",
+		"@codemirror/search": "6.7.2",
+		"@codemirror/state": "6.7.5",
+		"@codemirror/view": "6.43.12",
+		"@lezer/highlight": "1.2.3",
+		"@polyzon/mesh-kit": "file:../../packages/mesh-kit",
+		"@tauri-apps/api": "2.12.4",
+		"lucide-svelte": "0.469.0",
+		"manifold-3d": "3.2.1",
+		"replicad": "1.1.0",
+		"replicad-opencascadejs": "1.1.0",
+		"three": "0.186.1"
+	},
+	"devDependencies": {
+		"@sveltejs/vite-plugin-svelte": "7.3.1",
+		"@tauri-apps/cli": "2.12.3",
+		"@types/three": "0.186.0",
+		"svelte": "5.57.2",
+		"svelte-check": "4.7.6",
+		"typescript": "5.9.3",
+		"vite": "8.3.4",
+		"vitest": "4.1.12",
+		"zod": "3.25.76"
+	}
+}

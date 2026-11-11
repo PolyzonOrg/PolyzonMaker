@@ -1,0 +1,33 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_enclosure_port_audio = (p?: Params, o?: Options) => say("audio", "аудио", p, o);
+export const t_enclosure_port_power = (p?: Params, o?: Options) => say("power", "питание", p, o);
+export const t_enclosure_port_camera = (p?: Params, o?: Options) => say("camera", "камера", p, o);
+export const t_enclosure_preset_board_50x70 = (p?: Params, o?: Options) => say("50 × 70 board", "Плата 50 × 70", p, o);
+export const t_enclosure_custom_board = (p?: Params, o?: Options) => say("Custom board", "Своя плата", p, o);
+export const t_enclosure_board_group = (p?: Params, o?: Options) => say("Board", "Плата", p, o);
+export const t_enclosure_board = (p?: Params, o?: Options) => say("Model", "Какая", p, o);
+export const t_enclosure_board_custom_hint = (p?: Params, o?: Options) => say("Four holes at the same inset from the corners; cut the port openings in OpenSCAD or with a file.", "Четыре отверстия на одном отступе от углов; окна для разъёмов вырежьте в OpenSCAD или напильником.", p, o);
+export const t_enclosure_board_hint = (p?: Params, o?: Options) => say("Holes and port openings follow the board's drawing; openings are 1 mm wider on each side.", "Отверстия и окна под разъёмы — по чертежу платы, окна на 1 мм шире с каждой стороны.", p, o);
+export const t_enclosure_board_length = (p?: Params, o?: Options) => say("Board length", "Длина платы", p, o);
+export const t_enclosure_board_width = (p?: Params, o?: Options) => say("Board width", "Ширина платы", p, o);
+export const t_enclosure_hole_inset = (p?: Params, o?: Options) => say("Hole inset from corners", "Отверстия от углов", p, o);
+export const t_enclosure_hole_inset_hint = (p?: Params, o?: Options) => say("From the edge of the board to the center of the hole.", "От края платы до центра отверстия.", p, o);
+export const t_enclosure_hole_diameter = (p?: Params, o?: Options) => say("Hole diameter", "Диаметр отверстий", p, o);
+export const t_enclosure_parts = (p?: Params, o?: Options) => say("Tallest component", "Самая высокая деталь", p, o);
+export const t_enclosure_parts_hint = (p?: Params, o?: Options) => say("Above the board: a connector, heatsink, or relay.", "Над платой: разъём, радиатор, реле.", p, o);
+export const t_enclosure_case_group = (p?: Params, o?: Options) => say("Case", "Корпус", p, o);
+export const t_enclosure_standoff = (p?: Params, o?: Options) => say("Standoff height", "Стойки под платой", p, o);
+export const t_enclosure_margin = (p?: Params, o?: Options) => say("Clearance around the board", "Зазор вокруг платы", p, o);
+export const t_enclosure_headroom = (p?: Params, o?: Options) => say("Headroom above components", "Запас над деталями", p, o);
+export const t_enclosure_vents = (p?: Params, o?: Options) => say("Vents in the lid", "Вентиляция в крышке", p, o);
+export const t_enclosure_ears = (p?: Params, o?: Options) => say("Mounting tabs", "Ушки для крепления", p, o);
+export const t_enclosure_ears_hint = (p?: Params, o?: Options) => say("Two tabs at the sides with screw holes: mount the case on a wall or under a desk.", "Два ушка по бокам с отверстиями под саморезы: корпус на стену или под стол.", p, o);
+export const t_enclosure_lid_clearance = (p?: Params, o?: Options) => say("Lid clearance", "Зазор крышки", p, o);
+export const t_enclosure_lid_clearance_hint = (p?: Params, o?: Options) => say("The lid's lip presses in inside the walls. Falls off? Reduce it. Won't go in? Increase it.", "Крышка вжимается бортиком внутрь. Слетает — убавьте, не входит — прибавьте.", p, o);
+export const t_enclosure_summary = (p?: Params, o?: Options) => say("{board}: case {x} × {y} × {z} mm, standoffs for {screw} mm screws.", "{board}: корпус {x} × {y} × {z} мм, стойки под саморезы {screw} мм.", p, o);
+export const t_enclosure_summary_ports = (p?: Params, o?: Options) => say("Port openings: {ports}.", "Окна: {ports}.", p, o);
+export const t_enclosure_scad_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Electronics enclosure”", "Polyzon Maker — «Корпус для электроники»", p, o);
+export const t_enclosure_scad_print = (p?: Params, o?: Options) => say("Case open side up, lid top side down on the bed", "Корпус — открытой стороной вверх, крышка — верхом на столе", p, o);
+export const t_enclosure_filename = (p?: Params, o?: Options) => say("enclosure", "korpus", p, o);

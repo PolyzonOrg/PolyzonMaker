@@ -1,0 +1,32 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_letter_beads_sample_text = (p?: Params, o?: Options) => say("MAMA", "МАМА", p, o);
+export const t_letter_beads_preset_bracelet = (p?: Params, o?: Options) => say("Name bracelet", "Браслет с именем", p, o);
+export const t_letter_beads_preset_bracelet_text = (p?: Params, o?: Options) => say("ELLA", "СОНЯ", p, o);
+export const t_letter_beads_preset_round = (p?: Params, o?: Options) => say("Round", "Круглые", p, o);
+export const t_letter_beads_preset_round_text = (p?: Params, o?: Options) => say("LOVE", "LOVE", p, o);
+export const t_letter_beads_preset_hearts = (p?: Params, o?: Options) => say("Hearts", "Сердечки", p, o);
+export const t_letter_beads_preset_kids = (p?: Params, o?: Options) => say("For toddlers", "Для малышей", p, o);
+export const t_letter_beads_preset_kids_text = (p?: Params, o?: Options) => say("LEO", "ЛЁВА", p, o);
+export const t_letter_beads_filename = (p?: Params, o?: Options) => say("beads", "businy", p, o);
+export const t_letter_beads_3mf_failed = (p?: Params, o?: Options) => say("Couldn't build the 3MF.", "Не удалось собрать 3MF.", p, o);
+export const t_letter_beads_shape_square = (p?: Params, o?: Options) => say("Cube", "Кубик", p, o);
+export const t_letter_beads_shape_round = (p?: Params, o?: Options) => say("Round", "Круглая", p, o);
+export const t_letter_beads_shape_hex = (p?: Params, o?: Options) => say("Hex", "Шестигранная", p, o);
+export const t_letter_beads_shape_heart = (p?: Params, o?: Options) => say("Heart", "Сердечко", p, o);
+export const t_letter_beads_letter_raised = (p?: Params, o?: Options) => say("Raised", "Выпуклая", p, o);
+export const t_letter_beads_letter_engraved = (p?: Params, o?: Options) => say("Engraved", "Вдавленная", p, o);
+export const t_letter_beads_letters = (p?: Params, o?: Options) => say("Letters", "Буквы", p, o);
+export const t_letter_beads_text_hint = (p?: Params, o?: Options) => say("Each letter gets its own bead; spaces are skipped.", "Каждая буква — своя бусина, пробелы пропускаются.", p, o);
+export const t_letter_beads_upper = (p?: Params, o?: Options) => say("All caps", "Заглавными", p, o);
+export const t_letter_beads_letter = (p?: Params, o?: Options) => say("Letter style", "Буква", p, o);
+export const t_letter_beads_bead = (p?: Params, o?: Options) => say("Bead", "Бусина", p, o);
+export const t_letter_beads_hole_hint = (p?: Params, o?: Options) => say("Bracelet elastic: 1–1.5 mm; cord: 2–3 mm.", "Резинка для браслета — 1–1,5 мм, шнурок — 2–3 мм.", p, o);
+export const t_letter_beads_sets = (p?: Params, o?: Options) => say("Number of sets", "Сколько наборов", p, o);
+export const t_letter_beads_summary = (p?: Params, o?: Options) => say({"one":"{n} bead, {size} mm, with a ⌀ {hole} mm hole.","other":"{n} beads, {size} mm, with a ⌀ {hole} mm hole."}, {"one":"{n} бусина {size} мм, отверстие ⌀ {hole} мм.","few":"{n} бусины {size} мм, отверстие ⌀ {hole} мм.","many":"{n} бусин {size} мм, отверстие ⌀ {hole} мм.","other":"{n} бусины {size} мм, отверстие ⌀ {hole} мм."}, p, o);
+export const t_letter_beads_summary_colour = (p?: Params, o?: Options) => say("Change filament at {height} mm to print the letters in another color.", "Смените пластик на высоте {height} мм — буквы станут другого цвета.", p, o);
+export const t_letter_beads_part_beads = (p?: Params, o?: Options) => say("Beads", "Бусины", p, o);
+export const t_letter_beads_part_letters = (p?: Params, o?: Options) => say("Letters", "Буквы", p, o);
+export const t_letter_beads_scad_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Letter beads”", "Polyzon Maker — «Бусины-буквы»", p, o);
+export const t_letter_beads_scad_letters = (p?: Params, o?: Options) => say("Letters: {letters}", "Буквы: {letters}", p, o);

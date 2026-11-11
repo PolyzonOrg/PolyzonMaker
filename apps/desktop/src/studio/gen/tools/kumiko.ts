@@ -1,0 +1,34 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_kumiko_preset_coaster = (p?: Params, o?: Options) => say("Coaster", "Подставка под кружку", p, o);
+export const t_kumiko_preset_kikko_hexagon = (p?: Params, o?: Options) => say("Kikkō in a hexagon", "Киккō в шестиугольнике", p, o);
+export const t_kumiko_preset_lamp = (p?: Params, o?: Options) => say("Lamp panel", "Панель для светильника", p, o);
+export const t_kumiko_preset_wall = (p?: Params, o?: Options) => say("Wall art", "Картина на стену", p, o);
+export const t_kumiko_pattern_asanoha = (p?: Params, o?: Options) => say("Asanoha", "Асаноха", p, o);
+export const t_kumiko_pattern_asanoha_hint = (p?: Params, o?: Options) => say("Hemp leaf: each triangle is divided toward its center.", "Лист конопли: каждый треугольник разделён к центру.", p, o);
+export const t_kumiko_pattern_kikko = (p?: Params, o?: Options) => say("Kikkō", "Киккō", p, o);
+export const t_kumiko_pattern_kikko_hint = (p?: Params, o?: Options) => say("Tortoise shell: a honeycomb of hexagons.", "Панцирь черепахи: соты из шестиугольников.", p, o);
+export const t_kumiko_pattern_mitsukude = (p?: Params, o?: Options) => say("Mitsukude", "Мицукудэ", p, o);
+export const t_kumiko_pattern_mitsukude_hint = (p?: Params, o?: Options) => say("A simple grid of triangles.", "Простая сетка из треугольников.", p, o);
+export const t_kumiko_pattern_hishi = (p?: Params, o?: Options) => say("Hishi", "Хиси", p, o);
+export const t_kumiko_pattern_hishi_hint = (p?: Params, o?: Options) => say("Diamonds formed by two slanted rows.", "Ромбы из двух наклонных рядов.", p, o);
+export const t_kumiko_cell = (p?: Params, o?: Options) => say("Cell", "Ячейка", p, o);
+export const t_kumiko_cell_hint = (p?: Params, o?: Options) => say("The side of a grid triangle; it's adjusted so the strips don't run along the frame.", "Сторона треугольника сетки; подгоняется, чтобы планки не шли вдоль рамки.", p, o);
+export const t_kumiko_strip = (p?: Params, o?: Options) => say("Strip width", "Ширина планки", p, o);
+export const t_kumiko_strip_hint = (p?: Params, o?: Options) => say("1.2 mm — three lines with a 0.4 nozzle.", "1,2 мм — три линии сопла 0,4.", p, o);
+export const t_kumiko_panel = (p?: Params, o?: Options) => say("Panel", "Панель", p, o);
+export const t_kumiko_shape_square = (p?: Params, o?: Options) => say("Square", "Квадрат", p, o);
+export const t_kumiko_shape_rect = (p?: Params, o?: Options) => say("Rectangle", "Прямоугольник", p, o);
+export const t_kumiko_shape_hexagon = (p?: Params, o?: Options) => say("Hexagon", "Шестиугольник", p, o);
+export const t_kumiko_shape_circle = (p?: Params, o?: Options) => say("Circle", "Круг", p, o);
+export const t_kumiko_width_corners = (p?: Params, o?: Options) => say("Width across corners", "Ширина по углам", p, o);
+export const t_kumiko_frame_thickness = (p?: Params, o?: Options) => say("Frame thickness", "Толщина рамки", p, o);
+export const t_kumiko_lattice_height = (p?: Params, o?: Options) => say("Lattice height", "Высота решётки", p, o);
+export const t_kumiko_lattice_hint = (p?: Params, o?: Options) => say("Lower than the frame, like wooden kumiko.", "Ниже рамки — как у деревянных кумико.", p, o);
+export const t_kumiko_summary = (p?: Params, o?: Options) => say({"one":"“{pattern}” pattern, {size} mm panel, {cell} mm cell, {n} strip {strip} mm wide.","other":"“{pattern}” pattern, {size} mm panel, {cell} mm cell, {n} strips {strip} mm wide."}, {"one":"Узор «{pattern}», панель {size} мм, ячейка {cell} мм, {n} планка по {strip} мм.","few":"Узор «{pattern}», панель {size} мм, ячейка {cell} мм, {n} планки по {strip} мм.","many":"Узор «{pattern}», панель {size} мм, ячейка {cell} мм, {n} планок по {strip} мм.","other":"Узор «{pattern}», панель {size} мм, ячейка {cell} мм, {n} планки по {strip} мм."}, p, o);
+export const t_kumiko_word_asanoha = (p?: Params, o?: Options) => say("asanoha", "асаноха", p, o);
+export const t_kumiko_word_kikko = (p?: Params, o?: Options) => say("kikkō", "киккō", p, o);
+export const t_kumiko_word_mitsukude = (p?: Params, o?: Options) => say("mitsukude", "мицукудэ", p, o);
+export const t_kumiko_word_hishi = (p?: Params, o?: Options) => say("hishi", "хиси", p, o);
+export const t_kumiko_scad_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Kumiko”", "Polyzon Maker — «Кумико»", p, o);

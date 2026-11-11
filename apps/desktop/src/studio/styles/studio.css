@@ -1,0 +1,267 @@
+/* The tools' room: Studio's tokens on the app's, and the Tailwind classes the tools use (Studio's
+   components.css comes from sync-studio.mjs). Everything stays inside .studio, because names like .btn
+   and .card mean something else in the app. See src/studio/README.md. */
+@import './components.css';
+
+.studio {
+	--pz-color-page: var(--bg);
+	--pz-color-app: var(--bg);
+	--pz-color-canvas: var(--bg);
+	--pz-color-surface: var(--surface);
+	--pz-color-raised: var(--surface);
+	--pz-color-subtle: var(--button);
+	--pz-color-subtle-hover: var(--button-hover);
+	--pz-color-thumb: var(--surface-4);
+	--pz-color-text: var(--ink);
+	--pz-color-text-secondary: var(--ink-muted);
+	--pz-color-text-muted: var(--ink-muted);
+	--pz-color-text-tertiary: var(--ink-faint);
+	--pz-color-border: var(--line);
+	--pz-color-border-strong: var(--line);
+	--pz-color-action: var(--ink);
+	--pz-color-on-action: var(--on-ink);
+	--pz-color-accent-text: var(--ink);
+	--pz-color-focus: var(--ink);
+	--pz-color-success: var(--good);
+	--pz-color-warning: var(--warn);
+	--pz-color-error: var(--bad);
+	--pz-color-error-text: var(--bad);
+	/* Studio's scene is always dark; here it follows the theme, so its «inverse» is the theme too */
+	--pz-color-inverse: var(--surface);
+	--pz-color-inverse-raised: var(--button);
+	--pz-color-inverse-raised-hover: var(--button-hover);
+	--pz-color-text-inverse: var(--ink);
+	--pz-code-keyword: var(--ink);
+	--pz-code-builtin: var(--good);
+	--pz-code-comment: var(--ink-faint);
+	--pz-code-definition: var(--ink);
+	--pz-code-modifier: var(--bad);
+	--pz-code-number: var(--warn);
+	--pz-code-operator: var(--ink-muted);
+	--pz-code-string: var(--good);
+	--pz-code-annotation: var(--ink-muted);
+	/* channels for rgb(r g b / alpha): spaces, as that form reads them. The app has no accent colour, so
+	   Studio's accent (the code editor's selection, its matching brackets) is the ink */
+	--pz-rgb-text: 13 13 13;
+	--pz-rgb-text-muted: 95 95 99;
+	--pz-rgb-accent: 13 13 13;
+	--pz-rgb-error: 192 50 43;
+	--pz-rgb-warning: 154 98 0;
+	--pz-color-accent: var(--ink);
+	--pz-color-accent-app: var(--ink);
+	--pz-color-info: var(--ink-muted);
+	--pz-font-sans: var(--font);
+	--pz-font-mono: ui-monospace, 'SF Mono', Menlo, 'Cascadia Mono', Consolas, monospace;
+	--pz-text-xs: 12px;
+	--pz-text-sm: 14px;
+	--pz-text-md: 16px;
+	--pz-text-2xl: 24px;
+	--pz-text-section: 24px;
+	--pz-text-display: 32px;
+	--pz-space-1: 4px;
+	--pz-space-2: 8px;
+	--pz-space-3: 12px;
+	--pz-space-4: 16px;
+	--pz-space-5: 20px;
+	--pz-space-6: 24px;
+	--pz-space-8: 32px;
+	--pz-space-10: 40px;
+	--pz-space-12: 48px;
+	--pz-space-16: 64px;
+	--pz-radius-xs: 6px;
+	--pz-radius-sm: var(--r-sm);
+	--pz-radius-control: var(--r);
+	--pz-radius-card: var(--r-lg);
+	--pz-radius-pill: var(--r-pill);
+	--pz-duration-fast: 0.12s;
+	--pz-duration-base: 0.2s;
+	--pz-ease-standard: var(--ease);
+	--pz-shadow-xs: none;
+	--pz-cookie-reserve: 0px;
+	--studio-ink: var(--ink);
+	--studio-muted: var(--ink-muted);
+	--studio-line: var(--line);
+	--studio-panel: var(--surface);
+	--studio-panel-2: var(--surface-2);
+	--studio-canvas: var(--bg);
+}
+
+:root[data-theme='dark'] .studio {
+	--pz-rgb-text: 236 236 238;
+	--pz-rgb-text-muted: 163 163 171;
+	--pz-rgb-accent: 236 236 238;
+	--pz-rgb-error: 240 138 131;
+	--pz-rgb-warning: 224 176 80;
+}
+
+/* What Tailwind's reset gave these forms */
+.studio ul,
+.studio ol {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.studio h1,
+.studio h2,
+.studio h3,
+.studio h4 {
+	margin: 0;
+	font-size: inherit;
+	font-weight: inherit;
+}
+
+.studio a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.studio button {
+	cursor: pointer;
+}
+
+.studio img,
+.studio svg,
+.studio canvas {
+	vertical-align: middle;
+}
+
+.studio table {
+	border-collapse: collapse;
+}
+
+/* Text */
+.studio .text-neutral-100 { color: var(--ink); }
+.studio .text-neutral-300 { color: var(--ink-muted); }
+.studio .text-neutral-400 { color: var(--ink-faint); }
+.studio .text-neutral-500 { color: var(--ink-faint); }
+.studio .text-red-300 { color: var(--bad); }
+.studio .text-amber-300 { color: var(--warn); }
+.studio .text-xs { font-size: 12px; line-height: 16px; }
+.studio .text-sm { font-size: 14px; line-height: 20px; }
+.studio .text-2xl { font-size: 24px; line-height: 32px; }
+.studio .text-left { text-align: left; }
+.studio .text-right { text-align: right; }
+.studio .font-medium { font-weight: 500; }
+.studio .font-semibold { font-weight: 600; }
+.studio .tabular-nums { font-variant-numeric: tabular-nums; }
+.studio .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.studio .break-words { overflow-wrap: break-word; }
+.studio .break-all { word-break: break-all; }
+.studio .underline { text-decoration: underline; }
+.studio .list-decimal { list-style: decimal; }
+
+/* Layout */
+.studio .block { display: block; }
+.studio .hidden { display: none; }
+.studio .flex { display: flex; }
+.studio .grid { display: grid; }
+.studio .flex-col { flex-direction: column; }
+.studio .flex-wrap { flex-wrap: wrap; }
+.studio .flex-1 { flex: 1 1 0%; }
+.studio .shrink-0 { flex-shrink: 0; }
+.studio .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.studio .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.studio .items-start { align-items: flex-start; }
+.studio .items-center { align-items: center; }
+.studio .items-end { align-items: flex-end; }
+.studio .items-baseline { align-items: baseline; }
+.studio .justify-between { justify-content: space-between; }
+.studio .gap-1 { gap: 4px; }
+.studio .gap-2 { gap: 8px; }
+.studio .gap-3 { gap: 12px; }
+.studio .gap-4 { gap: 16px; }
+.studio .space-y-1 > * + * { margin-top: 4px; }
+.studio .space-y-2 > * + * { margin-top: 8px; }
+.studio .space-y-4 > * + * { margin-top: 16px; }
+.studio .space-y-8 > * + * { margin-top: 32px; }
+.studio .\[\&\+\&\]\:mt-6 + .\[\&\+\&\]\:mt-6 { margin-top: 24px; }
+
+/* Size */
+.studio .w-full { width: 100%; }
+.studio .w-auto { width: auto; }
+.studio .w-20 { width: 80px; }
+.studio .h-full { height: 100%; }
+.studio .h-1 { height: 4px; }
+.studio .h-2 { height: 8px; }
+.studio .size-3 { width: 12px; height: 12px; }
+.studio .size-4 { width: 16px; height: 16px; }
+.studio .size-full { width: 100%; height: 100%; }
+.studio .min-w-0 { min-width: 0; }
+.studio .min-w-48 { min-width: 192px; }
+.studio .max-w-48 { max-width: 192px; }
+.studio .min-h-9 { min-height: 36px; }
+.studio .min-h-11 { min-height: 44px; }
+
+/* Space */
+.studio .mt-px { margin-top: 1px; }
+.studio .mt-1 { margin-top: 4px; }
+.studio .mt-2 { margin-top: 8px; }
+.studio .mt-3 { margin-top: 12px; }
+.studio .mt-4 { margin-top: 16px; }
+.studio .mt-6 { margin-top: 24px; }
+.studio .mb-0 { margin-bottom: 0; }
+.studio .mb-2 { margin-bottom: 8px; }
+.studio .mx-auto { margin-left: auto; margin-right: auto; }
+.studio .-ml-2 { margin-left: -8px; }
+.studio .p-6 { padding: 24px; }
+.studio .px-2 { padding-left: 8px; padding-right: 8px; }
+.studio .px-3 { padding-left: 12px; padding-right: 12px; }
+.studio .py-1 { padding-top: 4px; padding-bottom: 4px; }
+.studio .py-2 { padding-top: 8px; padding-bottom: 8px; }
+.studio .pt-4 { padding-top: 16px; }
+.studio .pl-5 { padding-left: 20px; }
+
+/* Place */
+.studio .relative { position: relative; }
+.studio .absolute { position: absolute; }
+.studio .inset-0 { inset: 0; }
+.studio .top-3 { top: 12px; }
+.studio .right-3 { right: 12px; }
+.studio .z-10 { z-index: 10; }
+.studio .overflow-hidden { overflow: hidden; }
+.studio .overflow-x-auto { overflow-x: auto; }
+.studio .overflow-y-auto { overflow-y: auto; }
+.studio .pointer-events-none { pointer-events: none; }
+.studio .cursor-pointer { cursor: pointer; }
+.studio .object-contain { object-fit: contain; }
+.studio .object-cover { object-fit: cover; }
+.studio .sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+.studio .animate-spin { animation: studio-turn 0.9s linear infinite; }
+@keyframes studio-turn {
+	to {
+		transform: rotate(360deg);
+	}
+}
+/* A control keeps a 44 px target whatever it looks like */
+.studio .hit-44 { min-width: 44px; min-height: 44px; }
+
+/* Surface */
+.studio .rounded-full { border-radius: var(--r-pill); }
+.studio .rounded-md { border-radius: var(--r-sm); }
+.studio .border { border: 1px solid var(--line); }
+.studio .border-t { border-top: 1px solid var(--line); }
+.studio .border-border { border-color: var(--line); }
+.studio .bg-panel { background: var(--surface); }
+.studio .bg-panel2 { background: var(--surface-2); }
+.studio .bg-panel3 { background: var(--surface-3); }
+.studio .bg-accent { background: var(--ink); }
+.studio .aria-pressed\:bg-panel3[aria-pressed='true'] { background: var(--surface-3); }
+.studio .hover\:bg-panel2:hover { background: var(--surface-2); }
+.studio .hover\:text-neutral-100:hover { color: var(--ink); }
+
+/* Width of the form, not of the window: the column is 300 to 360 px whatever the screen */
+.studio .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.studio .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.studio .md\:hidden { display: none; }

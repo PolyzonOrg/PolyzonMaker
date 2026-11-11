@@ -1,0 +1,38 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_stl_viewer_material_nylon = (p?: Params, o?: Options) => say("Nylon", "Нейлон", p, o);
+export const t_stl_viewer_stage_reading = (p?: Params, o?: Options) => say("Reading the file", "Читаем файл", p, o);
+export const t_stl_viewer_stage_measuring = (p?: Params, o?: Options) => say("Measuring", "Считаем", p, o);
+export const t_stl_viewer_read_failed = (p?: Params, o?: Options) => say("Couldn't read the model — try another file.", "Не удалось прочитать модель — попробуйте другой файл.", p, o);
+export const t_stl_viewer_file_size = (p?: Params, o?: Options) => say("{size} MB", "{size} МБ", p, o);
+export const t_stl_viewer_busy = (p?: Params, o?: Options) => say("Measuring…", "Считаем…", p, o);
+export const t_stl_viewer_upload = (p?: Params, o?: Options) => say("Upload a model", "Загрузите модель", p, o);
+export const t_stl_viewer_material = (p?: Params, o?: Options) => say("Material", "Материал", p, o);
+export const t_stl_viewer_group_size_weight = (p?: Params, o?: Options) => say("Size and weight", "Размеры и вес", p, o);
+export const t_stl_viewer_bounds = (p?: Params, o?: Options) => say("Dimensions", "Габариты", p, o);
+export const t_stl_viewer_diagonal = (p?: Params, o?: Options) => say("Diagonal {value} mm", "Диагональ {value} мм", p, o);
+export const t_stl_viewer_volume = (p?: Params, o?: Options) => say("Volume", "Объём", p, o);
+export const t_stl_viewer_volume_value = (p?: Params, o?: Options) => say("{value} cm³", "{value} см³", p, o);
+export const t_stl_viewer_weight = (p?: Params, o?: Options) => say("Weight", "Вес", p, o);
+export const t_stl_viewer_weight_note = (p?: Params, o?: Options) => say("Solid model, {density} g/cm³; lighter with infill in the slicer", "Сплошная модель, {density} г/см³; с заполнением в слайсере легче", p, o);
+export const t_stl_viewer_weight_value = (p?: Params, o?: Options) => say("{value} g", "{value} г", p, o);
+export const t_stl_viewer_area = (p?: Params, o?: Options) => say("Surface area", "Площадь", p, o);
+export const t_stl_viewer_area_value = (p?: Params, o?: Options) => say("{value} cm²", "{value} см²", p, o);
+export const t_stl_viewer_triangles = (p?: Params, o?: Options) => say("Triangles", "Треугольники", p, o);
+export const t_stl_viewer_center_of_mass = (p?: Params, o?: Options) => say("Center of mass", "Центр тяжести", p, o);
+export const t_stl_viewer_center_of_mass_note = (p?: Params, o?: Options) => say("In file coordinates: X, Y, Z", "В координатах файла, X, Y, Z", p, o);
+export const t_stl_viewer_center_of_mass_value = (p?: Params, o?: Options) => say("{x}, {y}, {z} mm", "{x}, {y}, {z} мм", p, o);
+export const t_stl_viewer_group_surface = (p?: Params, o?: Options) => say("Surface check", "Проверка поверхности", p, o);
+export const t_stl_viewer_watertight = (p?: Params, o?: Options) => say("{title} No holes or stray faces, so the volume and weight are exact.", "{title} Без дыр и лишних граней, поэтому объём и вес точные.", p, o);
+export const t_stl_viewer_watertight_title = (p?: Params, o?: Options) => say("The surface is watertight.", "Поверхность цельная.", p, o);
+export const t_stl_viewer_flawed = (p?: Params, o?: Options) => say("The surface has flaws", "Поверхность с изъянами", p, o);
+export const t_stl_viewer_open_edges = (p?: Params, o?: Options) => say("Edges around holes: {count} — they're red on the model.", "Рёбер на краю дыр: {count} — на модели они красные.", p, o);
+export const t_stl_viewer_non_manifold = (p?: Params, o?: Options) => say("Edges shared by three or more faces: {count}.", "Рёбер, где сходятся три и больше граней: {count}.", p, o);
+export const t_stl_viewer_misoriented = (p?: Params, o?: Options) => say({"one":"Some faces are flipped inside out: at {n} edge, neighboring faces point in opposite directions.","other":"Some faces are flipped inside out: at {n} edges, neighboring faces point in opposite directions."}, {"one":"Есть грани, вывернутые наизнанку: у {n} ребра соседние грани смотрят в разные стороны.","few":"Есть грани, вывернутые наизнанку: у {n} рёбер соседние грани смотрят в разные стороны.","many":"Есть грани, вывернутые наизнанку: у {n} рёбер соседние грани смотрят в разные стороны.","other":"Есть грани, вывернутые наизнанку: у {n} ребра соседние грани смотрят в разные стороны."}, p, o);
+export const t_stl_viewer_approximate = (p?: Params, o?: Options) => say("The volume and weight are approximate. A slicer may print a model like this with errors.", "Объём и вес — приблизительные. Слайсер может напечатать такую модель с ошибками.", p, o);
+export const t_stl_viewer_show_holes = (p?: Params, o?: Options) => say("Show holes on the model", "Показать дыры на модели", p, o);
+export const t_stl_viewer_open_repair = (p?: Params, o?: Options) => say("Open in “Repair STL”", "Открыть в «Починке STL»", p, o);
+export const t_stl_viewer_degenerate = (p?: Params, o?: Options) => say("Zero-area triangles: {count}.", "Плоских треугольников без площади: {count}.", p, o);
+export const t_stl_viewer_empty = (p?: Params, o?: Options) => say("Upload an STL, OBJ, 3MF, or GLB — the model will appear here.", "Загрузите STL, OBJ, 3MF или GLB — модель появится здесь.", p, o);
+export const t_stl_viewer_empty_private = (p?: Params, o?: Options) => say("The file is processed on this computer and never sent anywhere.", "Файл обрабатывается на этом компьютере и никуда не отправляется.", p, o);

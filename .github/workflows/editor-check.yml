@@ -1,0 +1,71 @@
+# The OpenSCAD editor in the real app window on a Mac: a person's clicks and keys as system events, a picture
+# after each step (1-before … 6-tray-menu in the artifact). By hand only (Actions → Editor check → Run workflow).
+# No secrets. The points are for the runner's 1024 px screen; another screen size needs them measured again.
+name: Editor check
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: sh apps/desktop/release-mac.sh --unsigned
+
+      - name: Type, double-click and drag in the editor
+        run: |
+          swiftc .github/scripts/mac-input.swift -o mac-input
+          conf="$HOME/Library/Application Support/org.polyzon.maker"
+          mkdir -p "$conf"
+          token="ci-$RANDOM$RANDOM"
+          # the language «as the system», and the system in Russian: only the page can tell the tray's menu which it shows
+          defaults write -g AppleLanguages -array ru en
+          printf '{"onboarded":true,"language":"","analytics":false,"consent":2,"gentle":true,"api_enabled":true,"api_port":7878,"api_token":"%s","updates_off":true}' "$token" > "$conf/settings.json"
+          app="apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Polyzon Maker.app"
+          "$app/Contents/MacOS/polyzon-maker" > app.log 2>&1 &
+          api() { curl -sf -H "Authorization: Bearer $token" "$@"; }
+          for i in $(seq 1 60); do api http://127.0.0.1:7878/v1/status > /dev/null && break; sleep 2; done
+          api -X POST -H 'content-type: application/json' http://127.0.0.1:7878/v1/scad/open \
+            -d '{"title":"check","code":"cube(10);\n// second line\nsphere(5);\n"}' > /dev/null
+          sleep 4
+          read -r x y w h < <(./mac-input bounds)
+          echo "window $x $y $w $h"
+          at() { echo "$((x + $1)) $((y + $2))"; }
+          # where the lines are drawn in a 1024 px window (the runner's screen), from its own screenshot:
+          # text from x 296, line 1 at y 250, 2 at 269, 3 at 288 inside the window
+          ./mac-input click $(at 500 250); sleep 1   # the first click may only bring the window forward
+          screencapture -x 1-before.png
+          ./mac-input click $(at 500 250); ./mac-input type zq; sleep 1
+          screencapture -x 2-typed.png
+          ./mac-input click $(at 310 288) 2; sleep 1
+          screencapture -x 3-double-click.png
+          ./mac-input type box; sleep 1
+          ./mac-input drag $(at 297 269) $(at 600 269); sleep 1
+          screencapture -x 4-dragged.png
+          ./mac-input type kk; sleep 2
+          screencapture -x 5-after.png
+          # the tray's menu, from the boat in the menu bar (left of Spotlight on the runner's 1024 px screen)
+          ./mac-input click 778 12; sleep 1
+          screencapture -x 6-tray-menu.png
+          ./mac-input click 778 12
+          # what the page says now; with the edits above the program no longer builds, which is expected
+          api -X POST -H 'content-type: application/json' http://127.0.0.1:7878/v1/scad/status -d '{}' || true; echo
+
+      - name: Leave
+        if: always()
+        run: pkill -f "Contents/MacOS/polyzon-maker" || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: editor-check
+          path: |
+            *.png
+            app.log
+          retention-days: 7

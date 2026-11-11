@@ -1,0 +1,31 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_cake_topper_preset_birthday = (p?: Params, o?: Options) => say("Happy birthday", "С днём рождения", p, o);
+export const t_cake_topper_sample_name = (p?: Params, o?: Options) => say("Lily", "Аня", p, o);
+export const t_cake_topper_sample_greeting = (p?: Params, o?: Options) => say("Happy Birthday", "С днём рождения", p, o);
+export const t_cake_topper_preset_age = (p?: Params, o?: Options) => say("Age", "Возраст", p, o);
+export const t_cake_topper_preset_wedding = (p?: Params, o?: Options) => say("Wedding", "Свадьба", p, o);
+export const t_cake_topper_sample_couple = (p?: Params, o?: Options) => say("Emma & Jack", "Анна и Илья", p, o);
+export const t_cake_topper_preset_cupcake = (p?: Params, o?: Options) => say("For a cupcake", "Для капкейка", p, o);
+export const t_cake_topper_sample_cupcake_name = (p?: Params, o?: Options) => say("Mia", "Маша", p, o);
+export const t_cake_topper_big_line = (p?: Params, o?: Options) => say("Main line", "Крупно", p, o);
+export const t_cake_topper_big_line_hint = (p?: Params, o?: Options) => say("A name, an age, or a word.", "Имя, возраст или слово.", p, o);
+export const t_cake_topper_top_line = (p?: Params, o?: Options) => say("Top line", "Строка сверху", p, o);
+export const t_cake_topper_top_line_hint = (p?: Params, o?: Options) => say("You can leave it blank.", "Можно оставить пустой.", p, o);
+export const t_cake_topper_bolder_hint = (p?: Params, o?: Options) => say("Makes thin script letters stronger.", "Тонким рукописным буквам прибавит прочности.", p, o);
+export const t_cake_topper_width_hint = (p?: Params, o?: Options) => say("The main line stretches across the full width.", "Крупная строка растянется на всю ширину.", p, o);
+export const t_cake_topper_top_line_height = (p?: Params, o?: Options) => say("Top line height", "Высота строки сверху", p, o);
+export const t_cake_topper_stakes_and_print = (p?: Params, o?: Options) => say("Stakes and printing", "Стойки и печать", p, o);
+export const t_cake_topper_stakes = (p?: Params, o?: Options) => say("Stakes", "Стоек", p, o);
+export const t_cake_topper_stake_length = (p?: Params, o?: Options) => say("Stake length", "Длина стоек", p, o);
+export const t_cake_topper_raised_letters = (p?: Params, o?: Options) => say("Raised letters", "Буквы выше подложки", p, o);
+export const t_cake_topper_raised_letters_hint = (p?: Params, o?: Options) => say("Raised 1 mm, they show even in one color; change filament to get two colors.", "На 1 мм — видны и в один цвет; сменив пластик, получите два.", p, o);
+export const t_cake_topper_summary_size = (p?: Params, o?: Options) => say({"one":"{height} mm above the cake, one {length} mm stake.","other":"{height} mm above the cake, {n} stakes, {length} mm each."}, {"one":"Над тортом {height} мм, одна стойка по {length} мм.","few":"Над тортом {height} мм, {n} стойки по {length} мм.","many":"Над тортом {height} мм, {n} стоек по {length} мм.","other":"Над тортом {height} мм, {n} стойки по {length} мм."}, p, o);
+export const t_cake_topper_summary_food = (p?: Params, o?: Options) => say("For food contact, print in PETG or wrap the stakes in plastic wrap.", "Для еды печатайте из PETG или оберните стойки пищевой плёнкой.", p, o);
+export const t_cake_topper_summary_colour = (p?: Params, o?: Options) => say("Change filament at {height} mm to print the letters in another color.", "Смените пластик на высоте {height} мм — буквы станут другого цвета.", p, o);
+export const t_cake_topper_part_base = (p?: Params, o?: Options) => say("Backing and stakes", "Подложка и стойки", p, o);
+export const t_cake_topper_part_letters = (p?: Params, o?: Options) => say("Letters", "Буквы", p, o);
+export const t_cake_topper_part_topper = (p?: Params, o?: Options) => say("Topper", "Топпер", p, o);
+export const t_cake_topper_3mf_failed = (p?: Params, o?: Options) => say("Couldn't build the 3MF.", "Не удалось собрать 3MF.", p, o);
+export const t_cake_topper_scad_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Cake toppers”", "Polyzon Maker — «Топпер для торта»", p, o);

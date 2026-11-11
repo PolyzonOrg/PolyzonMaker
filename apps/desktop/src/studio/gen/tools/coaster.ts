@@ -1,0 +1,34 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_coaster_preset_rings = (p?: Params, o?: Options) => say("Rings", "Кольца", p, o);
+export const t_coaster_preset_honey = (p?: Params, o?: Options) => say("Honeycomb", "Соты", p, o);
+export const t_coaster_preset_mono = (p?: Params, o?: Options) => say("Monogram", "С монограммой", p, o);
+export const t_coaster_preset_set = (p?: Params, o?: Options) => say("Set of 4 for cork", "Набор из 4 под пробку", p, o);
+export const t_coaster_group_coaster = (p?: Params, o?: Options) => say("Coaster", "Подставка", p, o);
+export const t_coaster_shape_round = (p?: Params, o?: Options) => say("Round", "Круглая", p, o);
+export const t_coaster_shape_square = (p?: Params, o?: Options) => say("Square", "Квадратная", p, o);
+export const t_coaster_shape_hex = (p?: Params, o?: Options) => say("Hexagonal", "Шестигранная", p, o);
+export const t_coaster_side = (p?: Params, o?: Options) => say("Side", "Сторона", p, o);
+export const t_coaster_rim = (p?: Params, o?: Options) => say("Rim", "Бортик", p, o);
+export const t_coaster_rim_hint = (p?: Params, o?: Options) => say("Drips from the mug stay on the coaster.", "Капли с кружки остаются на подставке.", p, o);
+export const t_coaster_group_top = (p?: Params, o?: Options) => say("Top", "Верх", p, o);
+export const t_coaster_top_rings = (p?: Params, o?: Options) => say("Rings", "Кольца", p, o);
+export const t_coaster_top_honeycomb = (p?: Params, o?: Options) => say("Honeycomb", "Соты", p, o);
+export const t_coaster_top_text = (p?: Params, o?: Options) => say("Monogram", "Монограмма", p, o);
+export const t_coaster_top_plain = (p?: Params, o?: Options) => say("Plain", "Гладкая", p, o);
+export const t_coaster_letters = (p?: Params, o?: Options) => say("Letters", "Буквы", p, o);
+export const t_coaster_letters_hint = (p?: Params, o?: Options) => say("Up to three letters or digits.", "До трёх букв или цифр.", p, o);
+export const t_coaster_relief = (p?: Params, o?: Options) => say("Pattern height", "Высота узора", p, o);
+export const t_coaster_group_bottom = (p?: Params, o?: Options) => say("Bottom", "Низ", p, o);
+export const t_coaster_bottom = (p?: Params, o?: Options) => say("Underside", "Снизу", p, o);
+export const t_coaster_bottom_feet = (p?: Params, o?: Options) => say("Feet pockets", "Под ножки", p, o);
+export const t_coaster_bottom_cork = (p?: Params, o?: Options) => say("Cork recess", "Под пробку", p, o);
+export const t_coaster_bottom_none = (p?: Params, o?: Options) => say("Flat", "Ровное", p, o);
+export const t_coaster_summary = (p?: Params, o?: Options) => say("A {size} mm coaster, {thickness} mm thick.", "Подставка {size} мм, толщина {thickness} мм.", p, o);
+export const t_coaster_summary_two_colours = (p?: Params, o?: Options) => say("For two colors, change filament at {height} mm.", "Для двух цветов — смена пластика на высоте {height} мм.", p, o);
+export const t_coaster_summary_feet = (p?: Params, o?: Options) => say("Pockets underneath for 4 rubber feet, 10 × 1 mm.", "Снизу гнёзда под 4 резиновые ножки 10 × 1 мм.", p, o);
+export const t_coaster_summary_cork = (p?: Params, o?: Options) => say("A 1.6 mm recess underneath for a cork insert.", "Снизу выемка 1,6 мм под пробку.", p, o);
+export const t_coaster_scad_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Coasters”", "Polyzon Maker — «Подставки под кружку»", p, o);
+export const t_coaster_scad_pattern_up = (p?: Params, o?: Options) => say("Prints pattern side up", "Печатается узором вверх", p, o);
+export const t_coaster_filename = (p?: Params, o?: Options) => say("coaster", "podstavka", p, o);

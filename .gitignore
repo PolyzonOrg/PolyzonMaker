@@ -1,0 +1,21 @@
+node_modules/
+.codegraph/
+.metrics/
+target/
+coverage/
+tools/bench/.work/
+tools/bench/results/
+tools/bench/bench.lock
+__pycache__/
+apps/desktop/dist/
+apps/desktop/release/
+apps/desktop/build.log
+apps/desktop/.work/
+apps/desktop/src-tauri/gen/
+# bench reports hold the test pictures, which are not ours to publish
+tools/*-report.zip
+tools/bench/*-report.zip
+tools/tauri-probe/.work/
+tools/tauri-probe/results/
+tools/tauri-probe/dist/
+tools/tauri-probe/src-tauri/gen/

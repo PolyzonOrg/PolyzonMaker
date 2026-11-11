@@ -1,0 +1,32 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_ornament_filename = (p?: Params, o?: Options) => say("ornament", "igrushka", p, o);
+export const t_ornament_3mf_failed = (p?: Params, o?: Options) => say("Couldn't build the 3MF.", "Не удалось собрать 3MF.", p, o);
+export const t_ornament_default_name = (p?: Params, o?: Options) => say("Emma", "Алиса", p, o);
+export const t_ornament_preset_ball = (p?: Params, o?: Options) => say("Ball with a name", "Шар с именем", p, o);
+export const t_ornament_preset_star = (p?: Params, o?: Options) => say("Star", "Звезда", p, o);
+export const t_ornament_preset_tree = (p?: Params, o?: Options) => say("Tree", "Ёлочка", p, o);
+export const t_ornament_preset_tree_name = (p?: Params, o?: Options) => say("Noah", "Миша", p, o);
+export const t_ornament_preset_bell = (p?: Params, o?: Options) => say("Bell", "Колокольчик", p, o);
+export const t_ornament_preset_bell_name = (p?: Params, o?: Options) => say("Jack", "Ваня", p, o);
+export const t_ornament_preset_heart = (p?: Params, o?: Options) => say("Heart", "Сердце", p, o);
+export const t_ornament_preset_heart_name = (p?: Params, o?: Options) => say("Mom", "Мама", p, o);
+export const t_ornament_preset_heart_line = (p?: Params, o?: Options) => say("with love", "с любовью", p, o);
+export const t_ornament_ornament = (p?: Params, o?: Options) => say("Ornament", "Игрушка", p, o);
+export const t_ornament_shape_ball = (p?: Params, o?: Options) => say("Ball", "Шар", p, o);
+export const t_ornament_shape_star = (p?: Params, o?: Options) => say("Star", "Звезда", p, o);
+export const t_ornament_shape_tree = (p?: Params, o?: Options) => say("Tree", "Ёлочка", p, o);
+export const t_ornament_shape_bell = (p?: Params, o?: Options) => say("Bell", "Колокольчик", p, o);
+export const t_ornament_shape_heart = (p?: Params, o?: Options) => say("Heart", "Сердце", p, o);
+export const t_ornament_name = (p?: Params, o?: Options) => say("Name", "Имя", p, o);
+export const t_ornament_line_above = (p?: Params, o?: Options) => say("Line above", "Строка выше", p, o);
+export const t_ornament_line_below = (p?: Params, o?: Options) => say("Line below", "Строка ниже", p, o);
+export const t_ornament_line_hint = (p?: Params, o?: Options) => say("A year or a wish — or leave it empty.", "Год, пожелание — или пусто.", p, o);
+export const t_ornament_relief_hint = (p?: Params, o?: Options) => say("The name and rim stand above the plate — change colors at this height.", "Имя и ободок выше пластины — на этой высоте меняют цвет.", p, o);
+export const t_ornament_rim = (p?: Params, o?: Options) => say("Rim around the edge", "Ободок по краю", p, o);
+export const t_ornament_summary = (p?: Params, o?: Options) => say("A {size} mm ornament, {thickness} mm thick. Change filament at {change} mm, and the name and rim come out in a different color.", "Игрушка {size} мм, толщина {thickness} мм. Смените пластик на высоте {change} мм — имя и ободок станут другого цвета.", p, o);
+export const t_ornament_colour_plate = (p?: Params, o?: Options) => say("Ornament", "Игрушка", p, o);
+export const t_ornament_colour_raised = (p?: Params, o?: Options) => say("Text and rim", "Надпись и ободок", p, o);
+export const t_ornament_header_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Christmas ornaments”", "Polyzon Maker — «Ёлочные игрушки»", p, o);
+export const t_ornament_header_text = (p?: Params, o?: Options) => say("“{name}” {line}", "«{name}» {line}", p, o);

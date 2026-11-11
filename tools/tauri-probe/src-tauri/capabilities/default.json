@@ -1,0 +1,7 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "default",
+	"description": "The page calls only the probe's own commands (info, save, finish): no shell, no file system, no plugins.",
+	"windows": ["main"],
+	"permissions": []
+}

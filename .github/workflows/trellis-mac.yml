@@ -1,0 +1,110 @@
+# trellis.cpp for Apple silicon Macs with Metal, built on a GitHub Mac by hand only (Actions → trellis.cpp for Mac → Run
+# workflow). Upstream v0.8.1 ships Windows and Linux archives only. This builds the same tagged source and packs trellis-cli
+# the way the Linux archive is packed: one flat folder, the program at its top. Nothing is published: the archive stays
+# here as an artifact, and the app takes it from wherever catalog.json points, checked by its sha256.
+name: trellis.cpp for Mac
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+env:
+  # v0.8.1 is tag object 367f067 on this commit; the ggml submodule is the one that commit records
+  TRELLIS_COMMIT: c0bed38c1578f7e36e3e50c8ff1e38fa0d47583f
+  GGML_COMMIT: f8697b33795db2ee6a2569b40853ca6aaa69f9b9
+  # trellis.cpp fetches libwebp's v1.5.0 tag at configure time with no hash; this is that tag's commit
+  WEBP_COMMIT: a4d7a715337ded4451fec90ff8ce79728e04126c
+  ASSET: trellis-metal-macos-arm64.tar.gz
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: pwilkin/trellis.cpp
+          ref: ${{ env.TRELLIS_COMMIT }}
+          submodules: recursive
+          path: src
+          persist-credentials: false
+
+      - uses: actions/checkout@v4
+        with:
+          repository: webmproject/libwebp
+          ref: ${{ env.WEBP_COMMIT }}
+          path: webp
+          persist-credentials: false
+
+      - name: The source is the pinned one
+        run: |
+          test "$(git -C src rev-parse HEAD)" = "$TRELLIS_COMMIT"
+          test "$(git -C src/thirdparty/ggml rev-parse HEAD)" = "$GGML_COMMIT"
+          test "$(git -C webp rev-parse HEAD)" = "$WEBP_COMMIT"
+          test -z "$(git -C src status --porcelain)"
+
+      # Static: one program with nothing to find beside it. GGML_NATIVE off: the code is for the M1, which every Apple
+      # chip runs, and not for whichever chip this runner has. OpenMP off: a Homebrew libomp here is not on people's Macs.
+      - name: Build
+        run: |
+          cmake -S src -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DGGML_NATIVE=OFF -DGGML_OPENMP=OFF \
+            -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3 \
+            -DFETCHCONTENT_FULLY_DISCONNECTED=ON -DFETCHCONTENT_SOURCE_DIR_LIBWEBP="$PWD/webp" \
+            | tee configure.log
+          grep -q 'trellis.cpp: Metal backend enabled' configure.log
+          grep -q 'trellis.cpp: WebP texture encoding enabled' configure.log  # as in the upstream archives
+          cmake --build build --target trellis-cli -j "$(sysctl -n hw.ncpu)"
+
+      - name: Pack
+        run: |
+          dist=$RUNNER_TEMP/dist
+          mkdir -p "$dist/licenses"
+          cp build/trellis-cli "$dist/"
+          codesign --force --sign - "$dist/trellis-cli"
+          cp src/LICENSE "$dist/LICENSE"
+          for d in src/thirdparty/*/; do
+            for f in "$d"LICENSE* "$d"COPYING*; do
+              if [ -f "$f" ]; then cp "$f" "$dist/licenses/$(basename "$d")-$(basename "$f")"; fi
+            done
+          done
+          cp webp/COPYING "$dist/licenses/libwebp-COPYING"
+          cp webp/PATENTS "$dist/licenses/libwebp-PATENTS"
+          head -30 src/thirdparty/xatlas/xatlas.h > "$dist/licenses/xatlas-LICENSE"  # its notice lives in the source
+          grep -q 'Copyright NVIDIA' "$dist/licenses/xatlas-LICENSE"
+          printf 'trellis.cpp v0.8.1 %s (ggml %s, libwebp %s), Metal, arm64, macOS 13.3 or later\nhttps://github.com/pwilkin/trellis.cpp\n' \
+            "$TRELLIS_COMMIT" "$GGML_COMMIT" "$WEBP_COMMIT" > "$dist/BUILD.txt"
+          COPYFILE_DISABLE=1 tar --no-mac-metadata --no-xattrs -C "$dist" -czf "$ASSET" .
+          tar -tzvf "$ASSET"
+
+      # What a Mac that never saw this runner gets: the archive opened in an empty folder, the build folder gone.
+      # (`! a | b` never stops a bash -e script, hence the ifs.)
+      - name: Check what was packed
+        run: |
+          if tar -tzf "$ASSET" | grep '\._'; then echo 'macOS metadata got into the archive'; exit 1; fi
+          mkdir unpacked && tar -xzf "$ASSET" -C unpacked && rm -rf build
+          exe=unpacked/trellis-cli
+          test "$(lipo -archs "$exe")" = arm64
+          otool -L "$exe"
+          if otool -L "$exe" | tail -n +2 | grep -Ev '^[[:space:]]+(/usr/lib/|/System/Library/)'; then
+            echo 'needs a library that is not part of macOS'; exit 1
+          fi
+          # into files: a grep -q that stops reading early breaks the pipe under pipefail
+          vtool -show-build "$exe" > build.txt && grep -Eq 'minos[[:space:]]+13\.3$' build.txt
+          nm "$exe" > symbols.txt && grep -q ggml_backend_metal_reg symbols.txt
+          otool -l "$exe" > commands.txt && grep -q 'sectname __ggml_metallib' commands.txt
+          codesign --verify --strict --verbose=2 "$exe"
+          "$exe" --help > help.txt 2>&1
+          grep -q -- '--require-gpu' help.txt
+          grep -q -- '--box-uv' help.txt
+          {
+            echo "sha256 $(shasum -a 256 "$ASSET" | cut -d' ' -f1)"
+            echo "size $(stat -f %z "$ASSET")"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trellis-metal-macos-arm64
+          retention-days: 30
+          compression-level: 0
+          path: ${{ env.ASSET }}

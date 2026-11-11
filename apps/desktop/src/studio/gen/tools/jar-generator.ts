@@ -1,0 +1,32 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_jar_generator_filename = (p?: Params, o?: Options) => say("jar", "banka", p, o);
+export const t_jar_generator_preset_spice = (p?: Params, o?: Options) => say("Spices", "Для специй", p, o);
+export const t_jar_generator_preset_screws = (p?: Params, o?: Options) => say("Small parts", "Для мелочей", p, o);
+export const t_jar_generator_preset_big = (p?: Params, o?: Options) => say("Large", "Большая", p, o);
+export const t_jar_generator_preset_pills = (p?: Params, o?: Options) => say("Pill box", "Таблетница", p, o);
+export const t_jar_generator_kind_both = (p?: Params, o?: Options) => say("Jar and lid", "Банка и крышка", p, o);
+export const t_jar_generator_kind_jar = (p?: Params, o?: Options) => say("Jar only", "Только банка", p, o);
+export const t_jar_generator_kind_lid = (p?: Params, o?: Options) => say("Lid only", "Только крышка", p, o);
+export const t_jar_generator_jar = (p?: Params, o?: Options) => say("Jar", "Банка", p, o);
+export const t_jar_generator_inner = (p?: Params, o?: Options) => say("Inside diameter", "Диаметр внутри", p, o);
+export const t_jar_generator_height = (p?: Params, o?: Options) => say("Height without lid", "Высота без крышки", p, o);
+export const t_jar_generator_bottom = (p?: Params, o?: Options) => say("Bottom thickness", "Толщина дна", p, o);
+export const t_jar_generator_thread = (p?: Params, o?: Options) => say("Thread", "Резьба", p, o);
+export const t_jar_generator_pitch = (p?: Params, o?: Options) => say("Pitch", "Шаг", p, o);
+export const t_jar_generator_pitch_hint = (p?: Params, o?: Options) => say("The thread flanks are at 45°, so both the neck and the lid print without supports.", "Стенки витков под 45°: и горлышко, и крышка печатаются без поддержек.", p, o);
+export const t_jar_generator_starts = (p?: Params, o?: Options) => say("Starts", "Заходов", p, o);
+export const t_jar_generator_starts_one = (p?: Params, o?: Options) => say("Single", "Один", p, o);
+export const t_jar_generator_starts_two = (p?: Params, o?: Options) => say("Double", "Два", p, o);
+export const t_jar_generator_starts_two_hint = (p?: Params, o?: Options) => say("Two threads side by side: the lid closes twice as fast and sits straighter.", "Два витка рядом: крышка закрывается вдвое быстрее и садится ровнее.", p, o);
+export const t_jar_generator_turns = (p?: Params, o?: Options) => say("Turns to close", "Оборотов до закрытия", p, o);
+export const t_jar_generator_clearance_hint = (p?: Params, o?: Options) => say("How much wider the lid thread is than the jar thread. If it's too tight, add 0.1–0.2 mm.", "Насколько резьба крышки шире резьбы банки. Туго — прибавьте 0,1–0,2 мм.", p, o);
+export const t_jar_generator_lid_top = (p?: Params, o?: Options) => say("Top thickness", "Толщина верха", p, o);
+export const t_jar_generator_ribs = (p?: Params, o?: Options) => say("Grip ribs", "Рёбра по краю", p, o);
+export const t_jar_generator_ribs_hint = (p?: Params, o?: Options) => say("The lid is easier to open with wet or greasy fingers.", "Крышку легче открыть мокрыми или жирными пальцами.", p, o);
+export const t_jar_generator_summary = (p?: Params, o?: Options) => say("About {volume} ml. Jar {jar} mm, lid {lid} × {lidHeight} mm; closes in {turns}.", "Около {volume} мл. Банка {jar} мм, крышка {lid} × {lidHeight} мм, закрывается за {turns}.", p, o);
+export const t_jar_generator_summary_turns = (p?: Params, o?: Options) => say({"one":"{n} turn","other":"{n} turns"}, {"one":"{n} оборот","few":"{n} оборота","many":"{n} оборотов","other":"{n} оборота"}, p, o);
+export const t_jar_generator_header_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Jar with lid”: {inner} mm inside, {height} mm tall, about {volume} ml", "Polyzon Maker — «Банка с крышкой»: {inner} мм внутри, высота {height} мм, около {volume} мл", p, o);
+export const t_jar_generator_header_thread = (p?: Params, o?: Options) => say("Thread {major} × {pitch} mm, starts: {starts}, turns: {turns}, clearance {clearance} mm", "Резьба {major} × {pitch} мм, заходов {starts}, витков {turns}, зазор {clearance} мм", p, o);
+export const t_jar_generator_header_print = (p?: Params, o?: Options) => say("The jar prints upright, the lid top down; no supports", "Банка печатается стоя, крышка — верхом на столе; без поддержек", p, o);

@@ -1,0 +1,34 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_photo_frame_preset_caption = (p?: Params, o?: Options) => say("With a caption", "С подписью", p, o);
+export const t_photo_frame_preset_caption_text = (p?: Params, o?: Options) => say("Summer 2026", "Лето 2026", p, o);
+export const t_photo_frame_part_frame = (p?: Params, o?: Options) => say("Frame", "Рамка", p, o);
+export const t_photo_frame_part_frame_filename = (p?: Params, o?: Options) => say("frame", "ramka", p, o);
+export const t_photo_frame_part_back = (p?: Params, o?: Options) => say("Back", "Стенка", p, o);
+export const t_photo_frame_part_back_filename = (p?: Params, o?: Options) => say("back", "stenka", p, o);
+export const t_photo_frame_part_feet = (p?: Params, o?: Options) => say("Feet", "Ножки", p, o);
+export const t_photo_frame_part_feet_filename = (p?: Params, o?: Options) => say("feet", "nozhki", p, o);
+export const t_photo_frame_summary = (p?: Params, o?: Options) => say("Frame {width} × {height} × {thickness} mm for a {photo_width} × {photo_height} mm photo, opening {window_width} × {window_height} mm.", "Рамка {width} × {height} × {thickness} мм под фото {photo_width} × {photo_height} мм, окно {window_width} × {window_height} мм.", p, o);
+export const t_photo_frame_summary_glass = (p?: Params, o?: Options) => say("Frame {width} × {height} × {thickness} mm for a {photo_width} × {photo_height} mm photo, opening {window_width} × {window_height} mm, {glass} mm acrylic.", "Рамка {width} × {height} × {thickness} мм под фото {photo_width} × {photo_height} мм, окно {window_width} × {window_height} мм, акрил {glass} мм.", p, o);
+export const t_photo_frame_scad_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Photo frames”", "Polyzon Maker — «Фоторамки»", p, o);
+export const t_photo_frame_scad_print = (p?: Params, o?: Options) => say("The frame prints face down; the photo and back slide in from the top", "Рамка печатается лицом вниз; фото и задняя стенка вставляются сверху", p, o);
+export const t_photo_frame_filename = (p?: Params, o?: Options) => say("photo-frame", "ramka", p, o);
+export const t_photo_frame_stl_failed = (p?: Params, o?: Options) => say("Couldn't build the STL.", "Не удалось собрать STL.", p, o);
+export const t_photo_frame_size_custom = (p?: Params, o?: Options) => say("Custom", "Свой", p, o);
+export const t_photo_frame_side_portrait = (p?: Params, o?: Options) => say("Portrait", "Вертикально", p, o);
+export const t_photo_frame_side_landscape = (p?: Params, o?: Options) => say("Landscape", "Горизонтально", p, o);
+export const t_photo_frame_group_photo = (p?: Params, o?: Options) => say("Photo", "Фото", p, o);
+export const t_photo_frame_side = (p?: Params, o?: Options) => say("Orientation", "Как висит", p, o);
+export const t_photo_frame_glass = (p?: Params, o?: Options) => say("Front acrylic", "Акрил спереди", p, o);
+export const t_photo_frame_glass_hint = (p?: Params, o?: Options) => say("0 means no glazing. The sheet goes in together with the photo.", "0 — без стекла. Лист вставляется вместе с фото.", p, o);
+export const t_photo_frame_border = (p?: Params, o?: Options) => say("Frame width", "Ширина рамки", p, o);
+export const t_photo_frame_overlap = (p?: Params, o?: Options) => say("Photo overlap", "Заходит на фото", p, o);
+export const t_photo_frame_overlap_hint = (p?: Params, o?: Options) => say("How much the frame covers on each edge of the photo.", "Столько закроет рамка с каждого края снимка.", p, o);
+export const t_photo_frame_bevel = (p?: Params, o?: Options) => say("Opening bevel", "Скос у окна", p, o);
+export const t_photo_frame_caption = (p?: Params, o?: Options) => say("Caption below", "Подпись снизу", p, o);
+export const t_photo_frame_feet = (p?: Params, o?: Options) => say("Desk feet", "Ножки на стол", p, o);
+export const t_photo_frame_feet_hint = (p?: Params, o?: Options) => say("Two slotted feet hold the frame at a 15° tilt; put them near the corners so they don't hide the caption. For the wall, there's a nail loop on the back.", "Две подставки с пазом: рамка стоит с наклоном 15°; ставьте их ближе к углам, чтобы не закрыть подпись. Для стены — петля под гвоздь на задней стенке.", p, o);
+export const t_photo_frame_print_note = (p?: Params, o?: Options) => say("The frame prints face down without supports; the photo and back slide in from the top.", "Рамка печатается лицом вниз без поддержек; фото и задняя стенка вставляются сверху.", p, o);
+export const t_photo_frame_bed_too_small = (p?: Params, o?: Options) => say("This needs a bed of at least {size} mm — check that the frame fits your printer.", "Нужен стол от {size} мм — проверьте, поместится ли рамка на ваш принтер.", p, o);
+export const t_photo_frame_split_hint = (p?: Params, o?: Options) => say("All the parts together take {width} × {height} mm. On a 220 mm bed, print them one at a time with the {buttons} buttons under the model.", "Все части вместе — {width} × {height} мм. На стол 220 мм печатайте их по одной: кнопки {buttons} под моделью.", p, o);

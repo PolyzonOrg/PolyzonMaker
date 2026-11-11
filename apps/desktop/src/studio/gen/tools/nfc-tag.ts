@@ -1,0 +1,35 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_nfc_tag_text_default = (p?: Params, o?: Options) => say("Alex Morgan\nPhotographer\n+1 555-010-0000", "Иван Петров\nФотограф\n+7 900 000-00-00", p, o);
+export const t_nfc_tag_preset_card = (p?: Params, o?: Options) => say("Business card", "Визитка", p, o);
+export const t_nfc_tag_preset_stand = (p?: Params, o?: Options) => say("Review stand", "Подставка для отзывов", p, o);
+export const t_nfc_tag_preset_stand_text = (p?: Params, o?: Options) => say("Leave a review\ntap your\nphone here", "Оставьте отзыв\nприложите\nтелефон", p, o);
+export const t_nfc_tag_preset_keychain = (p?: Params, o?: Options) => say("Keychain", "Брелок", p, o);
+export const t_nfc_tag_preset_keychain_text = (p?: Params, o?: Options) => say("Home", "Дом", p, o);
+export const t_nfc_tag_preset_round = (p?: Params, o?: Options) => say("Token", "Жетон", p, o);
+export const t_nfc_tag_group_tag = (p?: Params, o?: Options) => say("Tag", "Метка", p, o);
+export const t_nfc_tag_shape = (p?: Params, o?: Options) => say("What to print", "Что печатаем", p, o);
+export const t_nfc_tag_shape_card = (p?: Params, o?: Options) => say("Business card", "Визитка", p, o);
+export const t_nfc_tag_shape_stand = (p?: Params, o?: Options) => say("Stand", "Подставка", p, o);
+export const t_nfc_tag_shape_keychain = (p?: Params, o?: Options) => say("Keychain", "Брелок", p, o);
+export const t_nfc_tag_shape_round = (p?: Params, o?: Options) => say("Token", "Жетон", p, o);
+export const t_nfc_tag_shape_card_hint = (p?: Params, o?: Options) => say("Credit card size — 85.6 × 54 mm, fits a card holder.", "Размер банковской карты — 85,6 × 54 мм, влезает в визитницу.", p, o);
+export const t_nfc_tag_shape_stand_hint = (p?: Params, o?: Options) => say("A sign and a base with a slot: the sign leans back at 15°.", "Табличка и основание с пазом: табличка встаёт с наклоном 15°.", p, o);
+export const t_nfc_tag_thickness_hint = (p?: Params, o?: Options) => say("Increases on its own if the sticker pocket doesn't fit.", "Растёт сама, если карман с наклейкой не помещается.", p, o);
+export const t_nfc_tag_group_sticker = (p?: Params, o?: Options) => say("NFC sticker", "Наклейка NFC", p, o);
+export const t_nfc_tag_diameter_hint = (p?: Params, o?: Options) => say("Most often ⌀ 25 (NTAG213); ⌀ 30 and 38 exist too. The pocket is 1 mm wider.", "Чаще всего ⌀ 25 (NTAG213), бывают ⌀ 30 и 38. Карман на 1 мм шире.", p, o);
+export const t_nfc_tag_sticker_thickness = (p?: Params, o?: Options) => say("Sticker thickness", "Толщина наклейки", p, o);
+export const t_nfc_tag_sticker_thickness_hint = (p?: Params, o?: Options) => say("Usually 0.3–0.5 mm with the adhesive; “on-metal” stickers are about 1 mm.", "С клеем обычно 0,3–0,5 мм; «для металла» — около 1 мм.", p, o);
+export const t_nfc_tag_pause = (p?: Params, o?: Options) => say("Pause after the layer at {top} mm — before {next} mm with 0.2 mm layers: drop in the sticker and resume printing.", "Пауза после слоя на высоте {top} мм — перед {next} мм при слое 0,2: вложите наклейку и продолжите печать.", p, o);
+export const t_nfc_tag_metal_note = (p?: Params, o?: Options) => say("Don't cover the tag with metal or metal-filled filament — phones won't be able to read it.", "Метку не закрывайте металлом и пластиком с металлическим наполнителем — телефон её не прочтёт.", p, o);
+export const t_nfc_tag_line = (p?: Params, o?: Options) => say("Line {n}", "Строка {n}", p, o);
+export const t_nfc_tag_style_raised = (p?: Params, o?: Options) => say("Raised", "Выпуклая", p, o);
+export const t_nfc_tag_style_engraved = (p?: Params, o?: Options) => say("Engraved", "Вырезанная", p, o);
+export const t_nfc_tag_mark = (p?: Params, o?: Options) => say("Ring over the tag", "Кольцо над меткой", p, o);
+export const t_nfc_tag_mark_hint = (p?: Params, o?: Options) => say("Shows where to tap the phone.", "Показывает, куда приложить телефон.", p, o);
+export const t_nfc_tag_summary_card = (p?: Params, o?: Options) => say("A {w} × {h} mm business card, {thickness} mm thick; a ⌀ {pocket} × {depth} mm pocket for a ⌀ {tag} mm sticker.", "Визитка {w} × {h} мм, толщина {thickness} мм; карман ⌀ {pocket} × {depth} мм под наклейку ⌀ {tag} мм.", p, o);
+export const t_nfc_tag_summary_keychain = (p?: Params, o?: Options) => say("A {w} × {h} mm keychain, {thickness} mm thick; a ⌀ {pocket} × {depth} mm pocket for a ⌀ {tag} mm sticker.", "Брелок {w} × {h} мм, толщина {thickness} мм; карман ⌀ {pocket} × {depth} мм под наклейку ⌀ {tag} мм.", p, o);
+export const t_nfc_tag_summary_round = (p?: Params, o?: Options) => say("A ⌀ {w} mm token, {thickness} mm thick; a ⌀ {pocket} × {depth} mm pocket for a ⌀ {tag} mm sticker.", "Жетон ⌀ {w} мм, толщина {thickness} мм; карман ⌀ {pocket} × {depth} мм под наклейку ⌀ {tag} мм.", p, o);
+export const t_nfc_tag_summary_stand = (p?: Params, o?: Options) => say("A stand: a {w} × {h} mm sign and a base that leans it back {lean}°, {thickness} mm thick; a ⌀ {pocket} × {depth} mm pocket for a ⌀ {tag} mm sticker.", "Подставка: табличка {w} × {h} мм и основание с наклоном {lean}°, толщина {thickness} мм; карман ⌀ {pocket} × {depth} мм под наклейку ⌀ {tag} мм.", p, o);
+export const t_nfc_tag_scad_title = (p?: Params, o?: Options) => say("Polyzon Maker — “NFC tags”", "Polyzon Maker — «NFC-метки»", p, o);

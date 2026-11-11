@@ -1,0 +1,31 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const common_meta_keywords = (p?: Params, o?: Options) => say("AI 3D model generator, text to 3D, photo to 3D, image to 3D, online 3D model generator, AI image generator, AI 3D, OpenSCAD, 3D printing, STL generator", "3D генерация, AI 3D модели, text to 3D, фото в 3D, генератор 3D моделей онлайн, AI генератор картинок, нейросеть 3D, OpenSCAD, 3D печать, STL генератор", p, o);
+export const common_og_image_alt = (p?: Params, o?: Options) => say("A printed low-poly owl figurine and the headline “3D models for printing from text, photos, or exact dimensions” — Polyzon Maker", "Напечатанная low-poly фигурка совы и заголовок «Генератор 3D-моделей по описанию и фото» — Polyzon Maker", p, o);
+export const common_copy_failed = (p?: Params, o?: Options) => say("Couldn't copy — {selected}", "Не удалось скопировать — {selected}", p, o);
+export const common_copy_failed_how = (p?: Params, o?: Options) => say("Couldn't copy — {selected}, {how}", "Не удалось скопировать — {selected}, {how}", p, o);
+export const common_copy_press = (p?: Params, o?: Options) => say("press {keys}", "нажмите {keys}", p, o);
+export const common_copy_manually = (p?: Params, o?: Options) => say("copy it manually", "скопируйте вручную", p, o);
+export const common_count_tokens = (p?: Params, o?: Options) => say({"one":"{n} token","other":"{n} tokens"}, {"one":"{n} токен","few":"{n} токена","many":"{n} токенов","other":"{n} токена"}, p, o);
+export const common_count_tokens_from = (p?: Params, o?: Options) => say({"one":"from {n} token","other":"from {n} tokens"}, {"one":"от {n} токена","few":"от {n} токенов","many":"от {n} токенов","other":"от {n} токена"}, p, o);
+export const common_count_models = (p?: Params, o?: Options) => say({"one":"{n} 3D model","other":"{n} 3D models"}, {"one":"{n} 3D-модель","few":"{n} 3D-модели","many":"{n} 3D-моделей","other":"{n} 3D-модели"}, p, o);
+export const common_count_images = (p?: Params, o?: Options) => say({"one":"{n} image","other":"{n} images"}, {"one":"{n} изображение","few":"{n} изображения","many":"{n} изображений","other":"{n} изображения"}, p, o);
+export const common_count_generations = (p?: Params, o?: Options) => say({"one":"{n} generation","other":"{n} generations"}, {"one":"{n} генерация","few":"{n} генерации","many":"{n} генераций","other":"{n} генерации"}, p, o);
+export const common_count_messages = (p?: Params, o?: Options) => say({"one":"{n} message","other":"{n} messages"}, {"one":"{n} сообщение","few":"{n} сообщения","many":"{n} сообщений","other":"{n} сообщения"}, p, o);
+export const common_skip_to_content = (p?: Params, o?: Options) => say("Skip to content", "Перейти к содержимому", p, o);
+export const common_brand_home = (p?: Params, o?: Options) => say("Polyzon Maker Beta — homepage", "Polyzon Maker Beta — на главную", p, o);
+export const common_close = (p?: Params, o?: Options) => say("Close", "Закрыть", p, o);
+export const common_cancel = (p?: Params, o?: Options) => say("Cancel", "Отмена", p, o);
+export const common_toast_close = (p?: Params, o?: Options) => say("Dismiss notification", "Закрыть уведомление", p, o);
+export const common_tooltip_label = (p?: Params, o?: Options) => say("More info", "Подсказка", p, o);
+export const common_splitter_label = (p?: Params, o?: Options) => say("Resize panel", "Изменить ширину панели", p, o);
+export const common_cookie_label = (p?: Params, o?: Options) => say("Cookie notice", "Уведомление об использовании cookies", p, o);
+export const common_cookie_short = (p?: Params, o?: Options) => say("This site uses cookies. {link}", "Сайт использует cookies. {link}", p, o);
+export const common_cookie_short_link = (p?: Params, o?: Options) => say("Learn more", "Подробнее", p, o);
+export const common_cookie_full = (p?: Params, o?: Options) => say("We use cookies to run the site (your session and referral attribution). Learn more in our {link}.", "Мы используем cookies для работы сайта (сессия пользователя, реферальная атрибуция). Подробнее — в {link}.", p, o);
+export const common_cookie_full_link = (p?: Params, o?: Options) => say("Cookie Policy", "Политике использования cookies", p, o);
+export const common_cookie_accept = (p?: Params, o?: Options) => say("Got it", "Понятно", p, o);
+export const common_cookie_metrica = (p?: Params, o?: Options) => say("Cookies for sign-in and settings are always on. We'll add Yandex Metrica, a visitor counter, only if you allow it. Learn more in our {link}.", "Cookies для входа и настроек работают всегда. Яндекс Метрику — счётчик посещений — подключим, только если разрешите. Подробнее — в {link}.", p, o);
+export const common_cookie_decline = (p?: Params, o?: Options) => say("Necessary only", "Только необходимые", p, o);
+export const common_cookie_allow = (p?: Params, o?: Options) => say("Allow", "Разрешить", p, o);

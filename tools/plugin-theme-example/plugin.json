@@ -1,0 +1,32 @@
+{
+	"id": "sand",
+	"name": "Песок",
+	"version": "1.0.0",
+	"author": "Polyzon",
+	"description": "Тёплая светлая тема. Пример плагина, который только красит: в нём нет ничего, кроме этого файла.",
+	"contributes": {
+		"themes": [
+			{
+				"id": "sand",
+				"title": "Песок",
+				"base": "light",
+				"colors": {
+					"--bg": "#f6f1e7",
+					"--chrome": "#ece4d4",
+					"--surface": "#f6f1e7",
+					"--surface-2": "#ece4d4",
+					"--surface-3": "#e4dac6",
+					"--surface-4": "#d8ccb4",
+					"--button": "#ddd1bb",
+					"--button-hover": "#d2c4aa",
+					"--ink": "#2b2418",
+					"--ink-muted": "#5e5140",
+					"--ink-faint": "#6d5f4b",
+					"--line": "#2b24181a",
+					"--on-ink": "#f6f1e7",
+					"--viewer": "#f6f1e7"
+				}
+			}
+		]
+	}
+}

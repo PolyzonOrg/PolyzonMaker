@@ -1,0 +1,81 @@
+{
+	"$schema": "https://schema.tauri.app/config/2",
+	"productName": "Polyzon Maker",
+	"version": "0.3.2",
+	"identifier": "org.polyzon.maker",
+	"build": {
+		"frontendDist": "../dist",
+		"devUrl": "http://localhost:5199",
+		"beforeBuildCommand": "npm run build",
+		"beforeDevCommand": "npm run dev"
+	},
+	"app": {
+		"windows": [
+			{
+				"label": "main",
+				"title": "Polyzon Maker",
+				"width": 1280,
+				"height": 820,
+				"minWidth": 720,
+				"minHeight": 520,
+				"dragDropEnabled": false,
+				"decorations": false,
+				"proxyUrl": "http://127.0.0.1:9",
+				"additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --host-resolver-rules=\"MAP * ~NOTFOUND\""
+			}
+		],
+		"security": {
+			"csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-src http://plugin.localhost plugin:"
+		}
+	},
+	"bundle": {
+		"active": true,
+		"targets": [
+			"nsis",
+			"app",
+			"dmg",
+			"deb",
+			"appimage"
+		],
+		"icon": [
+			"icons/32x32.png",
+			"icons/128x128.png",
+			"icons/128x128@2x.png",
+			"icons/icon.icns",
+			"icons/icon.ico"
+		],
+		"category": "Graphics and Design",
+		"shortDescription": "Generate 3D models on your computer and prepare them for printing",
+		"copyright": "Polyzon Maker",
+		"licenseFile": "../../../LICENSE",
+		"windows": {
+			"webviewInstallMode": {
+				"type": "downloadBootstrapper",
+				"silent": true
+			},
+			"nsis": {
+				"installMode": "currentUser",
+				"languages": [
+					"Russian",
+					"English"
+				],
+				"displayLanguageSelector": false
+			}
+		},
+		"macOS": {
+			"minimumSystemVersion": "12.0"
+		}
+	},
+	"plugins": {
+		"updater": {
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJDRUFGQTM4MzQ1NTBGMDQKUldRRUQxVTBPUHJxdko4TFUwV0hNVHF5US9USHQrcnNZazRtbjE5M1hEazBkbURkQWV4dkgva0UK",
+			"endpoints": [
+				"https://maker.polyzon.org/latest.json"
+			],
+			"windows": {
+				"installMode": "passive"
+			}
+		}
+	},
+	"mainBinaryName": "polyzon-maker"
+}

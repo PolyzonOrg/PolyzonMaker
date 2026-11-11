@@ -1,0 +1,33 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_model_text_filename = (p?: Params, o?: Options) => say("text", "nadpis", p, o);
+export const t_model_text_part_whole = (p?: Params, o?: Options) => say("Model with text", "Модель с надписью", p, o);
+export const t_model_text_3mf = (p?: Params, o?: Options) => say("3MF: text in a different color", "3MF: надпись другим цветом", p, o);
+export const t_model_text_file_hint = (p?: Params, o?: Options) => say("A closed model: STL, OBJ, 3MF, or GLB. The file never leaves this computer.", "Замкнутая модель: STL, OBJ, 3MF или GLB. Файл не покидает компьютер.", p, o);
+export const t_model_text_line = (p?: Params, o?: Options) => say("Line {n}", "Строка {n}", p, o);
+export const t_model_text_style = (p?: Params, o?: Options) => say("Style", "Как", p, o);
+export const t_model_text_style_raised = (p?: Params, o?: Options) => say("Raised", "Выпуклая", p, o);
+export const t_model_text_style_engraved = (p?: Params, o?: Options) => say("Engraved", "Вырезанная", p, o);
+export const t_model_text_raise = (p?: Params, o?: Options) => say("Height", "Выступ", p, o);
+export const t_model_text_depth = (p?: Params, o?: Options) => say("Depth", "Глубина", p, o);
+export const t_model_text_raised_hint = (p?: Params, o?: Options) => say("The letters follow the surface: on a mug or vase, they curve with it.", "Буквы повторяют поверхность: на кружке или вазе изгибаются вместе с ней.", p, o);
+export const t_model_text_engraved_hint = (p?: Params, o?: Options) => say("Only the outer wall is cut — the far side and the bottom stay untouched.", "Вырезается только наружная стенка — дальняя сторона и дно не задеты.", p, o);
+export const t_model_text_place = (p?: Params, o?: Options) => say("Placement", "Место", p, o);
+export const t_model_text_pick_done = (p?: Params, o?: Options) => say("Done", "Готово", p, o);
+export const t_model_text_pick = (p?: Params, o?: Options) => say("Click to place", "Поставить кликом", p, o);
+export const t_model_text_pick_hint = (p?: Params, o?: Options) => say("Click the model where you want the text: it goes on the nearest side, centered on your click.", "Нажмите на модель там, где нужна надпись: встанет на ближнюю сторону, по центру клика.", p, o);
+export const t_model_text_pick_or = (p?: Params, o?: Options) => say("Or set the side and position below.", "Или задайте сторону и сдвиг ниже.", p, o);
+export const t_model_text_side = (p?: Params, o?: Options) => say("Side", "Сторона", p, o);
+export const t_model_text_side_front = (p?: Params, o?: Options) => say("Front", "Спереди", p, o);
+export const t_model_text_side_back = (p?: Params, o?: Options) => say("Back", "Сзади", p, o);
+export const t_model_text_side_left = (p?: Params, o?: Options) => say("Left", "Слева", p, o);
+export const t_model_text_side_right = (p?: Params, o?: Options) => say("Right", "Справа", p, o);
+export const t_model_text_side_top = (p?: Params, o?: Options) => say("Top", "Сверху", p, o);
+export const t_model_text_side_bottom = (p?: Params, o?: Options) => say("Bottom", "Снизу", p, o);
+export const t_model_text_across = (p?: Params, o?: Options) => say("Move right", "Вправо", p, o);
+export const t_model_text_up = (p?: Params, o?: Options) => say("Move up", "Вверх", p, o);
+export const t_model_text_angle = (p?: Params, o?: Options) => say("Rotation", "Поворот", p, o);
+export const t_model_text_empty = (p?: Params, o?: Options) => say("Open a model — we'll add raised or engraved text that follows its surface.", "Откройте модель — добавим на неё надпись, выпуклую или вырезанную, по форме поверхности.", p, o);
+export const t_model_text_no_text = (p?: Params, o?: Options) => say("Type some text — there's nothing to place yet.", "Напишите текст — пока надписи нет.", p, o);
+export const t_model_text_misses = (p?: Params, o?: Options) => say("The text misses the model — move it or choose another side.", "Надпись не попадает на модель — сдвиньте её или выберите другую сторону.", p, o);

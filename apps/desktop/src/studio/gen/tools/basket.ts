@@ -1,0 +1,33 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_basket_preset_fruit = (p?: Params, o?: Options) => say("Fruit", "Для фруктов", p, o);
+export const t_basket_preset_bath = (p?: Params, o?: Options) => say("Bathroom", "Для ванной", p, o);
+export const t_basket_preset_desk = (p?: Params, o?: Options) => say("Desk", "На стол", p, o);
+export const t_basket_preset_pens = (p?: Params, o?: Options) => say("Pen cup", "Стакан для ручек", p, o);
+export const t_basket_filename = (p?: Params, o?: Options) => say("basket", "korzina", p, o);
+export const t_basket_group_shape_size = (p?: Params, o?: Options) => say("Shape and size", "Форма и размер", p, o);
+export const t_basket_shape_rect = (p?: Params, o?: Options) => say("Rectangular", "Прямоугольная", p, o);
+export const t_basket_shape_round = (p?: Params, o?: Options) => say("Round", "Круглая", p, o);
+export const t_basket_pattern_hex = (p?: Params, o?: Options) => say("Honeycomb", "Соты", p, o);
+export const t_basket_pattern_diamond = (p?: Params, o?: Options) => say("Diamonds", "Ромбы", p, o);
+export const t_basket_pattern_slots = (p?: Params, o?: Options) => say("Slots", "Прорези", p, o);
+export const t_basket_pattern_none = (p?: Params, o?: Options) => say("Solid", "Сплошные", p, o);
+export const t_basket_pattern_hint = (p?: Params, o?: Options) => say("Every opening has a pointed top, so the basket prints without supports.", "Верх каждого отверстия заострён — корзина печатается без поддержек.", p, o);
+export const t_basket_bar = (p?: Params, o?: Options) => say("Bar width", "Перемычка", p, o);
+export const t_basket_bar_hint = (p?: Params, o?: Options) => say("At least four nozzle widths: 1.6 mm for a 0.4 mm nozzle.", "Не тоньше четырёх линий сопла: 1,6 мм для 0,4.", p, o);
+export const t_basket_rim = (p?: Params, o?: Options) => say("Solid rim at the top", "Сплошной край сверху", p, o);
+export const t_basket_band = (p?: Params, o?: Options) => say("Solid band at the bottom", "Сплошная полоса снизу", p, o);
+export const t_basket_floor_holes = (p?: Params, o?: Options) => say("Honeycomb bottom", "Дно в сотах", p, o);
+export const t_basket_floor_holes_hint = (p?: Params, o?: Options) => say("Water drains out and things dry; a solid margin stays around the edge of the bottom.", "Вода стекает, вещи сохнут; по краю дна остаётся сплошное поле.", p, o);
+export const t_basket_summary_size_round = (p?: Params, o?: Options) => say("⌀ {d} × {h} mm", "⌀ {d} × {h} мм", p, o);
+export const t_basket_summary_size_rect = (p?: Params, o?: Options) => say("{w} × {d} × {h} mm", "{w} × {d} × {h} мм", p, o);
+export const t_basket_summary_hex = (p?: Params, o?: Options) => say("honeycomb", "соты", p, o);
+export const t_basket_summary_diamond = (p?: Params, o?: Options) => say("diamonds", "ромбы", p, o);
+export const t_basket_summary_slots = (p?: Params, o?: Options) => say("slots", "прорези", p, o);
+export const t_basket_summary_none = (p?: Params, o?: Options) => say("solid walls", "сплошные стенки", p, o);
+export const t_basket_summary_holes = (p?: Params, o?: Options) => say({"one":"{n} opening in the walls","other":"{n} openings in the walls"}, {"one":"{n} отверстие в стенках","few":"{n} отверстия в стенках","many":"{n} отверстий в стенках","other":"{n} отверстия в стенках"}, p, o);
+export const t_basket_summary_floor_holes = (p?: Params, o?: Options) => say("honeycomb bottom", "дно в сотах", p, o);
+export const t_basket_scad_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Baskets”", "Polyzon Maker — «Корзины»", p, o);
+export const t_basket_scad_dims = (p?: Params, o?: Options) => say("Wall {wall} mm, bottom {floor} mm, opening {hole} mm, bar {bar} mm", "Стенка {wall} мм, дно {floor} мм, отверстие {hole} мм, перемычка {bar} мм", p, o);
+export const t_basket_scad_print = (p?: Params, o?: Options) => say("Prints upright, no supports: the openings have pointed tops", "Печатается стоя, без поддержек: отверстия сверху заострены", p, o);

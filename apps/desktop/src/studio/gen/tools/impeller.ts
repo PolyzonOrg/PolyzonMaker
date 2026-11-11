@@ -1,0 +1,32 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_impeller_preset_blower = (p?: Params, o?: Options) => say("60 mm blower", "Улитка 60 мм", p, o);
+export const t_impeller_preset_radial = (p?: Params, o?: Options) => say("Radial blades", "Радиальные лопатки", p, o);
+export const t_impeller_preset_forward = (p?: Params, o?: Options) => say("80 mm squirrel cage", "Барабанная 80 мм", p, o);
+export const t_impeller_preset_motor = (p?: Params, o?: Options) => say("5 mm D-shaft motor", "На мотор 5 мм с лыской", p, o);
+export const t_impeller_shape_backward = (p?: Params, o?: Options) => say("Backward-curved", "Загнутые назад", p, o);
+export const t_impeller_shape_radial = (p?: Params, o?: Options) => say("Straight", "Прямые", p, o);
+export const t_impeller_shape_forward = (p?: Params, o?: Options) => say("Forward-curved", "Загнутые вперёд", p, o);
+export const t_impeller_shape_backward_hint = (p?: Params, o?: Options) => say("Quieter and more efficient: spin it so the blade tips trail behind.", "Тише и экономнее: вращайте так, чтобы концы лопаток отставали.", p, o);
+export const t_impeller_shape_radial_hint = (p?: Params, o?: Options) => say("Spins either way and is the easiest to print.", "Крутится в обе стороны, проще всего в печати.", p, o);
+export const t_impeller_shape_forward_hint = (p?: Params, o?: Options) => say("Lots of air at low speed, like a squirrel-cage fan; the blade tips lead.", "Много воздуха при малых оборотах — как в барабанных вентиляторах; концы лопаток идут впереди.", p, o);
+export const t_impeller_filename = (p?: Params, o?: Options) => say("impeller", "krylchatka", p, o);
+export const t_impeller_group_blades = (p?: Params, o?: Options) => say("Blades", "Лопатки", p, o);
+export const t_impeller_blades = (p?: Params, o?: Options) => say("Number of blades", "Лопаток", p, o);
+export const t_impeller_blade = (p?: Params, o?: Options) => say("Blade thickness", "Толщина лопатки", p, o);
+export const t_impeller_eye = (p?: Params, o?: Options) => say("Center inlet", "Вход в центре", p, o);
+export const t_impeller_eye_hint = (p?: Params, o?: Options) => say("The share of the diameter left free of blades — air is drawn in there.", "Доля диаметра без лопаток — оттуда засасывается воздух.", p, o);
+export const t_impeller_disc = (p?: Params, o?: Options) => say("Disc thickness", "Диск", p, o);
+export const t_impeller_group_shaft = (p?: Params, o?: Options) => say("Shaft", "Вал", p, o);
+export const t_impeller_bore = (p?: Params, o?: Options) => say("Shaft diameter", "Вал", p, o);
+export const t_impeller_d_flat = (p?: Params, o?: Options) => say("D-shaft (with a flat)", "Лыска на валу", p, o);
+export const t_impeller_hub = (p?: Params, o?: Options) => say("Hub diameter", "Ступица", p, o);
+export const t_impeller_hub_height = (p?: Params, o?: Options) => say("Hub height", "Высота ступицы", p, o);
+export const t_impeller_blades_radial = (p?: Params, o?: Options) => say({"one":"{n} radial blade","other":"{n} radial blades"}, {"one":"{n} радиальная лопатка","few":"{n} лопатки радиальных","many":"{n} лопаток радиальных","other":"{n} лопатки радиальных"}, p, o);
+export const t_impeller_blades_backward = (p?: Params, o?: Options) => say({"one":"{n} backward-curved blade","other":"{n} backward-curved blades"}, {"one":"{n} загнутая назад лопатка","few":"{n} лопатки загнутых назад","many":"{n} лопаток загнутых назад","other":"{n} лопатки загнутых назад"}, p, o);
+export const t_impeller_blades_forward = (p?: Params, o?: Options) => say({"one":"{n} forward-curved blade","other":"{n} forward-curved blades"}, {"one":"{n} загнутая вперёд лопатка","few":"{n} лопатки загнутых вперёд","many":"{n} лопаток загнутых вперёд","other":"{n} лопатки загнутых вперёд"}, p, o);
+export const t_impeller_summary = (p?: Params, o?: Options) => say("⌀ {diameter} mm, {blades} {height} mm tall, ⌀ {bore} mm shaft.", "⌀ {diameter} мм, {blades} высотой {height} мм, вал ⌀ {bore} мм.", p, o);
+export const t_impeller_summary_flat = (p?: Params, o?: Options) => say("⌀ {diameter} mm, {blades} {height} mm tall, ⌀ {bore} mm D-shaft.", "⌀ {diameter} мм, {blades} высотой {height} мм, вал ⌀ {bore} мм с лыской.", p, o);
+export const t_impeller_header_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Impellers”", "Polyzon Maker — «Крыльчатки»", p, o);
+export const t_impeller_header_print = (p?: Params, o?: Options) => say("Prints on the disc, blades up; backward-curved is quieter and more efficient, forward-curved moves more air", "Печатается на диске, лопатки вверх; загнутые назад — тише и экономнее, вперёд — больше воздуха", p, o);

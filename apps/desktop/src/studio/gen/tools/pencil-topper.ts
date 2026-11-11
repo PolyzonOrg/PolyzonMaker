@@ -1,0 +1,36 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_pencil_topper_default_names = (p?: Params, o?: Options) => say("Emma", "Маша", p, o);
+export const t_pencil_topper_preset_hex = (p?: Params, o?: Options) => say("Hex pencil", "На шестигранный карандаш", p, o);
+export const t_pencil_topper_preset_round = (p?: Params, o?: Options) => say("Round pencil", "На круглый карандаш", p, o);
+export const t_pencil_topper_preset_jumbo = (p?: Params, o?: Options) => say("Jumbo pencil", "На толстый карандаш", p, o);
+export const t_pencil_topper_preset_straw = (p?: Params, o?: Options) => say("Straw", "На трубочку", p, o);
+export const t_pencil_topper_preset_class = (p?: Params, o?: Options) => say("Class set", "Набор на класс", p, o);
+export const t_pencil_topper_preset_class_names = (p?: Params, o?: Options) => say("Emma, Liam, Olivia, Noah, Ava, Leo", "Маша, Петя, Аня, Дима, Соня, Лёва", p, o);
+export const t_pencil_topper_part_base = (p?: Params, o?: Options) => say("Backing and sleeve", "Подложка и рукав", p, o);
+export const t_pencil_topper_part_letters = (p?: Params, o?: Options) => say("Letters", "Буквы", p, o);
+export const t_pencil_topper_part_single = (p?: Params, o?: Options) => say("Topper", "Насадка", p, o);
+export const t_pencil_topper_summary_set = (p?: Params, o?: Options) => say({"one":"{n} topper on one bed","other":"{n} toppers on one bed"}, {"one":"{n} насадка на одном столе","few":"{n} насадки на одном столе","many":"{n} насадок на одном столе","other":"{n} насадки на одном столе"}, p, o);
+export const t_pencil_topper_summary_single = (p?: Params, o?: Options) => say("Topper", "Насадка", p, o);
+export const t_pencil_topper_summary_hex = (p?: Params, o?: Options) => say("{size} mm hex across flats", "шестигранник {size} мм под ключ", p, o);
+export const t_pencil_topper_summary_round = (p?: Params, o?: Options) => say("⌀ {size} mm hole", "отверстие ⌀ {size} мм", p, o);
+export const t_pencil_topper_summary = (p?: Params, o?: Options) => say("{what}: {hole}, {depth} mm deep.", "{what}: {hole}, глубина {depth} мм.", p, o);
+export const t_pencil_topper_summary_colour = (p?: Params, o?: Options) => say("Change filament at {height} mm to print the letters in another color.", "Смените пластик на высоте {height} мм — буквы станут другого цвета.", p, o);
+export const t_pencil_topper_scad_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Pencil toppers”", "Polyzon Maker — «Насадки на карандаш»", p, o);
+export const t_pencil_topper_scad_names = (p?: Params, o?: Options) => say("Names: {names}", "Имена: {names}", p, o);
+export const t_pencil_topper_filename = (p?: Params, o?: Options) => say("pencil-toppers", "nasadki-na-karandash", p, o);
+export const t_pencil_topper_3mf_failed = (p?: Params, o?: Options) => say("Couldn't build the 3MF.", "Не удалось собрать 3MF.", p, o);
+export const t_pencil_topper_hole_hex = (p?: Params, o?: Options) => say("Hex", "Шестигранник", p, o);
+export const t_pencil_topper_hole_round = (p?: Params, o?: Options) => say("Round", "Круглое", p, o);
+export const t_pencil_topper_names = (p?: Params, o?: Options) => say("Name", "Имя", p, o);
+export const t_pencil_topper_names_hint = (p?: Params, o?: Options) => say("Separate several names with commas to get a set on one bed.", "Несколько имён через запятую — набор на одном столе.", p, o);
+export const t_pencil_topper_max_width = (p?: Params, o?: Options) => say("Max width", "Ширина не больше", p, o);
+export const t_pencil_topper_max_width_hint = (p?: Params, o?: Options) => say("A long name shrinks to fit.", "Длинное имя уменьшится, чтобы влезть.", p, o);
+export const t_pencil_topper_outline = (p?: Params, o?: Options) => say("Backing under the letters", "Подложка под буквами", p, o);
+export const t_pencil_topper_outline_hint = (p?: Params, o?: Options) => say("Letters on a rounded backing; change filament at its top surface to get two colors.", "Буквы на скруглённой подложке; сменив пластик на её верхе, получите два цвета.", p, o);
+export const t_pencil_topper_size_hex = (p?: Params, o?: Options) => say("Pencil across flats", "Карандаш под ключ", p, o);
+export const t_pencil_topper_size_round = (p?: Params, o?: Options) => say("Pencil diameter", "Диаметр карандаша", p, o);
+export const t_pencil_topper_size_hex_hint = (p?: Params, o?: Options) => say("Between opposite faces. A standard pencil is 7 mm.", "Между противоположными гранями. У обычного карандаша — 7 мм.", p, o);
+export const t_pencil_topper_size_round_hint = (p?: Params, o?: Options) => say("A regular round pencil is 7.5 mm, a straw 6, a jumbo pencil 10.", "Обычный круглый — 7,5 мм, трубочка — 6, толстый карандаш — 10.", p, o);
+export const t_pencil_topper_clearance_hint = (p?: Params, o?: Options) => say("Too tight — increase it; loose — decrease it.", "Туго — прибавьте, болтается — убавьте.", p, o);

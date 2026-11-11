@@ -1,0 +1,35 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_bed_mesh_lead = (p?: Params, o?: Options) => say("Paste the mesh your printer probed — you'll see where the bed is high and low, and how far to turn each screw. Nothing is uploaded.", "Вставьте сетку, которую снял принтер, — увидите, где стол выше и ниже, и сколько повернуть каждый винт. Ничего не отправляется.", p, o);
+export const t_bed_mesh_input_title = (p?: Params, o?: Options) => say("Mesh from the console", "Сетка из консоли", p, o);
+export const t_bed_mesh_input_label = (p?: Params, o?: Options) => say("Printer output", "Вывод принтера", p, o);
+export const t_bed_mesh_input_placeholder = (p?: Params, o?: Options) => say("Klipper: BED_MESH_OUTPUT. Marlin: G29 T or M420 V.", "Klipper: BED_MESH_OUTPUT. Marlin: G29 T или M420 V.", p, o);
+export const t_bed_mesh_input_hint = (p?: Params, o?: Options) => say("Copy it from the Mainsail, Fluidd, OctoPrint, or Pronterface console — extra lines are fine.", "Скопируйте из консоли Mainsail, Fluidd, OctoPrint или Pronterface — лишние строки не мешают.", p, o);
+export const t_bed_mesh_sample = (p?: Params, o?: Options) => say("Example", "Пример", p, o);
+export const t_bed_mesh_first_row = (p?: Params, o?: Options) => say("First row in the output", "Первая строка в выводе", p, o);
+export const t_bed_mesh_first_row_front = (p?: Params, o?: Options) => say("Front edge of the bed", "Ближний край стола", p, o);
+export const t_bed_mesh_first_row_back = (p?: Params, o?: Options) => say("Back edge of the bed", "Дальний край стола", p, o);
+export const t_bed_mesh_first_row_hint = (p?: Params, o?: Options) => say("Detected from the header: Klipper's “Measured points” and Marlin UBL start with the back row; “Probed Z positions” and Marlin G29 T start with the front row.", "Подбирается само по заголовку: у Klipper «Measured points» и Marlin UBL первым идёт дальний ряд, у «Probed Z positions» и Marlin G29 T — ближний.", p, o);
+export const t_bed_mesh_not_found = (p?: Params, o?: Options) => say("No mesh found: it needs rows of numbers like 0.025, with the same count in each row.", "Не нашли сетку: нужны строки из чисел вида 0.025, по одинаковому количеству в каждой.", p, o);
+export const t_bed_mesh_map_title = (p?: Params, o?: Options) => say("Map", "Карта", p, o);
+export const t_bed_mesh_map_lead = (p?: Params, o?: Options) => say("Top view: the back edge of the bed is at the top.", "Вид сверху: дальний край стола — вверху.", p, o);
+export const t_bed_mesh_lowest = (p?: Params, o?: Options) => say("lowest {value} mm", "ниже всего {value} мм", p, o);
+export const t_bed_mesh_highest = (p?: Params, o?: Options) => say("highest {value} mm", "выше всего {value} мм", p, o);
+export const t_bed_mesh_range = (p?: Params, o?: Options) => say("Range across the bed", "Разброс по столу", p, o);
+export const t_bed_mesh_range_value = (p?: Params, o?: Options) => say("{value} mm", "{value} мм", p, o);
+export const t_bed_mesh_verdict_excellent = (p?: Params, o?: Options) => say("Excellent: the bed is almost perfectly flat.", "Отлично: стол почти идеально ровный.", p, o);
+export const t_bed_mesh_verdict_good = (p?: Params, o?: Options) => say("Good: the bed mesh will easily compensate for this.", "Хорошо: сетка выравнивания легко это скомпенсирует.", p, o);
+export const t_bed_mesh_verdict_fair = (p?: Params, o?: Options) => say("Acceptable: the mesh will compensate, but it's better to adjust the screws.", "Терпимо: сетка компенсирует, но лучше подкрутить винты.", p, o);
+export const t_bed_mesh_verdict_poor = (p?: Params, o?: Options) => say("Too much: level the bed with the screws, then probe a new mesh.", "Много: выставьте стол винтами, потом снимите сетку заново.", p, o);
+export const t_bed_mesh_screws_title = (p?: Params, o?: Options) => say("Corner screws", "Винты по углам", p, o);
+export const t_bed_mesh_screw_thread = (p?: Params, o?: Options) => say("Screw thread", "Резьба винтов", p, o);
+export const t_bed_mesh_corner_back_left = (p?: Params, o?: Options) => say("Back left", "Сзади слева", p, o);
+export const t_bed_mesh_corner_back_right = (p?: Params, o?: Options) => say("Back right", "Сзади справа", p, o);
+export const t_bed_mesh_corner_front_left = (p?: Params, o?: Options) => say("Front left", "Спереди слева", p, o);
+export const t_bed_mesh_corner_front_right = (p?: Params, o?: Options) => say("Front right", "Спереди справа", p, o);
+export const t_bed_mesh_screw_keep = (p?: Params, o?: Options) => say("Leave as is", "Не трогать", p, o);
+export const t_bed_mesh_screw_lower = (p?: Params, o?: Options) => say("Lower by {value} mm", "Опустить на {value} мм", p, o);
+export const t_bed_mesh_screw_raise = (p?: Params, o?: Options) => say("Raise by {value} mm", "Поднять на {value} мм", p, o);
+export const t_bed_mesh_screw_turns = (p?: Params, o?: Options) => say("{turns} turns · {minutes} min", "{turns} оборота · {minutes} мин", p, o);
+export const t_bed_mesh_screws_hint = (p?: Params, o?: Options) => say("Each corner is compared with the average of all four. “Minutes” work like a clock face: a quarter turn is 15. Which way to turn depends on the printer: try one screw, then probe a new mesh.", "Углы сравниваются со средним по четырём. «Минуты» — как на циферблате: четверть оборота — 15. В какую сторону крутить, зависит от принтера: проверьте на одном винте и снимите сетку заново.", p, o);

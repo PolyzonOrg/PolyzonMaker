@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Подставка</title>
+<style>
+	:root {
+		color-scheme: light dark;
+		font: 13px system-ui, sans-serif;
+	}
+	body {
+		margin: 0;
+		padding: 12px 14px;
+		display: grid;
+		gap: 6px;
+	}
+	p {
+		margin: 0;
+	}
+	.faint {
+		opacity: 0.7;
+	}
+</style>
+<script src="maker.js"></script>
+<script src="footprint.js"></script>
+
+<p id="size">…</p>
+<p class="faint" id="advice"></p>
+
+<script>
+	// the panel follows the model on the page: each new one is measured
+	async function show({ job }) {
+		try {
+			const { wide, deep, high } = await footprint(job);
+			document.getElementById('size').textContent = `Основание ${wide} × ${deep} мм, высота ${high} мм`;
+			document.getElementById('advice').textContent = `Подставка под неё: ⌀ ${Math.max(wide, deep) + 10} мм. Команда «Подставка под модель» внизу сделает её.`;
+		} catch (error) {
+			document.getElementById('size').textContent = error.message;
+		}
+	}
+	maker.on('context', show);
+</script>

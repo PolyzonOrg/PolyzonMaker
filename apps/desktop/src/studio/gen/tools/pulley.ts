@@ -1,0 +1,36 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_pulley_preset_gt2_20 = (p?: Params, o?: Options) => say("GT2 20T, 5 mm bore", "GT2 20 зубьев, вал 5", p, o);
+export const t_pulley_preset_gt2_40 = (p?: Params, o?: Options) => say("GT2 40T", "GT2 40 зубьев", p, o);
+export const t_pulley_preset_idler = (p?: Params, o?: Options) => say("GT2 idler, no hub", "Ролик GT2 без хаба", p, o);
+export const t_pulley_preset_htd5_30 = (p?: Params, o?: Options) => say("HTD 5M 30T", "HTD 5M 30 зубьев", p, o);
+export const t_pulley_preset_t5_20 = (p?: Params, o?: Options) => say("T5 20T", "T5 20 зубьев", p, o);
+export const t_pulley_group_belt = (p?: Params, o?: Options) => say("Belt and teeth", "Ремень и зубья", p, o);
+export const t_pulley_belt = (p?: Params, o?: Options) => say("Belt", "Ремень", p, o);
+export const t_pulley_belt_hint = (p?: Params, o?: Options) => say("GT2 is the 3D printer belt; HTD is a power belt with round teeth; MXL and T have trapezoidal teeth.", "GT2 — ремни 3D-принтеров; HTD — силовые, с круглым зубом; MXL и T — трапециевидные.", p, o);
+export const t_pulley_teeth = (p?: Params, o?: Options) => say("Teeth", "Зубьев", p, o);
+export const t_pulley_belt_width = (p?: Params, o?: Options) => say("Belt width", "Ширина ремня", p, o);
+export const t_pulley_belt_width_hint = (p?: Params, o?: Options) => say("Common widths for this belt: {belts} mm.", "Обычные ширины для этого ремня: {belts} мм.", p, o);
+export const t_pulley_play = (p?: Params, o?: Options) => say("Tooth clearance", "Зазор в зубьях", p, o);
+export const t_pulley_play_hint = (p?: Params, o?: Options) => say("If the belt goes on tight, add 0.05 mm.", "Если ремень садится туго — прибавьте 0,05 мм.", p, o);
+export const t_pulley_flanges = (p?: Params, o?: Options) => say("Flanges", "Бортики", p, o);
+export const t_pulley_flanges_hint = (p?: Params, o?: Options) => say("They keep the belt from slipping off; the top one sits on a 45° cone.", "Не дают ремню соскочить; верхний стоит на конусе 45°.", p, o);
+export const t_pulley_summary = (p?: Params, o?: Options) => say({"one":"{belt}, {n} tooth: pitch ⌀ {pitch} mm, outside ⌀ {outer} mm; belt up to {width} mm, bore ⌀ {bore} mm.","other":"{belt}, {n} teeth: pitch ⌀ {pitch} mm, outside ⌀ {outer} mm; belt up to {width} mm, bore ⌀ {bore} mm."}, {"one":"{belt}, {n} зуб: делительный ⌀ {pitch} мм, по зубьям ⌀ {outer} мм; ремень до {width} мм, вал ⌀ {bore} мм.","few":"{belt}, {n} зуба: делительный ⌀ {pitch} мм, по зубьям ⌀ {outer} мм; ремень до {width} мм, вал ⌀ {bore} мм.","many":"{belt}, {n} зубьев: делительный ⌀ {pitch} мм, по зубьям ⌀ {outer} мм; ремень до {width} мм, вал ⌀ {bore} мм.","other":"{belt}, {n} зуба: делительный ⌀ {pitch} мм, по зубьям ⌀ {outer} мм; ремень до {width} мм, вал ⌀ {bore} мм."}, p, o);
+export const t_pulley_group_shaft = (p?: Params, o?: Options) => say("Shaft and hub", "Вал и хаб", p, o);
+export const t_pulley_bore = (p?: Params, o?: Options) => say("Bore", "Вал", p, o);
+export const t_pulley_d_flat = (p?: Params, o?: Options) => say("D-flat on the shaft", "Лыска на валу", p, o);
+export const t_pulley_d_flat_hint = (p?: Params, o?: Options) => say("For motor shafts with a D-cut (NEMA 17: 5 mm with a 0.5 mm flat).", "Для валов моторов с D-срезом (NEMA 17 — 5 мм с лыской 0,5 мм).", p, o);
+export const t_pulley_hub = (p?: Params, o?: Options) => say("Hub", "Хаб", p, o);
+export const t_pulley_hub_diameter = (p?: Params, o?: Options) => say("Hub diameter", "Диаметр хаба", p, o);
+export const t_pulley_hub_height = (p?: Params, o?: Options) => say("Hub height", "Высота хаба", p, o);
+export const t_pulley_set_screw = (p?: Params, o?: Options) => say("M3 set screw", "Стопорный винт M3", p, o);
+export const t_pulley_set_screw_hint = (p?: Params, o?: Options) => say("A hole across the hub and a slot for an M3 square nut, open at the end.", "Отверстие поперёк хаба и паз под квадратную гайку M3 с торца.", p, o);
+export const t_pulley_scad_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Timing pulleys”", "Polyzon Maker — «Зубчатые шкивы»", p, o);
+export const t_pulley_scad_play = (p?: Params, o?: Options) => say("Tooth clearance {play} mm", "Зазор в зубьях {play} мм", p, o);
+export const t_pulley_scad_play_set_screw = (p?: Params, o?: Options) => say("Tooth clearance {play} mm, M3 set screw with nut", "Зазор в зубьях {play} мм, стопорный винт M3 с гайкой", p, o);
+export const t_pulley_scad_print_hub = (p?: Params, o?: Options) => say("Prints standing on the end of the hub — no supports", "Печатается на торце хаба — без поддержек", p, o);
+export const t_pulley_scad_print_hub_flange = (p?: Params, o?: Options) => say("Prints standing on the end of the hub, top flange on a 45° cone — no supports", "Печатается на торце хаба, верхний бортик на конусе 45° — без поддержек", p, o);
+export const t_pulley_scad_print_bed = (p?: Params, o?: Options) => say("Prints with the bottom face on the bed — no supports", "Печатается нижним торцом на столе — без поддержек", p, o);
+export const t_pulley_scad_print_bed_flange = (p?: Params, o?: Options) => say("Prints with the bottom face on the bed, top flange on a 45° cone — no supports", "Печатается нижним торцом на столе, верхний бортик на конусе 45° — без поддержек", p, o);
+export const t_pulley_filename = (p?: Params, o?: Options) => say("pulley", "shkiv", p, o);

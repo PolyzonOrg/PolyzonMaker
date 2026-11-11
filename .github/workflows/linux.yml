@@ -1,0 +1,63 @@
+# Polyzon Maker for Linux (AppImage and deb), built on a GitHub Ubuntu 22.04 by hand only (Actions → Linux build →
+# Run workflow). Unsigned: the update signatures are made with the key on the build PC, which never comes here.
+# No secrets, nothing published. The files stay here as an artifact for a week.
+name: Linux build
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System packages
+        timeout-minutes: 20
+        run: |
+          # On 2026-11-11 the runner's resolver found no ubuntu.com name at all (Azure's mirror, the archive,
+          # security) while others resolved, and every package waited 20 s. Ubuntu's own archive, and where its
+          # names do not resolve, their addresses from DNS over HTTPS
+          for host in archive.ubuntu.com security.ubuntu.com; do
+            getent hosts "$host" > /dev/null && continue
+            ip="$(curl -sf --max-time 20 -H 'accept: application/dns-json' "https://cloudflare-dns.com/dns-query?name=$host&type=A" | jq -r '[.Answer[] | select(.type == 1)][0].data')"
+            echo "$host does not resolve here: $ip from DNS over HTTPS"
+            echo "$ip $host" | sudo tee -a /etc/hosts > /dev/null
+          done
+          for suite in jammy jammy-updates jammy-backports; do
+            echo "deb http://archive.ubuntu.com/ubuntu $suite main restricted universe multiverse"
+          done | sudo tee /etc/apt/sources.list > /dev/null
+          echo "deb http://security.ubuntu.com/ubuntu jammy-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list > /dev/null
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "30";' | sudo tee /etc/apt/apt.conf.d/80-retries > /dev/null
+          sudo apt-get update -q
+          # build_app.py's LINUX_PACKAGES, the tray's indicator (loaded only where a tray is shown), what the
+          # AppImage tools need without FUSE, and a screen for the start below
+          sudo apt-get install -y -q libwebkit2gtk-4.1-dev build-essential curl file libxdo-dev libssl-dev librsvg2-dev \
+            libayatana-appindicator3-dev patchelf libfuse2 xvfb
+
+      - name: Build AppImage and deb
+        run: sh apps/desktop/build.sh
+
+      - name: Look at what was built
+        run: |
+          ls -la apps/desktop/release/
+          dpkg-deb --info apps/desktop/release/*.deb | grep -E 'Package|Version|Depends'
+
+      - name: Start it once
+        run: |
+          app="$(ls apps/desktop/release/*.AppImage)"
+          chmod +x "$app"
+          APPIMAGE_EXTRACT_AND_RUN=1 xvfb-run -a "$app" > start.log 2>&1 &
+          sleep 30
+          if pgrep -f polyzon-maker > /dev/null; then echo "still running after 30 s"; pkill -f polyzon-maker || true; else echo "it stopped:"; cat start.log; exit 1; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: polyzon-maker-linux
+          path: |
+            apps/desktop/release/*.AppImage
+            apps/desktop/release/*.deb
+          retention-days: 7

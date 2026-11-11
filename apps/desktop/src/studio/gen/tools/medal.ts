@@ -1,0 +1,35 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_medal_preset_first = (p?: Params, o?: Options) => say("1st place", "За 1 место", p, o);
+export const t_medal_sample_place = (p?: Params, o?: Options) => say("place", "место", p, o);
+export const t_medal_sample_tournament = (p?: Params, o?: Options) => say("CHESS TOURNAMENT", "ТУРНИР ПО ШАХМАТАМ", p, o);
+export const t_medal_preset_set = (p?: Params, o?: Options) => say("Set 1–2–3", "Комплект 1–2–3", p, o);
+export const t_medal_preset_kids = (p?: Params, o?: Options) => say("Kids' party", "Детский праздник", p, o);
+export const t_medal_sample_well_done = (p?: Params, o?: Options) => say("great job", "молодец", p, o);
+export const t_medal_sample_graduation = (p?: Params, o?: Options) => say("GRADUATION", "ВЫПУСКНОЙ", p, o);
+export const t_medal_sample_kindergarten = (p?: Params, o?: Options) => say("KINDERGARTEN", "ДЕТСКИЙ САД", p, o);
+export const t_medal_preset_star = (p?: Params, o?: Options) => say("Star", "Звезда", p, o);
+export const t_medal_sample_best = (p?: Params, o?: Options) => say("the best", "лучший", p, o);
+export const t_medal_preset_token = (p?: Params, o?: Options) => say("Coin", "Жетон", p, o);
+export const t_medal_medal = (p?: Params, o?: Options) => say("Medal", "Медаль", p, o);
+export const t_medal_shape_round = (p?: Params, o?: Options) => say("Round", "Круглая", p, o);
+export const t_medal_shape_star = (p?: Params, o?: Options) => say("Star", "Звезда", p, o);
+export const t_medal_mount_ribbon = (p?: Params, o?: Options) => say("Ribbon slot", "Под ленту", p, o);
+export const t_medal_mount_loop = (p?: Params, o?: Options) => say("Loop", "Ушко", p, o);
+export const t_medal_mount_token = (p?: Params, o?: Options) => say("Coin", "Жетон", p, o);
+export const t_medal_laurel = (p?: Params, o?: Options) => say("Laurel branch", "Лавровая ветвь", p, o);
+export const t_medal_inscriptions = (p?: Params, o?: Options) => say("Lettering", "Надписи", p, o);
+export const t_medal_centre = (p?: Params, o?: Options) => say("Center", "В центре", p, o);
+export const t_medal_centre_hint = (p?: Params, o?: Options) => say("A number, a star ★, or a short word. In a set, the numbers go in order: 1, 2, 3.", "Число, звезда ★ или короткое слово. В комплекте числа идут подряд: 1, 2, 3.", p, o);
+export const t_medal_under = (p?: Params, o?: Options) => say("Below it", "Под ним", p, o);
+export const t_medal_arc_top = (p?: Params, o?: Options) => say("Top arc", "По дуге сверху", p, o);
+export const t_medal_arc_bottom = (p?: Params, o?: Options) => say("Bottom arc", "По дуге снизу", p, o);
+export const t_medal_summary_ribbon = (p?: Params, o?: Options) => say("Medal ⌀ {diameter} mm, slot for a ribbon up to {slot} mm.", "Медаль ⌀ {diameter} мм, прорезь под ленту до {slot} мм.", p, o);
+export const t_medal_summary_loop = (p?: Params, o?: Options) => say("Medal ⌀ {diameter} mm, loop for a cord.", "Медаль ⌀ {diameter} мм, ушко для шнурка.", p, o);
+export const t_medal_summary_token = (p?: Params, o?: Options) => say("Coin ⌀ {diameter} mm.", "Жетон ⌀ {diameter} мм.", p, o);
+export const t_medal_summary_colour = (p?: Params, o?: Options) => say("Change filament at {height} mm to print the lettering and rim in another color.", "Смените пластик на высоте {height} мм — надписи и ободок станут другого цвета.", p, o);
+export const t_medal_part_medal = (p?: Params, o?: Options) => say("Medal", "Медаль", p, o);
+export const t_medal_part_raised = (p?: Params, o?: Options) => say("Lettering and rim", "Надписи и ободок", p, o);
+export const t_medal_3mf_failed = (p?: Params, o?: Options) => say("Couldn't build the 3MF.", "Не удалось собрать 3MF.", p, o);
+export const t_medal_scad_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Medals and coins”", "Polyzon Maker — «Медали и жетоны»", p, o);

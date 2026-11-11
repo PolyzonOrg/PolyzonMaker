@@ -1,0 +1,30 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_vacuum_nozzle_kind_crevice = (p?: Params, o?: Options) => say("Crevice", "Щелевая", p, o);
+export const t_vacuum_nozzle_preset_long = (p?: Params, o?: Options) => say("Long crevice", "Длинная щелевая", p, o);
+export const t_vacuum_nozzle_kind_wide = (p?: Params, o?: Options) => say("Wide", "Широкая", p, o);
+export const t_vacuum_nozzle_preset_round = (p?: Params, o?: Options) => say("Narrow round", "Узкая круглая", p, o);
+export const t_vacuum_nozzle_preset_tube35 = (p?: Params, o?: Options) => say("Crevice for 35 mm", "Щелевая под 35 мм", p, o);
+export const t_vacuum_nozzle_kind_round = (p?: Params, o?: Options) => say("Round", "Круглая", p, o);
+export const t_vacuum_nozzle_summary_round = (p?: Params, o?: Options) => say("For a ⌀ {tube} mm tube; ⌀ {tip} mm tip; {length} mm long.", "На трубку ⌀ {tube} мм; наконечник ⌀ {tip} мм; длина {length} мм.", p, o);
+export const t_vacuum_nozzle_summary_flat = (p?: Params, o?: Options) => say("For a ⌀ {tube} mm tube; {w} × {h} mm tip; {length} mm long.", "На трубку ⌀ {tube} мм; наконечник {w} × {h} мм; длина {length} мм.", p, o);
+export const t_vacuum_nozzle_scad_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Vacuum attachments”", "Polyzon Maker — «Насадки для пылесоса»", p, o);
+export const t_vacuum_nozzle_scad_print = (p?: Params, o?: Options) => say("Tapered socket, friction fit; prints standing on the socket, no supports", "Гнездо конусное, держится на трении; печатается стоя на гнезде, без поддержек", p, o);
+export const t_vacuum_nozzle_tube_option = (p?: Params, o?: Options) => say("{value} mm", "{value} мм", p, o);
+export const t_vacuum_nozzle_filename = (p?: Params, o?: Options) => say("vacuum-attachment", "nasadka", p, o);
+export const t_vacuum_nozzle_group_tube = (p?: Params, o?: Options) => say("Vacuum tube", "Трубка пылесоса", p, o);
+export const t_vacuum_nozzle_tube = (p?: Params, o?: Options) => say("Tube diameter", "Диаметр трубки", p, o);
+export const t_vacuum_nozzle_tube_hint = (p?: Params, o?: Options) => say("Measure the outside with calipers: most vacuums have 32 mm, some 35 mm.", "Снаружи, штангенциркулем: у большинства пылесосов 32 мм, у части — 35 мм.", p, o);
+export const t_vacuum_nozzle_tube_custom = (p?: Params, o?: Options) => say("Custom diameter", "Свой диаметр", p, o);
+export const t_vacuum_nozzle_tube_custom_hint = (p?: Params, o?: Options) => say("The socket is 0.4 mm wider than the tube at the opening and narrows further in, so it fits snugly.", "Гнездо шире трубки на 0,4 мм у края и сужается вглубь — садится плотно.", p, o);
+export const t_vacuum_nozzle_group_nozzle = (p?: Params, o?: Options) => say("Attachment", "Насадка", p, o);
+export const t_vacuum_nozzle_kind = (p?: Params, o?: Options) => say("Type", "Вид", p, o);
+export const t_vacuum_nozzle_tip_diameter = (p?: Params, o?: Options) => say("Tip diameter", "Диаметр наконечника", p, o);
+export const t_vacuum_nozzle_tip_width = (p?: Params, o?: Options) => say("Tip width", "Ширина наконечника", p, o);
+export const t_vacuum_nozzle_slot_height = (p?: Params, o?: Options) => say("Slot height", "Высота щели", p, o);
+export const t_vacuum_nozzle_transition = (p?: Params, o?: Options) => say("Transition to tip", "Переход к наконечнику", p, o);
+export const t_vacuum_nozzle_transition_hint = (p?: Params, o?: Options) => say("The walls narrow and widen at no more than 45°, so the transition can't get any shorter.", "Стенки сужаются и расширяются не круче 45°: короче переход не станет.", p, o);
+export const t_vacuum_nozzle_tip_length = (p?: Params, o?: Options) => say("Straight tip", "Прямой наконечник", p, o);
+export const t_vacuum_nozzle_slant = (p?: Params, o?: Options) => say("Angled end", "Скос конца", p, o);
+export const t_vacuum_nozzle_slant_hint = (p?: Params, o?: Options) => say("An angled end reaches into corners.", "Скошенный конец достаёт в углы.", p, o);

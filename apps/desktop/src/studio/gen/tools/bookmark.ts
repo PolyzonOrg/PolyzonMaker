@@ -1,0 +1,30 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_bookmark_default_text = (p?: Params, o?: Options) => say("Keep reading", "Читаю дальше", p, o);
+export const t_bookmark_preset_name = (p?: Params, o?: Options) => say("With a name", "С именем", p, o);
+export const t_bookmark_preset_name_text = (p?: Params, o?: Options) => say("Emma", "Катя", p, o);
+export const t_bookmark_preset_quote = (p?: Params, o?: Options) => say("With a quote", "С цитатой", p, o);
+export const t_bookmark_preset_quote_text = (p?: Params, o?: Options) => say("To thine own self be true", "Рукописи не горят", p, o);
+export const t_bookmark_preset_quote_line = (p?: Params, o?: Options) => say("W. Shakespeare", "М. Булгаков", p, o);
+export const t_bookmark_preset_school = (p?: Params, o?: Options) => say("For school", "Для школы", p, o);
+export const t_bookmark_preset_school_text = (p?: Params, o?: Options) => say("Max's book", "Дневник Пети", p, o);
+export const t_bookmark_preset_mini = (p?: Params, o?: Options) => say("Mini", "Маленькая", p, o);
+export const t_bookmark_preset_mini_text = (p?: Params, o?: Options) => say("Stop", "Стоп", p, o);
+export const t_bookmark_part_bookmark = (p?: Params, o?: Options) => say("Bookmark", "Закладка", p, o);
+export const t_bookmark_part_raised = (p?: Params, o?: Options) => say("Text and border", "Надпись и рамка", p, o);
+export const t_bookmark_summary = (p?: Params, o?: Options) => say("Bookmark {width} × {length} mm, {thickness} mm thick. Change filament at {change} mm to print the text and border in another color.", "Закладка {width} × {length} мм, толщина {thickness} мм. Смените пластик на высоте {change} мм — надпись и рамка станут другого цвета.", p, o);
+export const t_bookmark_header_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Bookmarks”", "Polyzon Maker — «Закладки»", p, o);
+export const t_bookmark_header_text = (p?: Params, o?: Options) => say("“{text}” {line}", "«{text}» {line}", p, o);
+export const t_bookmark_filename = (p?: Params, o?: Options) => say("bookmark", "zakladka", p, o);
+export const t_bookmark_3mf_failed = (p?: Params, o?: Options) => say("Couldn't build the 3MF.", "Не удалось собрать 3MF.", p, o);
+export const t_bookmark_top_round = (p?: Params, o?: Options) => say("Round", "Круглый", p, o);
+export const t_bookmark_top_point = (p?: Params, o?: Options) => say("Pointed", "Острый", p, o);
+export const t_bookmark_top_flat = (p?: Params, o?: Options) => say("Square", "Прямой", p, o);
+export const t_bookmark_text_hint = (p?: Params, o?: Options) => say("Runs along the bookmark, bottom to top.", "Идёт вдоль закладки снизу вверх.", p, o);
+export const t_bookmark_line = (p?: Params, o?: Options) => say("Second line", "Вторая строка", p, o);
+export const t_bookmark_line_hint = (p?: Params, o?: Options) => say("The quote's author — or leave it blank.", "Автор цитаты — или пусто.", p, o);
+export const t_bookmark_group = (p?: Params, o?: Options) => say("Bookmark", "Закладка", p, o);
+export const t_bookmark_top = (p?: Params, o?: Options) => say("Top", "Верх", p, o);
+export const t_bookmark_thickness_hint = (p?: Params, o?: Options) => say("Thin ones bend and don't tear pages.", "Тонкая — гнётся, не рвёт страницы.", p, o);
+export const t_bookmark_hole = (p?: Params, o?: Options) => say("Tassel hole", "Отверстие для кисточки", p, o);

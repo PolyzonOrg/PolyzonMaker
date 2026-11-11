@@ -1,0 +1,31 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_item_holder_item_9v = (p?: Params, o?: Options) => say("9V battery", "Крона", p, o);
+export const t_item_holder_item_bit = (p?: Params, o?: Options) => say("1/4″ bit", "Бита 1/4″", p, o);
+export const t_item_holder_preset_aa = (p?: Params, o?: Options) => say("AA batteries", "Батарейки AA", p, o);
+export const t_item_holder_preset_aaa = (p?: Params, o?: Options) => say("AAA batteries", "Батарейки AAA", p, o);
+export const t_item_holder_preset_18650 = (p?: Params, o?: Options) => say("18650 cells", "Аккумуляторы 18650", p, o);
+export const t_item_holder_preset_bits = (p?: Params, o?: Options) => say("1/4″ bits", "Биты 1/4″", p, o);
+export const t_item_holder_preset_coins = (p?: Params, o?: Options) => say("CR2032 coin cells", "Таблетки CR2032", p, o);
+export const t_item_holder_preset_sd = (p?: Params, o?: Options) => say("SD and microSD cards", "Карты SD и microSD", p, o);
+export const t_item_holder_preset_markers = (p?: Params, o?: Options) => say("Markers", "Маркеры", p, o);
+export const t_item_holder_round_label = (p?: Params, o?: Options) => say("⌀ {size} mm", "⌀ {size} мм", p, o);
+export const t_item_holder_square_label = (p?: Params, o?: Options) => say("{size} × {size} mm", "{size} × {size} мм", p, o);
+export const t_item_holder_item_bit_for = (p?: Params, o?: Options) => say("1/4″ bits", "биту 1/4″", p, o);
+export const t_item_holder_item_9v_for = (p?: Params, o?: Options) => say("9V batteries", "крону", p, o);
+export const t_item_holder_summary = (p?: Params, o?: Options) => say({"one":"{n} slot for {item}, {depth} mm deep; holder {w} × {d} × {h} mm.","other":"{n} slots for {item}, {depth} mm deep; holder {w} × {d} × {h} mm."}, {"one":"{n} гнездо под {item}, глубина {depth} мм; подставка {w} × {d} × {h} мм.","few":"{n} гнезда под {item}, глубина {depth} мм; подставка {w} × {d} × {h} мм.","many":"{n} гнёзд под {item}, глубина {depth} мм; подставка {w} × {d} × {h} мм.","other":"{n} гнезда под {item}, глубина {depth} мм; подставка {w} × {d} × {h} мм."}, p, o);
+export const t_item_holder_header_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Holder with slots”", "Polyzon Maker — «Подставка с гнёздами»", p, o);
+export const t_item_holder_item_round = (p?: Params, o?: Options) => say("Custom round", "Своё круглое", p, o);
+export const t_item_holder_item_square = (p?: Params, o?: Options) => say("Custom square", "Своё квадратное", p, o);
+export const t_item_holder_filename = (p?: Params, o?: Options) => say("holder", "podstavka", p, o);
+export const t_item_holder_group_item = (p?: Params, o?: Options) => say("What to store", "Что хранить", p, o);
+export const t_item_holder_item = (p?: Params, o?: Options) => say("Item", "Предмет", p, o);
+export const t_item_holder_side = (p?: Params, o?: Options) => say("Side", "Сторона", p, o);
+export const t_item_holder_size_hint = (p?: Params, o?: Options) => say("Measure the thickest part with calipers.", "Померьте штангенциркулем самое толстое место.", p, o);
+export const t_item_holder_length = (p?: Params, o?: Options) => say("Item height", "Высота предмета", p, o);
+export const t_item_holder_group_sockets = (p?: Params, o?: Options) => say("Slots", "Гнёзда", p, o);
+export const t_item_holder_cols = (p?: Params, o?: Options) => say("Per row", "В ряду", p, o);
+export const t_item_holder_depth = (p?: Params, o?: Options) => say("Slot depth", "Глубина гнёзд", p, o);
+export const t_item_holder_depth_hint = (p?: Params, o?: Options) => say("How much of the item's height goes into the slot.", "Доля высоты предмета, которая уходит в гнездо.", p, o);
+export const t_item_holder_clearance_hint = (p?: Params, o?: Options) => say("Too tight — increase it; loose — decrease it.", "Туго — прибавьте, болтается — убавьте.", p, o);

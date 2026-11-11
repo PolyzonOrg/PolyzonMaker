@@ -1,0 +1,33 @@
+// Made by sync-studio.mjs from Polyzon Studio's messages.
+import { say, type Options, type Params } from '$lib/i18n/say';
+
+export const t_cable_tag_default_text = (p?: Params, o?: Options) => say("CBL-\\{n\\}\n12/2 NM-B\nLP-1 — MDP", "КЛ-\\{n\\}\nВВГнг 3×2,5\nЩР-1 — ВРУ", p, o);
+export const t_cable_tag_shape_square = (p?: Params, o?: Options) => say("U-134, square", "У-134, квадрат", p, o);
+export const t_cable_tag_shape_circle = (p?: Params, o?: Options) => say("U-135, circle", "У-135, круг", p, o);
+export const t_cable_tag_preset_circle_text = (p?: Params, o?: Options) => say("CBL-\\{n\\}\n10 kV", "КЛ-\\{n\\}\n10 кВ", p, o);
+export const t_cable_tag_shape_triangle = (p?: Params, o?: Options) => say("U-136, triangle", "У-136, треугольник", p, o);
+export const t_cable_tag_preset_triangle_text = (p?: Params, o?: Options) => say("CTL-\\{n\\}\n7C 14 AWG", "КК-\\{n\\}\nКВВГ 7×1,5", p, o);
+export const t_cable_tag_preset_strip = (p?: Params, o?: Options) => say("Narrow strip", "Узкая полоска", p, o);
+export const t_cable_tag_preset_strip_text = (p?: Params, o?: Options) => say("L\\{n\\}", "Л\\{n\\}", p, o);
+export const t_cable_tag_summary_square = (p?: Params, o?: Options) => say("U-134, 55 × 55 mm square", "У-134, квадрат 55 × 55 мм", p, o);
+export const t_cable_tag_summary_circle = (p?: Params, o?: Options) => say("U-135, ⌀ 55 mm circle", "У-135, круг ⌀ 55 мм", p, o);
+export const t_cable_tag_summary_triangle = (p?: Params, o?: Options) => say("U-136, 55 mm triangle", "У-136, треугольник 55 мм", p, o);
+export const t_cable_tag_summary_size = (p?: Params, o?: Options) => say("{width} × {height} mm", "{width} × {height} мм", p, o);
+export const t_cable_tag_summary = (p?: Params, o?: Options) => say({"one":"{n} tag, {shape}: “{first}”.","other":"{n} tags, {shape}: “{first}”."}, {"one":"{n} бирка {shape}: «{first}».","few":"{n} бирки {shape}: «{first}».","many":"{n} бирок {shape}: «{first}».","other":"{n} бирки {shape}: «{first}»."}, p, o);
+export const t_cable_tag_summary_range = (p?: Params, o?: Options) => say({"one":"{n} tag, {shape}: “{first}” … “{last}”.","other":"{n} tags, {shape}: “{first}” … “{last}”."}, {"one":"{n} бирка {shape}: «{first}» … «{last}».","few":"{n} бирки {shape}: «{first}» … «{last}».","many":"{n} бирок {shape}: «{first}» … «{last}».","other":"{n} бирки {shape}: «{first}» … «{last}»."}, p, o);
+export const t_cable_tag_summary_bed = (p?: Params, o?: Options) => say({"one":"A 220 × 220 mm bed fits {n} tag — print the rest in another run.","other":"A 220 × 220 mm bed fits {n} tags — print the rest in another run."}, {"one":"На стол 220 × 220 мм помещается {n} бирка — остальные напечатайте вторым заходом.","few":"На стол 220 × 220 мм помещается {n} бирки — остальные напечатайте вторым заходом.","many":"На стол 220 × 220 мм помещается {n} бирок — остальные напечатайте вторым заходом.","other":"На стол 220 × 220 мм помещается {n} бирки — остальные напечатайте вторым заходом."}, p, o);
+export const t_cable_tag_scad_title = (p?: Params, o?: Options) => say("Polyzon Maker — “Cable tags”", "Polyzon Maker — «Кабельные бирки»", p, o);
+export const t_cable_tag_shape_own = (p?: Params, o?: Options) => say("Custom", "Своя", p, o);
+export const t_cable_tag_style_raised = (p?: Params, o?: Options) => say("Raised", "Выпуклая", p, o);
+export const t_cable_tag_style_engraved = (p?: Params, o?: Options) => say("Engraved", "Вырезанная", p, o);
+export const t_cable_tag_filename = (p?: Params, o?: Options) => say("cable-tags", "birki", p, o);
+export const t_cable_tag_group_tag = (p?: Params, o?: Options) => say("Tag", "Бирка", p, o);
+export const t_cable_tag_shape_hint = (p?: Params, o?: Options) => say("Russian standard tags: U-134 for power cables up to 1 kV, U-135 for above 1 kV, U-136 for control cables.", "У-134 — силовые кабели до 1 кВ, У-135 — выше 1 кВ, У-136 — контрольные.", p, o);
+export const t_cable_tag_group_marking = (p?: Params, o?: Options) => say("Marking", "Маркировка", p, o);
+export const t_cable_tag_line = (p?: Params, o?: Options) => say("Line {n}", "Строка {n}", p, o);
+export const t_cable_tag_number_hint = (p?: Params, o?: Options) => say("“\\{n\\}” in the text is the tag number: CBL-\\{n\\} gives CBL-1, CBL-2, CBL-3…", "«\\{n\\}» в тексте — номер бирки: КЛ-\\{n\\} даст КЛ-1, КЛ-2, КЛ-3…", p, o);
+export const t_cable_tag_style_raised_hint = (p?: Params, o?: Options) => say("Raised 0.6 mm: change filament at {height} mm to print the text in another color.", "Выпуклая на 0,6 мм: смените пластик на высоте {height} мм — надпись будет другим цветом.", p, o);
+export const t_cable_tag_style_engraved_hint = (p?: Params, o?: Options) => say("Cut 0.6 mm deep — rub a marker into it to make it readable.", "Вырезана на 0,6 мм — затрите маркером, чтобы читалась.", p, o);
+export const t_cable_tag_group_set = (p?: Params, o?: Options) => say("Set", "Набор", p, o);
+export const t_cable_tag_quantity = (p?: Params, o?: Options) => say("Number of tags", "Сколько бирок", p, o);
+export const t_cable_tag_start = (p?: Params, o?: Options) => say("First number", "Первый номер", p, o);

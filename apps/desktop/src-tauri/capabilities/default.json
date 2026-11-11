@@ -1,0 +1,17 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "default",
+	"description": "The page calls the app's own commands and moves its own window: no shell, no file system, no plugins.",
+	"windows": [
+		"main"
+	],
+	"permissions": [
+		"core:event:default",
+		"core:window:allow-start-dragging",
+		"core:window:allow-internal-toggle-maximize",
+		"core:window:allow-toggle-maximize",
+		"core:window:allow-minimize",
+		"core:window:allow-close",
+		"core:window:allow-is-maximized"
+	]
+}

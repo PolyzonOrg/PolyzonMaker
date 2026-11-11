@@ -1,0 +1,8 @@
+The files in this folder are not part of Polyzon Maker's own code and are not under its MIT licence.
+
+openscad.wasm, openscad.wasm.js and openscad.js are OpenSCAD built for WebAssembly, a separate program
+that Polyzon Maker runs in a worker of its own to draw text and outlines. OpenSCAD is free software
+under the GNU General Public License, version 2 or later. Its source is at
+https://github.com/openscad/openscad and the licence text at https://www.gnu.org/licenses/gpl-2.0.html
+
+NotoSans-Regular.ttf is under the SIL Open Font License 1.1, https://openfontlicense.org
