@@ -661,10 +661,12 @@
 		word-break: break-all;
 	}
 
+	/* the row is the page's height whatever is in it: an auto row grew to fit the canvas */
 	.result {
 		height: 100%;
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) 320px;
+		grid-template-rows: minmax(0, 1fr);
 	}
 
 	.view {
@@ -681,8 +683,11 @@
 		left: 12px;
 	}
 
+	/* Out of the flow, so the view's size never comes from the canvas. In the flow, the size its drawing
+	   buffer was given made the view that tall at the next width, and the view grew each time it widened. */
 	canvas {
-		display: block;
+		position: absolute;
+		inset: 0;
 		width: 100%;
 		height: 100%;
 		outline: none;
