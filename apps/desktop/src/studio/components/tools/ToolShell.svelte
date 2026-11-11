@@ -296,13 +296,16 @@
 	}
 
 	/* positioned, so what a field hides for screen readers (absolute, 1 px) stays inside the scrolling form:
-	   placed by the window instead, it made the whole window scrollable once the form was taller than it */
+	   placed by the window instead, it made the whole window scrollable once the form was taller than it.
+	   The scrollbar's room is always kept (its track is clear, with nothing to scroll it shows nothing): a form
+	   that only just fitted wrapped onto more lines once a scrollbar came, and kept it after the window grew
+	   back. scrollbar-gutter would say this, but WebKit leaves no room for a styled scrollbar with it. */
 	.form {
 		position: relative;
 		min-height: 0;
 		flex: 1;
 		padding: 16px;
-		overflow-y: auto;
+		overflow-y: scroll;
 	}
 
 	.scene {
