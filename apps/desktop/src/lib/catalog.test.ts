@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classify, fit, formatAmount, modelFile, formatRange, formatTime, isMature, recommend, type HfModel, type Model, type Report, installProgress, installsShare, onDisk, withSpeed } from './catalog';
+import { classify, fit, formatAmount, formatSpeed, modelFile, formatRange, formatTime, isMature, recommend, type HfModel, type Model, type Report, installProgress, installsShare, onDisk, withSpeed } from './catalog';
 import { bench, model, nvidia, pc, target } from './catalog.fixtures';
 
 describe('how much of a download is done', () => {
@@ -9,6 +9,17 @@ describe('how much of a download is done', () => {
 
 	it('counts a large one in gigabytes', () => {
 		expect(formatAmount(2 ** 30, 8.5 * 2 ** 30, 'ru')).toEqual({ big: true, done: '1,0', total: '8,5' });
+	});
+});
+
+describe('how fast a download goes', () => {
+	it('shows a slow line as it is, never as 0 MB/s', () => {
+		expect(formatSpeed(0.2 * 2 ** 20, 'ru')).toBe('0,2');
+		expect(formatSpeed(3.46 * 2 ** 20, 'en')).toBe('3.5');
+	});
+
+	it('drops the tenths once they no longer matter', () => {
+		expect(formatSpeed(42.4 * 2 ** 20, 'en')).toBe('42');
 	});
 });
 

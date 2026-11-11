@@ -74,6 +74,85 @@ pub struct Progress {
     pub error: String,
 }
 
+/// How long an install waits for a network that went away, from the last byte that arrived.
+const PATIENCE: Duration = if cfg!(test) { Duration::from_millis(200) } else { Duration::from_secs(30 * 60) };
+/// How often a waiting install looks whether the network is back.
+const LOOK_AGAIN: Duration = if cfg!(test) { Duration::from_millis(10) } else { Duration::from_secs(10) };
+
+/// What an install told last, and when bytes last arrived in it.
+#[derive(Default)]
+struct Heard {
+    last: Progress,
+    moved: Option<Instant>,
+}
+
+impl Heard {
+    /// A step that only starts is not movement: a try that fails at once starts its steps again too.
+    fn tell(&mut self, p: &Progress) {
+        if p.stage == self.last.stage && p.done > self.last.done {
+            self.moved = Some(Instant::now());
+        }
+        self.last = p.clone();
+    }
+}
+
+/// Runs an install again after a network failure, so that a Wi-Fi or a VPN that goes away does not
+/// end it: at once when bytes had arrived before it failed, as after a dropped line, and once the
+/// network is back when it is down, saying so meanwhile. It ends as before when the network is there
+/// and nothing arrived, when the engine's own check failed, and after PATIENCE without a byte.
+fn patiently(cancel: &AtomicBool, heard: &Mutex<Heard>, emit: &dyn Fn(Progress), online: &dyn Fn() -> bool, run: &dyn Fn() -> Result<(), Failure>) -> Result<(), Failure> {
+    let start = Instant::now();
+    loop {
+        let before = heard.lock().unwrap().moved;
+        let result = run();
+        if !matches!(result, Err(Failure::Network(_))) {
+            return result;
+        }
+        let (moved, last) = {
+            let heard = heard.lock().unwrap();
+            (heard.moved, heard.last.clone())
+        };
+        if last.stage == "check" {
+            return result;
+        }
+        let mut down = false;
+        while !online() {
+            if moved.unwrap_or(start).elapsed() >= PATIENCE {
+                return result;
+            }
+            down = true;
+            emit(Progress { error: "offline".into(), ..last.clone() });
+            if !pause(cancel, LOOK_AGAIN) {
+                return Err(Failure::Cancelled);
+            }
+        }
+        if !down && moved == before {
+            return result;
+        }
+        if cancel.load(Ordering::Relaxed) {
+            return Err(Failure::Cancelled);
+        }
+    }
+}
+
+/// Waits, and says false at once when the install is cancelled meanwhile.
+fn pause(cancel: &AtomicBool, time: Duration) -> bool {
+    let until = Instant::now() + time;
+    while Instant::now() < until {
+        if cancel.load(Ordering::Relaxed) {
+            return false;
+        }
+        std::thread::sleep(Duration::from_millis(50).min(time));
+    }
+    !cancel.load(Ordering::Relaxed)
+}
+
+/// Is there a network at all? An answer of any kind from a well-known server counts.
+fn online() -> bool {
+    let agent = download::agent();
+    ["https://huggingface.co/", "https://github.com/", "https://maker.polyzon.org/"].iter().any(|url| agent.head(*url).call().is_ok())
+}
+
 #[derive(Default)]
 pub struct Packs {
     running: Mutex<HashMap<String, Arc<AtomicBool>>>,
@@ -197,12 +276,14 @@ impl Packs {
         let (keep, line) = (app.clone(), self.line.clone());
         std::thread::spawn(move || {
             let _turn = line.lock().unwrap_or_else(|e| e.into_inner());
+            let heard = Mutex::new(Heard::default());
             let emit = |p: Progress| {
+                heard.lock().unwrap().tell(&p);
                 let _ = keep.emit("pack", p);
             };
             let started = std::time::Instant::now();
             let job = Install { store: &store, model: &model, device: &device, cancel: &cancel, emit: &emit };
-            let result = job.run();
+            let result = patiently(&cancel, &heard, &emit, &online, &|| job.run());
             let state = match &result {
                 Ok(()) => "done",
                 Err(Failure::Cancelled) => "cancelled",
@@ -237,14 +318,16 @@ impl Packs {
         let (keep, pack, line) = (app.clone(), id.clone(), self.line.clone());
         std::thread::spawn(move || {
             let _turn = line.lock().unwrap_or_else(|e| e.into_inner());
+            let heard = Mutex::new(Heard::default());
             let emit = |p: Progress| {
+                heard.lock().unwrap().tell(&p);
                 let _ = keep.emit("pack", p);
             };
             let engine = catalog::model(PICTURE_ENGINE).expect("the catalog has a picture engine");
             let job = Install { store: &store, model: &Model { id: pack.clone(), ..engine.clone() }, device: &device, cancel: &cancel, emit: &emit };
             let name = file.rsplit('/').next().unwrap_or(&file).to_string();
-            let weight = catalog::Weight { url: format!("https://huggingface.co/{repo}/resolve/main/{file}"), sha256: String::new(), size: 0, name };
-            let result = job.custom(&repo, &[weight], "");
+            let weights = [catalog::Weight { url: format!("https://huggingface.co/{repo}/resolve/main/{file}"), sha256: String::new(), size: 0, name }];
+            let result = patiently(&cancel, &heard, &emit, &online, &|| job.custom(&repo, &weights, ""));
             let state = match &result {
                 Ok(()) => "done",
                 Err(Failure::Cancelled) => "cancelled",
@@ -267,13 +350,15 @@ impl Packs {
         self.running.lock().unwrap().insert(id.clone(), cancel.clone());
         let (keep, pack) = (app.clone(), id.clone());
         std::thread::spawn(move || {
+            let heard = Mutex::new(Heard::default());
             let emit = |p: Progress| {
+                heard.lock().unwrap().tell(&p);
                 let _ = keep.emit("pack", p);
             };
             let engine = catalog::model(TEXT_ENGINE).expect("the catalog has a text engine");
             let job = Install { store: &store, model: &Model { id: pack.clone(), ..engine.clone() }, device: &device, cancel: &cancel, emit: &emit };
             let weights: Vec<catalog::Weight> = files.iter().map(|f| catalog::Weight { url: format!("https://huggingface.co/{repo}/resolve/main/{}", f.name), sha256: f.sha256.clone(), size: f.size, name: f.name.rsplit('/').next().unwrap_or(&f.name).to_string() }).collect();
-            let result = job.custom(&repo, &weights, "text");
+            let result = patiently(&cancel, &heard, &emit, &online, &|| job.custom(&repo, &weights, "text"));
             let state = match &result {
                 Ok(()) => "done",
                 Err(Failure::Cancelled) => "cancelled",
@@ -911,6 +996,122 @@ pub fn install_for_tests(store: &Store, id: &str, device: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// An install as `patiently` sees it: each try reports bytes and ends as the script says.
+    struct Tries {
+        heard: Mutex<Heard>,
+        told: Mutex<Vec<Progress>>,
+        tries: Mutex<usize>,
+    }
+
+    impl Tries {
+        fn new() -> Self {
+            Tries { heard: Mutex::new(Heard::default()), told: Mutex::new(Vec::new()), tries: Mutex::new(0) }
+        }
+
+        fn emit(&self, p: Progress) {
+            self.heard.lock().unwrap().tell(&p);
+            self.told.lock().unwrap().push(p);
+        }
+
+        /// `script(try) -> (bytes that arrive, at which stage, how it ends)`
+        fn run(&self, cancel: &AtomicBool, online: &dyn Fn() -> bool, script: impl Fn(usize) -> (u64, &'static str, Result<(), Failure>)) -> Result<(), Failure> {
+            let run = || {
+                let n = {
+                    let mut tries = self.tries.lock().unwrap();
+                    *tries += 1;
+                    *tries
+                };
+                let (bytes, stage, end) = script(n);
+                self.emit(Progress { stage: stage.into(), done: 0, ..Progress::default() });
+                for done in (1..=bytes).map(|b| b * 1000) {
+                    self.emit(Progress { stage: stage.into(), done, ..Progress::default() });
+                }
+                end
+            };
+            patiently(cancel, &self.heard, &|p| self.emit(p), online, &run)
+        }
+
+        fn tries(&self) -> usize {
+            *self.tries.lock().unwrap()
+        }
+
+        fn said_offline(&self) -> bool {
+            self.told.lock().unwrap().iter().any(|p| p.error == "offline")
+        }
+    }
+
+    fn lost() -> Result<(), Failure> {
+        Err(Failure::Network("the line went quiet".into()))
+    }
+
+    #[test]
+    fn a_download_whose_line_dropped_carries_on_by_itself() {
+        let t = Tries::new();
+        let got = t.run(&AtomicBool::new(false), &|| true, |n| if n == 1 { (5, "weights", lost()) } else { (3, "weights", Ok(())) });
+        assert!(got.is_ok());
+        assert_eq!(t.tries(), 2);
+    }
+
+    #[test]
+    fn an_install_that_lost_the_network_waits_for_it_and_carries_on() {
+        let t = Tries::new();
+        let looks = Mutex::new(0);
+        let online = || {
+            let mut looks = looks.lock().unwrap();
+            *looks += 1;
+            *looks > 3 // the Wi-Fi is back at the fourth look
+        };
+        let got = t.run(&AtomicBool::new(false), &online, |n| if n == 1 { (0, "weights", lost()) } else { (2, "weights", Ok(())) });
+        assert!(got.is_ok());
+        assert_eq!(t.tries(), 2);
+        assert!(t.said_offline(), "the page heard why it waits");
+    }
+
+    #[test]
+    fn a_network_failure_with_the_network_there_and_nothing_arriving_ends_the_install() {
+        let t = Tries::new();
+        let got = t.run(&AtomicBool::new(false), &|| true, |_| (0, "weights", lost()));
+        assert!(matches!(got, Err(Failure::Network(_))));
+        assert_eq!(t.tries(), 1);
+    }
+
+    #[test]
+    fn a_failed_check_of_the_engine_is_not_tried_again() {
+        let t = Tries::new();
+        let got = t.run(&AtomicBool::new(false), &|| false, |_| (1, "check", lost()));
+        assert!(matches!(got, Err(Failure::Network(_))));
+        assert_eq!(t.tries(), 1);
+    }
+
+    #[test]
+    fn other_failures_end_the_install_at_once() {
+        let t = Tries::new();
+        let got = t.run(&AtomicBool::new(false), &|| false, |_| (4, "weights", Err(Failure::Disk("no space".into()))));
+        assert!(matches!(got, Err(Failure::Disk(_))));
+        assert_eq!(t.tries(), 1);
+    }
+
+    #[test]
+    fn a_network_that_does_not_come_back_ends_the_install_after_a_while() {
+        let t = Tries::new();
+        let started = Instant::now();
+        let got = t.run(&AtomicBool::new(false), &|| false, |_| (1, "weights", lost()));
+        assert!(matches!(got, Err(Failure::Network(_))));
+        assert!(started.elapsed() >= PATIENCE && t.said_offline());
+    }
+
+    #[test]
+    fn cancelling_while_it_waits_for_the_network_stops_it() {
+        let t = Tries::new();
+        let cancel = AtomicBool::new(false);
+        let online = || {
+            cancel.store(true, Ordering::Relaxed);
+            false
+        };
+        let got = t.run(&cancel, &online, |_| (1, "weights", lost()));
+        assert!(matches!(got, Err(Failure::Cancelled)));
+    }
 
     #[test]
     fn a_package_that_does_not_build_here_is_not_called_a_network_failure() {
