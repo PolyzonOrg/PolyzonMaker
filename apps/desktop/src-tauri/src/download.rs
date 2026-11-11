@@ -6,16 +6,38 @@ use std::{
     io::{self, Read, Seek, Write},
     path::{Path, PathBuf},
     sync::{
-        atomic::{AtomicBool, Ordering},
-        mpsc,
+        atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+        mpsc, Mutex,
     },
     time::Duration,
 };
 
 const ATTEMPTS: u32 = 5;
-/// How often a waiting download looks up, and how long a silent line is given.
+/// How often a waiting download looks up, and how long a silent line is given: a line lost to a
+/// network that changed under it (a VPN coming on) sends nothing and says nothing.
 const LOOK: Duration = Duration::from_millis(500);
-const STALL: Duration = Duration::from_secs(60);
+const STALL: Duration = Duration::from_secs(30);
+/// How often a download in pieces tells how far it is.
+const TELL: Duration = Duration::from_millis(if cfg!(test) { 5 } else { 250 });
+/// From this size a file comes in pieces over several lines at once: one line from far away is
+/// slow, and some networks hold each line to a trickle (one line 1.8 MB/s, eight 10.1 MB/s).
+const SPLIT_FROM: u64 = if cfg!(test) { 1 << 20 } else { 4 << 20 };
+const LINES: usize = 8;
+/// A piece's size, between these, so that every line has two to take. Each piece costs a request
+/// and a redirect, about 0.7 s before its first byte, so pieces are not small.
+const REAL_PIECES: (u64, u64) = (2 << 20, 32 << 20);
+const PIECES: (u64, u64) = if cfg!(test) { (16 << 10, 64 << 10) } else { REAL_PIECES };
+
+fn piece_size(total: u64, (smallest, largest): (u64, u64)) -> u64 {
+    total.div_ceil(LINES as u64 * 2).clamp(smallest, largest)
+}
+
+/// Beside the part: its size, its piece size, then each piece that has landed.
+fn pieces_of(part: &Path) -> PathBuf {
+    let mut name = part.as_os_str().to_owned();
+    name.push(".pieces");
+    PathBuf::from(name)
+}
 
 #[derive(Debug)]
 pub enum Failure {
@@ -106,14 +128,45 @@ fn chunks_of(mut body: impl Read + Send + 'static) -> mpsc::Receiver<io::Result<
     chunks
 }
 
-/// One try: from what is already in `part`. Ok(total bytes).
-fn pull(
-    agent: &ureq::Agent,
-    url: &str,
-    part: &Path,
-    cancel: &AtomicBool,
-    progress: &mut dyn FnMut(u64, u64),
-) -> Result<u64, Failure> {
+fn disk(e: io::Error) -> Failure {
+    Failure::Disk(e.to_string())
+}
+
+/// Writes what `body` brings into `out` until it ends; `took` hears how much each time.
+fn stream(body: impl Read + Send + 'static, out: &mut File, stop: &AtomicBool, took: &mut dyn FnMut(u64)) -> Result<(), Failure> {
+    let chunks = chunks_of(body);
+    let mut quiet = Duration::ZERO;
+    loop {
+        if stop.load(Ordering::Relaxed) {
+            return Err(Failure::Cancelled);
+        }
+        match chunks.recv_timeout(LOOK) {
+            Ok(chunk) => {
+                let chunk = chunk.map_err(|e| Failure::Network(e.to_string()))?;
+                quiet = Duration::ZERO;
+                out.write_all(&chunk).map_err(disk)?;
+                took(chunk.len() as u64);
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => return Ok(()),
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                quiet += LOOK;
+                if quiet >= STALL {
+                    return Err(Failure::Network("the line went quiet".into()));
+                }
+            }
+        }
+    }
+}
+
+/// What a first answer brought: the whole file, or word that it is big enough to come in pieces.
+enum Pulled {
+    Whole,
+    Split(u64),
+}
+
+/// One try over one line, from what is already in `part`. With `split`, a big file from a server that
+/// gives ranges is left unread for `split` to fetch.
+fn pull(agent: &ureq::Agent, url: &str, part: &Path, cancel: &AtomicBool, progress: &mut dyn FnMut(u64, u64)) -> Result<Pulled, Failure> {
     let have = fs::metadata(part).map_or(0, |m| m.len());
     let mut req = agent.get(url);
     if have > 0 {
@@ -122,7 +175,7 @@ fn pull(
     let res = req.call().map_err(|e| Failure::Network(e.to_string()))?;
     let code = res.status().as_u16();
     if code == 416 {
-        return Ok(have); // nothing left to send: the file is whole
+        return Ok(Pulled::Whole); // nothing left to send: the file is whole
     }
     if matches!(code, 401 | 403 | 404 | 410) {
         return Err(Failure::Refused(code));
@@ -134,37 +187,169 @@ fn pull(
     let length = res.headers().get("content-length").and_then(|v| v.to_str().ok()).and_then(|v| v.parse::<u64>().ok());
     let start = if resumed { have } else { 0 };
     let total = length.map_or(0, |l| l + start);
-    let disk = |e: io::Error| Failure::Disk(e.to_string());
+    // a server that answered a range with the whole file does not give ranges, whatever it says
+    let ranges = resumed || (have == 0 && res.headers().get("accept-ranges").and_then(|v| v.to_str().ok()).is_some_and(|v| v.contains("bytes")));
+    if ranges && total >= SPLIT_FROM {
+        return Ok(Pulled::Split(total));
+    }
     let mut out = OpenOptions::new().create(true).write(true).truncate(!resumed).open(part).map_err(disk)?;
     out.seek(io::SeekFrom::End(0)).map_err(disk)?;
-    let chunks = chunks_of(res.into_body().into_reader());
     let mut done = start;
-    let mut quiet = Duration::ZERO;
-    loop {
-        if cancel.load(Ordering::Relaxed) {
-            return Err(Failure::Cancelled);
-        }
-        let chunk = match chunks.recv_timeout(LOOK) {
-            Ok(chunk) => chunk.map_err(|e| Failure::Network(e.to_string()))?,
-            Err(mpsc::RecvTimeoutError::Disconnected) => break,
-            Err(mpsc::RecvTimeoutError::Timeout) => {
-                quiet += LOOK;
-                if quiet >= STALL {
-                    return Err(Failure::Network("the line went quiet".into()));
-                }
-                continue;
-            }
-        };
-        quiet = Duration::ZERO;
-        out.write_all(&chunk).map_err(disk)?;
-        done += chunk.len() as u64;
+    stream(res.into_body().into_reader(), &mut out, cancel, &mut |n| {
+        done += n;
         progress(done, total);
-    }
+    })?;
     out.sync_all().map_err(disk)?;
     if total > 0 && done < total {
         return Err(Failure::Network("the line dropped".into()));
     }
-    Ok(done)
+    Ok(Pulled::Whole)
+}
+
+/// A file in pieces: its size, the size of a piece, and which pieces have landed.
+struct Plan {
+    total: u64,
+    piece: u64,
+    landed: Vec<bool>,
+}
+
+impl Plan {
+    fn size(&self, i: usize) -> u64 {
+        self.piece.min(self.total - i as u64 * self.piece)
+    }
+}
+
+/// A new plan, kept beside the part. What one line brought before is the file's start: the
+/// pieces it holds whole count as landed.
+fn plan(part: &Path, total: u64) -> Result<Plan, Failure> {
+    plan_in(part, total, piece_size(total, PIECES))
+}
+
+fn plan_in(part: &Path, total: u64, piece: u64) -> Result<Plan, Failure> {
+    let have = fs::metadata(part).map_or(0, |m| m.len()).min(total);
+    let count = total.div_ceil(piece) as usize;
+    let landed: Vec<bool> = (0..count).map(|i| (i as u64 + 1) * piece <= have).collect();
+    let lines: String = landed.iter().enumerate().filter(|(_, l)| **l).map(|(i, _)| format!("{i}\n")).collect();
+    fs::write(pieces_of(part), format!("{total} {piece}\n{lines}")).map_err(disk)?;
+    Ok(Plan { total, piece, landed })
+}
+
+/// The plan kept beside the part. A line cut off by a crash is not counted.
+fn read_plan(part: &Path) -> Option<Plan> {
+    let text = fs::read_to_string(pieces_of(part)).ok()?;
+    let mut lines = text.split_inclusive('\n').filter(|l| l.ends_with('\n')).map(str::trim);
+    let (total, piece) = lines.next()?.split_once(' ')?;
+    let (total, piece): (u64, u64) = (total.parse().ok()?, piece.parse().ok()?);
+    if piece == 0 || fs::metadata(part).ok()?.len() != total {
+        return None;
+    }
+    let mut landed = vec![false; total.div_ceil(piece) as usize];
+    for i in lines {
+        *landed.get_mut(i.parse::<usize>().ok()?)? = true;
+    }
+    Some(Plan { total, piece, landed })
+}
+
+/// The missing pieces of `part`, LINES of them at a time, each into its place. A piece that lands is
+/// written down beside the part, so that a later try asks only for the rest.
+fn split(agent: &ureq::Agent, url: &str, part: &Path, plan: Plan, cancel: &AtomicBool, progress: &mut dyn FnMut(u64, u64)) -> Result<(), Failure> {
+    let file = OpenOptions::new().create(true).write(true).truncate(false).open(part).map_err(disk)?;
+    if file.metadata().map_err(disk)?.len() != plan.total {
+        file.set_len(plan.total).map_err(disk)?;
+    }
+    drop(file);
+    let todo: Vec<usize> = (0..plan.landed.len()).filter(|&i| !plan.landed[i]).collect();
+    let done = AtomicU64::new((0..plan.landed.len()).filter(|&i| plan.landed[i]).map(|i| plan.size(i)).sum());
+    let record = Mutex::new(OpenOptions::new().append(true).open(pieces_of(part)).map_err(disk)?);
+    let (next, stop, failed) = (AtomicUsize::new(0), AtomicBool::new(false), Mutex::new(None));
+    let working = AtomicUsize::new(LINES.min(todo.len()));
+    std::thread::scope(|lines| {
+        for _ in 0..working.load(Ordering::Relaxed) {
+            lines.spawn(|| {
+                while let Some(&i) = todo.get(next.fetch_add(1, Ordering::Relaxed)) {
+                    let landed = piece(agent, url, part, i as u64 * plan.piece, plan.size(i), &stop, &done)
+                        .and_then(|()| writeln!(record.lock().unwrap(), "{i}").map_err(disk));
+                    if let Err(e) = landed {
+                        failed.lock().unwrap().get_or_insert(e);
+                        stop.store(true, Ordering::Relaxed);
+                        break;
+                    }
+                }
+                working.fetch_sub(1, Ordering::Relaxed);
+            });
+        }
+        while working.load(Ordering::Relaxed) > 0 {
+            if cancel.load(Ordering::Relaxed) {
+                stop.store(true, Ordering::Relaxed);
+            }
+            progress(done.load(Ordering::Relaxed), plan.total);
+            std::thread::sleep(TELL);
+        }
+    });
+    progress(done.load(Ordering::Relaxed), plan.total);
+    match failed.into_inner().unwrap() {
+        Some(e) => Err(e),
+        None if cancel.load(Ordering::Relaxed) => Err(Failure::Cancelled),
+        None => Ok(()),
+    }
+}
+
+/// One piece of `len` bytes at `from`, carried on from where a dropped line left it.
+fn piece(agent: &ureq::Agent, url: &str, part: &Path, from: u64, len: u64, stop: &AtomicBool, done: &AtomicU64) -> Result<(), Failure> {
+    let mut out = OpenOptions::new().write(true).open(part).map_err(disk)?;
+    let (mut got, mut last) = (0, Failure::Network("no answer".into()));
+    for attempt in 0..ATTEMPTS {
+        if attempt > 0 {
+            std::thread::sleep(Duration::from_millis(500 << attempt));
+        }
+        if stop.load(Ordering::Relaxed) {
+            return Err(Failure::Cancelled);
+        }
+        let res = match agent.get(url).header("Range", format!("bytes={}-{}", from + got, from + len - 1)).call() {
+            Ok(res) => res,
+            Err(e) => {
+                last = Failure::Network(e.to_string());
+                continue;
+            }
+        };
+        match res.status().as_u16() {
+            206 => {}
+            code @ (401 | 403 | 404 | 410) => return Err(Failure::Refused(code)),
+            code => {
+                last = Failure::Network(format!("status {code} for a piece"));
+                continue;
+            }
+        }
+        out.seek(io::SeekFrom::Start(from + got)).map_err(disk)?;
+        let body = res.into_body().into_reader().take(len - got);
+        let streamed = stream(body, &mut out, stop, &mut |n| {
+            got += n;
+            done.fetch_add(n, Ordering::Relaxed);
+        });
+        match streamed {
+            Ok(()) if got == len => return out.sync_data().map_err(disk),
+            Ok(()) => last = Failure::Network("the line dropped".into()),
+            Err(Failure::Network(e)) => last = Failure::Network(e),
+            Err(other) => return Err(other),
+        }
+    }
+    Err(last)
+}
+
+/// Gets the part over one line, or in pieces when it is big: a plan left beside it says it was.
+fn pull_or_split(agent: &ureq::Agent, url: &str, part: &Path, cancel: &AtomicBool, progress: &mut dyn FnMut(u64, u64)) -> Result<(), Failure> {
+    if let Some(plan) = read_plan(part) {
+        return split(agent, url, part, plan, cancel, progress);
+    }
+    if pieces_of(part).exists() {
+        // a plan that cannot be read: which pieces are in the part is not known, so none are
+        let _ = fs::remove_file(part);
+        let _ = fs::remove_file(pieces_of(part));
+    }
+    match pull(agent, url, part, cancel, progress)? {
+        Pulled::Whole => Ok(()),
+        Pulled::Split(total) => split(agent, url, part, plan(part, total)?, cancel, progress),
+    }
 }
 
 /// Gets `urls[0]`, or the next one when a source fails. A file already there with the right hash
@@ -177,7 +362,6 @@ pub fn fetch(
     cancel: &AtomicBool,
     progress: &mut dyn FnMut(u64, u64),
 ) -> Result<(), Failure> {
-    let disk = |e: io::Error| Failure::Disk(e.to_string());
     if dest.exists() {
         if sha256.is_empty() || sha256_of(dest).map_err(disk)? == sha256 {
             return Ok(());
@@ -194,8 +378,9 @@ pub fn fetch(
             if cancel.load(Ordering::Relaxed) {
                 return Err(Failure::Cancelled);
             }
-            match pull(agent, url, &part, cancel, progress) {
-                Ok(_) => {
+            match pull_or_split(agent, url, &part, cancel, progress) {
+                Ok(()) => {
+                    let _ = fs::remove_file(pieces_of(&part));
                     if !sha256.is_empty() && sha256_of(&part).map_err(disk)? != sha256 {
                         fs::remove_file(&part).map_err(disk)?; // never kept: the next try starts clean
                         last = Failure::WrongHash;
@@ -242,7 +427,7 @@ pub fn unpack(archive: &Path, into: &Path) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{io::BufRead, net::TcpListener, sync::Arc, thread};
+    use std::{io::BufRead, net::TcpListener, sync::atomic::AtomicUsize, sync::Arc, thread};
 
     const BODY_LEN: usize = 300_000;
 
@@ -254,39 +439,83 @@ mod tests {
         Sha256::digest(bytes).iter().map(|b| format!("{b:02x}")).collect()
     }
 
-    /// A small HTTP server for the tests. `cut`: it drops the line after that many bytes, once.
-    fn serve(cut: Option<usize>, ranges: bool) -> (String, Arc<std::sync::atomic::AtomicUsize>) {
+    /// What the test server saw: requests, the most lines open at once, and the ranges asked for.
+    #[derive(Default)]
+    struct Seen {
+        hits: AtomicUsize,
+        open: AtomicUsize,
+        most: AtomicUsize,
+        asked: std::sync::Mutex<Vec<(usize, usize)>>,
+    }
+
+    impl Seen {
+        /// Bytes asked for by range since the list was last emptied.
+        fn asked_bytes(&self) -> usize {
+            self.asked.lock().unwrap().drain(..).map(|(from, to)| to + 1 - from).sum()
+        }
+    }
+
+    /// A small HTTP server for the tests, a line each request. `cut`: request number `.0` gets only
+    /// `.1` bytes of its answer. `ranges`: it answers a range with that range, as a CDN does.
+    fn serve_body(body: Vec<u8>, cut: Option<(usize, usize)>, ranges: bool) -> (String, Arc<Seen>) {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let url = format!("http://{}/file.bin", listener.local_addr().unwrap());
-        let hits = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let seen = hits.clone();
+        let seen = Arc::new(Seen::default());
+        let (body, server) = (Arc::new(body), seen.clone());
         thread::spawn(move || {
-            let body = body();
             for (i, stream) in listener.incoming().enumerate() {
-                let mut stream = stream.unwrap();
-                seen.fetch_add(1, Ordering::SeqCst);
-                let mut reader = io::BufReader::new(stream.try_clone().unwrap());
-                let mut from = 0;
-                loop {
-                    let mut line = String::new();
-                    if reader.read_line(&mut line).unwrap_or(0) == 0 || line.trim().is_empty() {
-                        break;
-                    }
-                    if let Some(r) = line.to_lowercase().strip_prefix("range: bytes=") {
-                        if ranges {
-                            from = r.trim().trim_end_matches('-').parse().unwrap();
+                let (mut stream, body, seen) = (stream.unwrap(), body.clone(), server.clone());
+                thread::spawn(move || {
+                    seen.hits.fetch_add(1, Ordering::SeqCst);
+                    let open = seen.open.fetch_add(1, Ordering::SeqCst) + 1;
+                    seen.most.fetch_max(open, Ordering::SeqCst);
+                    let mut reader = io::BufReader::new(stream.try_clone().unwrap());
+                    let mut range = None;
+                    loop {
+                        let mut line = String::new();
+                        if reader.read_line(&mut line).unwrap_or(0) == 0 || line.trim().is_empty() {
+                            break;
+                        }
+                        if let Some(r) = line.to_lowercase().strip_prefix("range: bytes=") {
+                            let (from, to) = r.trim().split_once('-').unwrap();
+                            let from: usize = from.parse().unwrap();
+                            // only a piece names its end: the rest of a file from one line does not
+                            if !to.is_empty() {
+                                seen.asked.lock().unwrap().push((from, to.parse::<usize>().unwrap().min(body.len() - 1)));
+                            }
+                            let to = to.parse().map_or(body.len() - 1, |to: usize| to.min(body.len() - 1));
+                            range = ranges.then_some((from, to));
                         }
                     }
-                }
-                let status = if from > 0 { "206 Partial Content" } else { "200 OK" };
-                let rest = &body[from..];
-                let head = format!("HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", rest.len());
-                let _ = stream.write_all(head.as_bytes());
-                let send = if i == 0 { cut.unwrap_or(rest.len()) } else { rest.len() };
-                let _ = stream.write_all(&rest[..send]);
+                    let accept = if ranges { "Accept-Ranges: bytes\r\n" } else { "" };
+                    let (head, part) = match range {
+                        Some((from, to)) => {
+                            (format!("HTTP/1.1 206 Partial Content\r\n{accept}Content-Range: bytes {from}-{to}/{}\r\nContent-Length: {}\r\n", body.len(), to + 1 - from), &body[from..=to])
+                        }
+                        None => (format!("HTTP/1.1 200 OK\r\n{accept}Content-Length: {}\r\n", body.len()), &body[..]),
+                    };
+                    let _ = stream.write_all(format!("{head}Connection: close\r\n\r\n").as_bytes());
+                    // a moment before the body, so that lines asked for together are open together
+                    thread::sleep(Duration::from_millis(20));
+                    let send = match cut {
+                        Some((n, bytes)) if n == i => bytes.min(part.len()),
+                        _ => part.len(),
+                    };
+                    let _ = stream.write_all(&part[..send]);
+                    seen.open.fetch_sub(1, Ordering::SeqCst);
+                });
             }
         });
-        (url, hits)
+        (url, seen)
+    }
+
+    fn serve(cut: Option<usize>, ranges: bool) -> (String, Arc<Seen>) {
+        serve_body(body(), cut.map(|bytes| (0, bytes)), ranges)
+    }
+
+    /// Big enough to come in pieces: not a whole number of them.
+    fn big() -> Vec<u8> {
+        (0..3 * SPLIT_FROM as usize + 12_345).map(|i| (i % 249) as u8).collect()
     }
 
     fn temp() -> PathBuf {
@@ -299,7 +528,103 @@ mod tests {
         let dest = temp().join("file.bin");
         fetch(&agent(), &[url], &dest, &sha(&body()), &AtomicBool::new(false), &mut |_, _| {}).unwrap();
         assert_eq!(fs::read(&dest).unwrap(), body());
-        assert_eq!(hits.load(Ordering::SeqCst), 2, "the second request only asks for the rest");
+        assert_eq!(hits.hits.load(Ordering::SeqCst), 2, "the second request only asks for the rest");
+    }
+
+    #[test]
+    fn a_big_file_comes_over_several_lines_at_once() {
+        let (url, seen) = serve_body(big(), None, true);
+        let dest = temp().join("file.bin");
+        let mut last = (0, 0);
+        fetch(&agent(), &[url], &dest, &sha(&big()), &AtomicBool::new(false), &mut |done, all| last = (done, all)).unwrap();
+        assert_eq!(fs::read(&dest).unwrap(), big());
+        assert!(seen.most.load(Ordering::SeqCst) >= 2, "more than one line was open at a time");
+        assert_eq!(seen.asked_bytes(), big().len(), "each byte was asked for once");
+        assert_eq!(last, (big().len() as u64, big().len() as u64));
+        assert!(!pieces_of(&part_of(&dest)).exists(), "nothing is left beside the file");
+    }
+
+    #[test]
+    fn a_split_download_stopped_halfway_takes_up_where_it_stopped() {
+        let (url, seen) = serve_body(big(), None, true);
+        let dest = temp().join("file.bin");
+        let cancel = AtomicBool::new(false);
+        let half = big().len() as u64 / 2;
+        let got = fetch(&agent(), &[url.clone()], &dest, "", &cancel, &mut |done, _| {
+            if done > half {
+                cancel.store(true, Ordering::Relaxed);
+            }
+        });
+        assert!(matches!(got, Err(Failure::Cancelled)));
+        assert!(!dest.exists() && part_of(&dest).exists());
+        seen.asked_bytes();
+        fetch(&agent(), &[url], &dest, &sha(&big()), &AtomicBool::new(false), &mut |_, _| {}).unwrap();
+        assert_eq!(fs::read(&dest).unwrap(), big());
+        assert!(seen.asked_bytes() < big().len() - half as usize / 2, "what had landed was not asked for again");
+    }
+
+    #[test]
+    fn what_one_line_brought_before_counts_when_the_file_comes_in_pieces() {
+        let (url, seen) = serve_body(big(), None, true);
+        let dest = temp().join("file.bin");
+        fs::create_dir_all(dest.parent().unwrap()).unwrap();
+        // as an older version left it: the start of the file, from one line
+        let had = big().len() / 2;
+        fs::write(part_of(&dest), &big()[..had]).unwrap();
+        fetch(&agent(), &[url], &dest, &sha(&big()), &AtomicBool::new(false), &mut |_, _| {}).unwrap();
+        assert_eq!(fs::read(&dest).unwrap(), big());
+        assert!(seen.asked_bytes() <= big().len() - had + PIECES.1 as usize, "only the rest was asked for");
+    }
+
+    #[test]
+    fn a_piece_whose_line_drops_is_asked_for_again_from_where_it_dropped() {
+        let (url, _) = serve_body(big(), Some((2, 5_000)), true);
+        let dest = temp().join("file.bin");
+        fetch(&agent(), &[url], &dest, &sha(&big()), &AtomicBool::new(false), &mut |_, _| {}).unwrap();
+        assert_eq!(fs::read(&dest).unwrap(), big());
+    }
+
+    /// One real file over one line and then in pieces, timed: `cargo test -- --ignored --nocapture lines_timed`.
+    #[test]
+    #[ignore = "downloads from Hugging Face"]
+    fn lines_timed() {
+        let url = "https://huggingface.co/ilintar/trellis2-gguf/resolve/a57397bd3d351599d9729fc144b3f87c3f87d65b/q4/ss_dec.gguf";
+        let total = 147_379_392;
+        let dir = temp();
+        fs::create_dir_all(&dir).unwrap();
+        let (agent, stop, done) = (agent(), AtomicBool::new(false), AtomicU64::new(0));
+        let one = dir.join("one.part");
+        fs::File::create(&one).unwrap().set_len(total).unwrap();
+        let t = std::time::Instant::now();
+        piece(&agent, url, &one, 0, total, &stop, &done).unwrap();
+        eprintln!("one line: {:.1} s", t.elapsed().as_secs_f64());
+        let part = dir.join("split.part");
+        let t = std::time::Instant::now();
+        // in the pieces the program uses, not the tests' small ones
+        split(&agent, url, &part, plan_in(&part, total, piece_size(total, REAL_PIECES)).unwrap(), &stop, &mut |_, _| {}).unwrap();
+        eprintln!("in pieces: {:.1} s", t.elapsed().as_secs_f64());
+        let t = std::time::Instant::now();
+        let hash = sha256_of(&part).unwrap();
+        eprintln!("hash: {:.1} s, {}", t.elapsed().as_secs_f64(), &hash[..8]);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_split_file_with_the_wrong_hash_leaves_nothing_behind() {
+        let (url, _) = serve_body(big(), None, true);
+        let dest = temp().join("file.bin");
+        let got = fetch(&agent(), &[url], &dest, &"0".repeat(64), &AtomicBool::new(false), &mut |_, _| {});
+        assert!(matches!(got, Err(Failure::WrongHash)));
+        assert!(!dest.exists() && !part_of(&dest).exists() && !pieces_of(&part_of(&dest)).exists());
+    }
+
+    #[test]
+    fn a_big_file_from_a_server_without_ranges_still_comes_whole_over_one_line() {
+        let (url, seen) = serve_body(big(), None, false);
+        let dest = temp().join("file.bin");
+        fetch(&agent(), &[url], &dest, &sha(&big()), &AtomicBool::new(false), &mut |_, _| {}).unwrap();
+        assert_eq!(fs::read(&dest).unwrap(), big());
+        assert_eq!(seen.hits.load(Ordering::SeqCst), 1);
     }
 
     #[test]

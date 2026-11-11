@@ -70,6 +70,12 @@ export function formatAmount(done: number, total: number, lang: string) {
 	return { big, done: format(done), total: format(total) };
 }
 
+/** Megabytes a second: tenths while there are under ten, so a slow line never reads as a stopped one. */
+export function formatSpeed(bytesPerSecond: number, lang: string) {
+	const mb = bytesPerSecond / 2 ** 20;
+	return mb.toLocaleString(lang, { maximumFractionDigits: mb < 10 ? 1 : 0, minimumFractionDigits: mb < 10 ? 1 : 0 });
+}
+
 /** Where an install is as a whole: the bar only ever moves forward, across every step. */
 export function installProgress(type: keyof typeof STEPS, stage: string, done: number, total: number) {
 	const steps = STEPS[type];

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { fit, formatAmount, formatRange, formatTime, installProgress, type Model } from '../lib/catalog';
+	import { fit, formatAmount, formatRange, formatSpeed, formatTime, installProgress, type Model } from '../lib/catalog';
 	import { core } from '../lib/core';
 	import { lang, t, type Key } from '../lib/i18n.svelte';
 	import { app, benchOf, chooseModelsFolder, hasRoom, installing, installModel, isBroken, isInstalled, refreshInstalled } from '../lib/state.svelte';
@@ -25,8 +25,9 @@
 	const amount = $derived(pack && formatAmount(pack.done, pack.total, lang.value));
 	/** Under a megabyte there is nothing worth counting. */
 	const counted = $derived(!!pack && pack.total >= 2 ** 20 && pack.done > 0);
-	const megabytes = (bytes: number) => Math.round(bytes / 2 ** 20).toLocaleString(lang.value);
-	const left = $derived(pack?.speed && pack.total > pack.done ? (pack.total - pack.done) / pack.speed : 0);
+	/** Waiting for the network: no speed and no time left, only why it waits. */
+	const offline = $derived(pack?.error === 'offline');
+	const left = $derived(pack?.speed && !offline && pack.total > pack.done ? (pack.total - pack.done) / pack.speed : 0);
 	/** Installed for a slower device than this computer has, as when the graphics card was not seen. */
 	const otherDevice = $derived(!!installed && !!f.target && f.band !== 'no' && installed.device !== f.target.device);
 	const chip = $derived(f.band === 'fast' ? 'good' : f.band === 'no' ? 'bad' : 'warn');
@@ -120,11 +121,12 @@
 					<span class="faint status">
 						<i class="alive"></i>
 						<span>
-							{t('models.step', { n: progress!.step, of: progress!.of })}. {t(`models.stage.${pack.stage || 'tool'}` as never)}{#if counted}: {t(amount!.big ? 'models.amount' : 'models.amountSmall', { done: amount!.done, total: amount!.total })}{/if}{#if pack.speed && counted}, {t('models.speed', { mb: megabytes(pack.speed) })}{/if}{#if left > 1}, {t('models.left', {
+							{t('models.step', { n: progress!.step, of: progress!.of })}. {t(`models.stage.${pack.stage || 'tool'}` as never)}{#if counted}: {t(amount!.big ? 'models.amount' : 'models.amountSmall', { done: amount!.done, total: amount!.total })}{/if}{#if pack.speed && counted && !offline}, {t('models.speed', { mb: formatSpeed(pack.speed, lang.value) })}{/if}{#if left > 1}, {t('models.left', {
 									time: formatTime(left, lang.value)
 								})}{/if}
 						</span>
 					</span>
+					{#if offline}<span class="faint">{t('models.offline')}</span>{/if}
 					<div class="bar live"><i style:width="{(progress!.share * 100).toFixed(1)}%"></i></div>
 				</div>
 			{:else if pack?.state === 'failed' && pack.error === 'fence: FENCE_OPEN' && model.plugin}
