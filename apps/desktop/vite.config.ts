@@ -42,9 +42,23 @@ const threeForgets: Plugin = {
 	}
 };
 
+// A lost context does not give its picture back in WebKit (the Mac's WebView): the drawing buffer stays in video
+// memory until the canvas is collected, and nothing asks for that. Each 3D view a page ever had kept about 200 MB
+// at 2×, so after a dozen tools the page stopped answering. A canvas made 1 × 1 first leaves nothing to keep.
+// Every view calls forceContextLoss() only when it is done for good.
+const threeLetsGoOfTheGpu: Plugin = {
+	name: 'three-lets-go-of-the-gpu',
+	transform(code, id) {
+		if (!id.includes('three/build/three.module')) return;
+		const lose = 'this.forceContextLoss = function () {';
+		if (code.split(lose).length !== 2 || !code.includes('this.domElement = canvas;')) this.error('three changed: check whether three-lets-go-of-the-gpu is still needed');
+		return { code: code.replace(lose, `${lose} canvas.width = canvas.height = 1;`), map: null };
+	}
+};
+
 // `tauri build` serves dist/. `npm run dev` also opens in a plain browser, on the stand-in core (src/lib/mock.ts).
 export default defineConfig({
-	plugins: [svelte(), publicImports, orbitLetsGo, threeForgets],
+	plugins: [svelte(), publicImports, orbitLetsGo, threeForgets, threeLetsGoOfTheGpu],
 	// the tools from Polyzon Studio keep their own import paths: src/studio/README.md
 	resolve: { alias: { $lib: here('src/studio'), $msg: here('src/studio/gen'), $app: here('src/studio/app') } },
 	worker: { format: 'es' },
