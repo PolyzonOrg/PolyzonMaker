@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { bench, model, pc, target } from './catalog.fixtures';
 import type { Job } from './core';
 import { lang } from './i18n.svelte';
-import { queue, readyBy } from './queue';
+import { queue, readyBy, taskbar } from './queue';
 
 const job = (id: string, more: Partial<Job>): Job =>
 	({ id, thread: id, created: 0, kind: 'model', title: id, prompt: '', input: '', model: 'm', device: 'cpu', preset: '', seed: 0, state: 'queued', stage: '', error: '', detail: '', seconds: 0, started: 0, output: '', offload: '', notes: [], rating: '', ...more }) as Job;
@@ -49,5 +49,21 @@ describe('readyBy', () => {
 		expect(readyBy([at(23, 50), at(6, 40, 11)], evening)).toBe('Всё будет готово завтра примерно к 06:40');
 		lang.value = 'en';
 		expect(readyBy([at(22, 40), at(22, 40)], evening)).toBe('Everything should be done by about 22:40');
+	});
+});
+
+describe('the work on the taskbar button', () => {
+	it('shows an install by its bytes, ahead of a job', () => {
+		expect(taskbar(0.426, 0.8)).toEqual({ status: 'normal', progress: 43 });
+	});
+
+	it('shows a job by its estimate, or only that it is busy when there is none', () => {
+		expect(taskbar(null, 0.3)).toEqual({ status: 'normal', progress: 30 });
+		expect(taskbar(null, 0)).toEqual({ status: 'normal', progress: 0 });
+		expect(taskbar(null, 'busy')).toEqual({ status: 'indeterminate' });
+	});
+
+	it('shows nothing when nothing runs', () => {
+		expect(taskbar(null, null)).toEqual({ status: 'none' });
 	});
 });
