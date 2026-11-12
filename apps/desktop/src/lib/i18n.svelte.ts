@@ -704,6 +704,10 @@ const en = {
 	'settings.matureHint': 'Hidden by default. Only models tagged on Hugging Face can be hidden.',
 	'settings.about': 'About',
 	'settings.version': 'Version {v}. Free and open source, MIT. Each model keeps its own license.',
+	'support.title': 'Report for support',
+	'support.text': 'If something does not work, save this file and send it with your question. It holds the version, what the computer is, and how the last generations went with their logs. Your pictures, descriptions, titles and models are not in it, and your user name is taken out of paths.',
+	'support.save': 'Save report',
+	'support.saved': 'Saved: {path}',
 	'settings.on': 'On',
 	'settings.off': 'Off'
 } as const;
@@ -1415,6 +1419,10 @@ const ru: Record<Key, string> = {
 	'settings.matureHint': 'По умолчанию скрыты. Скрыть можно только те, что отмечены на Hugging Face.',
 	'settings.about': 'О программе',
 	'settings.version': 'Версия {v}. Бесплатная программа с открытым кодом, MIT. У каждой модели своя лицензия.',
+	'support.title': 'Отчёт для поддержки',
+	'support.text': 'Если что-то не работает, сохраните этот файл и пришлите его вместе с вопросом. В нём версия, какой у вас компьютер и как прошли последние генерации, с их журналами. Ваших картинок, описаний, названий и моделей в нём нет, а имя пользователя убрано из путей.',
+	'support.save': 'Сохранить отчёт',
+	'support.saved': 'Сохранено: {path}',
 	'settings.on': 'Вкл.',
 	'settings.off': 'Выкл.'
 };

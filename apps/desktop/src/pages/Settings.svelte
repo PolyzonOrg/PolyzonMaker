@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { core } from '../lib/core';
+	import { problem } from '../lib/problem';
 	import { gpuTest } from '../lib/gpu-test';
 	import { t } from '../lib/i18n.svelte';
 	import { contributed, themeKey } from '../lib/plugins';
@@ -11,6 +12,21 @@
 	import Select from '../parts/Select.svelte';
 
 	let checking = $state(false);
+	let reporting = $state(false);
+	let reported = $state('');
+
+	async function saveReport() {
+		reporting = true;
+		reported = '';
+		try {
+			const path = await core.supportReport(`polyzon-maker-report-${new Date().toISOString().slice(0, 10)}.zip`);
+			if (path) reported = t('support.saved', { path });
+		} catch (e) {
+			reported = t('app.actionFailed') + ' ' + problem(e);
+		} finally {
+			reporting = false;
+		}
+	}
 	let sample = $state('');
 	let showSample = $state(false);
 
@@ -238,6 +254,11 @@
 		<h2>{t('settings.about')}</h2>
 		<section class="card">
 			<p class="muted">{t('settings.version', { v: app.version })}</p>
+			<div class="setting">
+				<span><strong>{t('support.title')}</strong><span class="faint">{t('support.text')}</span></span>
+				<button class="btn small" disabled={reporting} onclick={saveReport}><Icon name="download" size={14} />{t('support.save')}</button>
+			</div>
+			{#if reported}<p class="faint selectable" role="status">{reported}</p>{/if}
 		</section>
 	</div>
 </div>
