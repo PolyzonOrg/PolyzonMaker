@@ -1,6 +1,6 @@
 [package]
 name = "polyzon-maker"
-version = "0.3.2"
+version = "0.3.3"
 description = "Polyzon Maker: 3D models from photos and text on your own computer, ready to print"
 license = "MIT"
 edition = "2021"
