@@ -172,7 +172,7 @@ async fn hf_readme(repo: String) -> Result<String> {
 
 /// A picture for a new job, as the raw request body; its name comes in a header.
 #[tauri::command]
-fn job_image(request: Request<'_>, jobs: State<Arc<Jobs>>) -> Result<serde_json::Value> {
+async fn job_image(request: Request<'_>, jobs: State<'_, Arc<Jobs>>) -> Result<serde_json::Value> {
     let InvokeBody::Raw(bytes) = request.body() else { return Err("expected raw bytes".into()) };
     let name = request.headers().get("x-name").and_then(|v| v.to_str().ok()).unwrap_or("picture.png");
     let ext = name.rsplit('.').next().unwrap_or("").to_lowercase();
@@ -184,8 +184,8 @@ fn job_image(request: Request<'_>, jobs: State<Arc<Jobs>>) -> Result<serde_json:
     }
     let id = store::random_id();
     let input = format!("input.{ext}");
-    let dir = jobs.dir(&id)?;
-    store::write_atomic(&dir.join(&input), bytes).map_err(text)?;
+    let (path, bytes) = (jobs.dir(&id)?.join(&input), bytes.clone());
+    blocking(move || store::write_atomic(&path, &bytes)).await?.map_err(text)?;
     Ok(serde_json::json!({ "id": id, "input": input }))
 }
 
@@ -228,9 +228,10 @@ fn header_text(request: &Request<'_>, name: &str) -> String {
 }
 
 #[tauri::command]
-fn job_import(request: Request<'_>, app: AppHandle, jobs: State<Arc<Jobs>>) -> Result<Job> {
+async fn job_import(request: Request<'_>, app: AppHandle, jobs: State<'_, Arc<Jobs>>) -> Result<Job> {
     let InvokeBody::Raw(bytes) = request.body() else { return Err("expected raw bytes".into()) };
-    let job = jobs.import(&header_text(&request, "x-title"), bytes)?;
+    let (title, bytes, jobs) = (header_text(&request, "x-title"), bytes.clone(), jobs.inner().clone());
+    let job = blocking(move || jobs.import(&title, &bytes)).await??;
     news(&app, "job", &job);
     Ok(job)
 }
@@ -347,13 +348,15 @@ async fn job_read(jobs: State<'_, Arc<Jobs>>, id: String, name: String) -> Resul
     Ok(Response::new(blocking(move || fs::read(path)).await?.map_err(text)?))
 }
 
-/// A file the page made for a job (the preview picture, a print version).
+/// A file the page made for a job (the preview picture, a print version). Written off the window's thread, as
+/// a picture or a model coming in is: a print STL can be tens of megabytes.
 #[tauri::command]
-fn job_write(request: Request<'_>, jobs: State<Arc<Jobs>>) -> Result<()> {
+async fn job_write(request: Request<'_>, jobs: State<'_, Arc<Jobs>>) -> Result<()> {
     let InvokeBody::Raw(bytes) = request.body() else { return Err("expected raw bytes".into()) };
     let header = |k: &str| request.headers().get(k).and_then(|v| v.to_str().ok()).unwrap_or("");
     store::safe_name(header("x-name"))?;
-    store::write_atomic(&jobs.dir(header("x-id"))?.join(header("x-name")), bytes).map_err(text)
+    let (path, bytes) = (jobs.dir(header("x-id"))?.join(header("x-name")), bytes.clone());
+    blocking(move || store::write_atomic(&path, &bytes)).await?.map_err(text)
 }
 
 #[tauri::command]
