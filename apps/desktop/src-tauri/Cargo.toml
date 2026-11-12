@@ -24,6 +24,7 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 flate2 = "1"
 tar = "0.4"
 tauri-plugin-notification = "2"
+tauri-plugin-window-state = "2"
 
 # the system's own TLS where there is one: no C code to build, and the machine's own certificates
 [target.'cfg(windows)'.dependencies]

@@ -634,6 +634,13 @@ fn main() {
     tauri::Builder::default()
         // a second copy would run a second queue over the same folders: it hands over to the first
         .plugin(tauri_plugin_single_instance::init(|app, _, _| tray::show(app)))
+        // the window opens where it was left, as large, maximized or not; on a screen that is gone it opens
+        // as it would at first. Whether it shows at all is the tray's to say, so that is not kept.
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(tauri_plugin_window_state::StateFlags::SIZE | tauri_plugin_window_state::StateFlags::POSITION | tauri_plugin_window_state::StateFlags::MAXIMIZED)
+                .build(),
+        )
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -685,11 +692,12 @@ fn main() {
             app.manage(Fetched::default());
             // no icon is no reason not to start: the close button then closes, as before
             let _ = tray::attach(app.handle());
-            // back from an update that went in from the tray: the window stays there, as it was
-            if tray::came_back(app.state::<Arc<Store>>().data()) && tray::holds(app.handle()) {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.hide();
-                }
+            // The window is made hidden and shown here, where it already stands as it was left: shown at once it
+            // opened in one place and jumped to the other. Back from an update that went in from the tray, it
+            // stays there, as it was.
+            let in_tray = tray::came_back(app.state::<Arc<Store>>().data()) && tray::holds(app.handle());
+            if let Some(window) = app.get_webview_window("main").filter(|_| !in_tray) {
+                let _ = window.show();
             }
             let away = app.handle().clone();
             std::thread::spawn(move || loop {
