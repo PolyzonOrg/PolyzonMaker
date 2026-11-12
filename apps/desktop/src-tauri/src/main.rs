@@ -115,9 +115,12 @@ fn models() -> serde_json::Value {
     catalog::json()
 }
 
+// What reads the disk runs off the main thread: a command without `async` runs on it, the window's own
+// loop, so the window waited for each, and they for one another.
 #[tauri::command]
-fn packs_installed(store: State<Arc<Store>>) -> Vec<packs::Installed> {
-    packs::installed(&store)
+async fn packs_installed(store: State<'_, Arc<Store>>) -> Result<Vec<packs::Installed>> {
+    let store = store.inner().clone();
+    blocking(move || packs::installed(&store)).await
 }
 
 #[tauri::command]
@@ -265,13 +268,15 @@ fn assistant_cancel(assistant: State<Arc<assistant::Assistant>>, id: String) {
 }
 
 #[tauri::command]
-fn chats_list(store: State<Arc<Store>>) -> Vec<serde_json::Value> {
-    chats::list(&store)
+async fn chats_list(store: State<'_, Arc<Store>>) -> Result<Vec<serde_json::Value>> {
+    let store = store.inner().clone();
+    blocking(move || chats::list(&store)).await
 }
 
 #[tauri::command]
-fn chat_read(store: State<Arc<Store>>, id: String) -> Result<serde_json::Value> {
-    chats::read(&store, &id)
+async fn chat_read(store: State<'_, Arc<Store>>, id: String) -> Result<serde_json::Value> {
+    let store = store.inner().clone();
+    blocking(move || chats::read(&store, &id)).await?
 }
 
 #[tauri::command]
@@ -285,8 +290,9 @@ fn chat_delete(store: State<Arc<Store>>, id: String) -> Result<()> {
 }
 
 #[tauri::command]
-fn programs_list(store: State<Arc<Store>>) -> Vec<programs::Program> {
-    programs::list(&store)
+async fn programs_list(store: State<'_, Arc<Store>>) -> Result<Vec<programs::Program>> {
+    let store = store.inner().clone();
+    blocking(move || programs::list(&store)).await
 }
 
 #[tauri::command]
@@ -374,8 +380,8 @@ async fn job_export(app: AppHandle, jobs: State<'_, Arc<Jobs>>, id: String, name
 }
 
 #[tauri::command]
-fn slicers_found() -> Vec<slicers::Slicer> {
-    slicers::find()
+async fn slicers_found() -> Result<Vec<slicers::Slicer>> {
+    blocking(slicers::find).await
 }
 
 #[tauri::command]
@@ -473,8 +479,9 @@ fn api_set(app: AppHandle, store: State<Arc<Store>>, jobs: State<Arc<Jobs>>, doo
 }
 
 #[tauri::command]
-fn plugins_list(store: State<Arc<Store>>) -> Vec<plugins::Manifest> {
-    plugins::list(&store)
+async fn plugins_list(store: State<'_, Arc<Store>>) -> Result<Vec<plugins::Manifest>> {
+    let store = store.inner().clone();
+    blocking(move || plugins::list(&store)).await
 }
 
 /// Asks for a plugin's file and reads what it asks for. Nothing is installed yet.
