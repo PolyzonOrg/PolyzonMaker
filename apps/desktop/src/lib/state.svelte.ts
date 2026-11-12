@@ -362,56 +362,64 @@ export function setAfter(plan: AfterPlan) {
 }
 
 export async function init() {
-	app.settings = await core.settings();
+	// asking the system about graphics cards takes a second or more: asked first, it is not waited for
+	// where last time's answer is kept, and where it is not (the first start) it is waited for less
+	const hardware = core.hardware();
+	hardware.catch(() => {}); // awaited below; until then a failure is not «unhandled»
+	// Each call to the core is a trip of its own, about 20-50 ms: one after another they held the first
+	// page back by a quarter of a second, so they go at once. What the core tells is heard before what
+	// it is asked, so nothing it says between the two is missed.
+	const [settings] = await Promise.all([
+		core.settings(),
+		on<Job>('job', (job) => {
+			const at = app.jobs.findIndex((j) => j.id === job.id);
+			if (at >= 0) app.jobs[at] = job;
+			else app.jobs.unshift(job);
+		}),
+		on<[string, string]>('stage', ([id, stage]) => {
+			const job = app.jobs.find((j) => j.id === id);
+			if (job) job.stage = stage;
+		}),
+		on<PackProgress>('pack', (p) => {
+			app.packs[p.id] = withSpeed(app.packs[p.id], p, performance.now());
+			if (p.state === 'done') void refreshInstalled();
+		}),
+		on<AfterPlan>('after-queue', setAfter),
+		on<string>('api-open', (id) => go('result', id)),
+		on<[string, number]>('api-prepare', ([id, height]) => {
+			app.prepare = { id, height };
+			go('result', id);
+		}),
+		on<{ id: string; call: string; args: Record<string, unknown> }>('api-tool', async ({ id, call, args }) => {
+			// only an agent's first call loads the tools
+			const { toolCall } = await import('../studio/agent');
+			const value = await toolCall(call, args).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
+			await core.toolAnswer(id, value);
+		}),
+		on<string>('api-install', (id) => {
+			const model = app.models.find((m) => m.id === id);
+			if (model && !isInstalled(id) && !installing(id)) installModel(model);
+		}),
+		on<[number, number | null]>('update', ([done, total]) => {
+			if (app.update) Object.assign(app.update, { done, total: total ?? 0 });
+		})
+	]);
+	app.settings = settings;
 	setLang(app.settings.language);
 	applyTheme();
 	matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
-	const [{ models }, installed, jobs, slicers, plugins] = await Promise.all([core.catalog(), core.installed(), core.jobs(), core.slicers(), core.plugins()]);
-	Object.assign(app, { models, installed, jobs, slicers, plugins });
+	const [{ models }, installed, jobs, slicers, plugins, after, folders] = await Promise.all([core.catalog(), core.installed(), core.jobs(), core.slicers(), core.plugins(), core.afterQueue(), core.folders()]);
+	Object.assign(app, { models, installed, jobs, slicers, plugins, folder: folders.models, version: folders.version, exe: folders.exe });
+	setAfter(after);
 	applyTheme(); // a plugin's theme is known only now
-	await on<Job>('job', (job) => {
-		const at = app.jobs.findIndex((j) => j.id === job.id);
-		if (at >= 0) app.jobs[at] = job;
-		else app.jobs.unshift(job);
-	});
-	await on<[string, string]>('stage', ([id, stage]) => {
-		const job = app.jobs.find((j) => j.id === id);
-		if (job) job.stage = stage;
-	});
-	await on<PackProgress>('pack', (p) => {
-		app.packs[p.id] = withSpeed(app.packs[p.id], p, performance.now());
-		if (p.state === 'done') void refreshInstalled();
-	});
-	await on<AfterPlan>('after-queue', setAfter);
-	setAfter(await core.afterQueue());
-	await on<string>('api-open', (id) => go('result', id));
-	await on<[string, number]>('api-prepare', ([id, height]) => {
-		app.prepare = { id, height };
-		go('result', id);
-	});
-	await on<{ id: string; call: string; args: Record<string, unknown> }>('api-tool', async ({ id, call, args }) => {
-		// only an agent's first call loads the tools
-		const { toolCall } = await import('../studio/agent');
-		const value = await toolCall(call, args).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
-		await core.toolAnswer(id, value);
-	});
+	// an agent's tool calls wait for this: the models and the library are known now
 	void core.toolsReady();
-	await on<string>('api-install', (id) => {
-		const model = app.models.find((m) => m.id === id);
-		if (model && !isInstalled(id) && !installing(id)) installModel(model);
-	});
-	await on<[number, number | null]>('update', ([done, total]) => {
-		if (app.update) Object.assign(app.update, { done, total: total ?? 0 });
-	});
-	const folders = await core.folders();
-	Object.assign(app, { folder: folders.models, version: folders.version, exe: folders.exe });
-	// asking the system about graphics cards takes seconds: open at once with what was found last time
 	const known = stored<Hardware>(HARDWARE_KEY);
 	if (known) {
 		app.hw = known;
 		app.ready = true;
 	}
-	app.hw = await core.hardware();
+	app.hw = await hardware;
 	store(HARDWARE_KEY, app.hw);
 	app.ready = true;
 	if (!app.settings.updates_off) setTimeout(checkUpdate, 3000);
