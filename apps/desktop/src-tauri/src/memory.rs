@@ -212,7 +212,8 @@ impl Sampler {
     pub fn new() -> Self {
         let mut system = System::new();
         system.refresh_memory();
-        let budget = Budget::of(system.total_memory() >> 20, cfg!(target_os = "macos"));
+        // a smaller computer when one is tried out on this one (POLYZON_RAM_MB)
+        let budget = Budget::of(crate::hardware::total_mb(system.total_memory() >> 20), cfg!(target_os = "macos"));
         Self { system, budget }
     }
 

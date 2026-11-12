@@ -894,6 +894,12 @@ pub fn plugin_program(store: &Store, plugin: &str, adapter: &str, root: &Path, f
 }
 
 /// Where models look for weights, inside the pack; nothing outside it is touched.
+/// MPS's high and low marks for the share of the Mac's memory that is counted.
+fn mps_marks(share: f64) -> (String, String) {
+    let share = share.clamp(0.05, 1.0);
+    (format!("{share:.2}"), format!("{:.2}", share * 0.8))
+}
+
 pub fn cache_env(c: &mut Command, root: &Path, mirror: bool) {
     c.env("HF_HOME", root.join("hf")).env("U2NET_HOME", root.join("u2net")).env("PYTHONUNBUFFERED", "1");
     c.env("TORCH_HOME", root.join("torch")).env("XDG_CACHE_HOME", root.join("cache")).env("HF_HUB_DISABLE_TELEMETRY", "1");
@@ -910,8 +916,10 @@ pub fn cache_env(c: &mut Command, root: &Path, mirror: bool) {
     c.env("PYTORCH_ENABLE_MPS_FALLBACK", "1");
     // torch lets MPS take 1.7 times what macOS recommends, past the memory the Mac has: Hunyuan3D-2.1 then
     // swapped a 24 GB Mac to a halt. At 1.0 MPS says it is out of memory instead, which the app can tell.
-    // The low mark, where MPS starts to give memory back, may not stand over the high one.
-    c.env("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "1.0").env("PYTORCH_MPS_LOW_WATERMARK_RATIO", "0.8");
+    // The low mark, where MPS starts to give memory back, may not stand over the high one. A smaller Mac tried
+    // out on this one (POLYZON_RAM_MB) gets its share of the marks.
+    let (high, low) = mps_marks(crate::hardware::counted_share(crate::hardware::real_total_mb()));
+    c.env("PYTORCH_MPS_HIGH_WATERMARK_RATIO", high).env("PYTORCH_MPS_LOW_WATERMARK_RATIO", low);
     if mirror {
         c.env("HF_ENDPOINT", "https://hf-mirror.com");
     }
@@ -1171,9 +1179,12 @@ mod tests {
         let mut c = Command::new("python");
         cache_env(&mut c, Path::new("pack"), false);
         let env = |name: &str| c.get_envs().find(|(k, _)| *k == name).and_then(|(_, v)| v).and_then(|v| v.to_str()).map(str::to_string);
-        assert_eq!(env("PYTORCH_MPS_HIGH_WATERMARK_RATIO").as_deref(), Some("1.0"));
+        assert_eq!(env("PYTORCH_MPS_HIGH_WATERMARK_RATIO").as_deref(), Some("1.00"));
         // the low mark may not stand over the high one, or torch refuses to start on the Mac
         let low: f32 = env("PYTORCH_MPS_LOW_WATERMARK_RATIO").unwrap().parse().unwrap();
+        // an 8 GB Mac tried out on a 24 GB one gets a third of the marks
+        assert_eq!(mps_marks(8192.0 / 24576.0), ("0.33".to_string(), "0.27".to_string()));
+        assert_eq!(mps_marks(3.0).0, "1.00", "never past what macOS recommends");
         assert!(low <= 1.0, "{low}");
     }
 
