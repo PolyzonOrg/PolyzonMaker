@@ -215,6 +215,8 @@ mod tests {
     }
 
     /// A GLB with one triangle, as a generator writes it.
+    // 0.7071 is a sample number whose marked bits are written out below, not 1/√2
+    #[allow(clippy::approx_constant)]
     fn sample_glb() -> Vec<u8> {
         let doc = json!({
             "asset": { "version": "2.0", "generator": "trimesh" },
@@ -227,7 +229,7 @@ mod tests {
             "bufferViews": [{ "buffer": 0, "byteOffset": 0, "byteLength": 36 }, { "buffer": 0, "byteOffset": 36, "byteLength": 12 }]
         });
         let mut json = doc.to_string().into_bytes();
-        while json.len() % 4 != 0 {
+        while !json.len().is_multiple_of(4) {
             json.push(b' ');
         }
         let mut bin: Vec<u8> = [1.0f32, -2.5, 123.456, 0.001, 1e-30, 0.0, 0.7071, 2.0, 3.0].iter().flat_map(|v| v.to_le_bytes()).collect();
@@ -261,7 +263,7 @@ mod tests {
         // the corners carry the same mark mesh-kit puts in (numbers from its markCoordinates), the indices
         // and the chunk stay, the bounds follow the marked numbers, and the file is still read as a model
         let bin = &after[json_end + 8..];
-        let floats: Vec<u32> = bin[..36].chunks_exact(4).map(|w| u32::from_le_bytes(w.try_into().unwrap())).collect();
+        let floats: Vec<u32> = bin[..36].as_chunks::<4>().0.iter().map(|w| u32::from_le_bytes(*w)).collect();
         assert_eq!(floats, [0x3f80_0001, 0xc020_0001, 0x42f6_e978, 0x3a83_126f, 0x0da2_4261, 0x0000_0000, 0x3f35_0480, 0x4000_0000, 0x4040_0000]);
         let old_bin = 20 + u32_at(&before, 12).unwrap() as usize;
         assert_eq!(&after[json_end..json_end + 8], &before[old_bin..old_bin + 8]);

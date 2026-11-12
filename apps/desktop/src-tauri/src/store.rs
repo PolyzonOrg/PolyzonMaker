@@ -333,7 +333,7 @@ mod tests {
         let s = Store::open(d.join("c"), d.join("d")).unwrap();
         let (one, two) = (d.join("one"), d.join("two"));
         let default = d.join("d").join("packs");
-        assert_eq!(s.pack_folders(), [default.clone()]);
+        assert_eq!(s.pack_folders(), std::slice::from_ref(&default));
         s.set_models_folder(one.to_str().unwrap()).unwrap();
         assert_eq!(s.pack_folders(), [one.clone(), default.clone()]);
         s.set_models_folder(two.to_str().unwrap()).unwrap();

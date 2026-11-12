@@ -1456,14 +1456,14 @@ mod tests {
         let engine = &archives["windows-vulkan"][0];
         let arc = dir.join("engine.zip");
         let cancel = AtomicBool::new(false);
-        let stopped = download::fetch(&agent, &[engine.url.clone()], &arc, &engine.sha256, &cancel, &mut |done, _| {
+        let stopped = download::fetch(&agent, std::slice::from_ref(&engine.url), &arc, &engine.sha256, &cancel, &mut |done, _| {
             if done > 4 << 20 {
                 cancel.store(true, Ordering::Relaxed);
             }
         });
         assert!(matches!(stopped, Err(Failure::Cancelled)));
         assert!(!arc.exists());
-        download::fetch(&agent, &[engine.url.clone()], &arc, &engine.sha256, &AtomicBool::new(false), &mut |_, _| {}).unwrap();
+        download::fetch(&agent, std::slice::from_ref(&engine.url), &arc, &engine.sha256, &AtomicBool::new(false), &mut |_, _| {}).unwrap();
         assert_eq!(fs::metadata(&arc).unwrap().len(), engine.size);
         download::unpack(&arc, &dir.join("bin")).unwrap();
         assert!(find_exe(&dir.join("bin"), "trellis-cli").is_some());
@@ -1471,13 +1471,13 @@ mod tests {
         // a weight file through Hugging Face's redirect, checked against its pinned hash
         let w = weights.iter().find(|w| w.name == "ss_dec.gguf").unwrap();
         let dest = dir.join("weights").join(&w.name);
-        download::fetch(&agent, &[w.url.clone()], &dest, &w.sha256, &AtomicBool::new(false), &mut |_, _| {}).unwrap();
+        download::fetch(&agent, std::slice::from_ref(&w.url), &dest, &w.sha256, &AtomicBool::new(false), &mut |_, _| {}).unwrap();
         assert_eq!(fs::metadata(&dest).unwrap().len(), w.size);
 
         // the tool every Python model needs, for this system
         let uv = catalog::uv(&format!("{}-{}", catalog::os_key(), std::env::consts::ARCH)).unwrap();
         let arc = dir.join(uv.url.rsplit('/').next().unwrap());
-        download::fetch(&agent, &[uv.url.clone()], &arc, &uv.sha256, &AtomicBool::new(false), &mut |_, _| {}).unwrap();
+        download::fetch(&agent, std::slice::from_ref(&uv.url), &arc, &uv.sha256, &AtomicBool::new(false), &mut |_, _| {}).unwrap();
         download::unpack(&arc, &dir.join("uv")).unwrap();
         assert!(find_exe(&dir.join("uv"), "uv").is_some());
         fs::remove_dir_all(&dir).unwrap();
