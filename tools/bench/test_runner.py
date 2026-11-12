@@ -279,3 +279,9 @@ def test_a_half_build_with_a_value_out_of_range_is_made_again_in_full(tmp_path):
         return types.SimpleNamespace(model=types.SimpleNamespace(parameters=lambda: [value], buffers=lambda: []))
     pipe, how = runner.lean(torch, build, half=True, parts=lambda p: [p.model])
     assert how == "fp32" and built == ["half", "full"]
+
+
+def test_an_engine_whose_program_has_gone_stops_too():
+    parents, ended = iter([100, 100, 100, 1]), []
+    runner.stop_with_parent(getppid=lambda: next(parents), wait=lambda s: None, end=ended.append)
+    assert ended == [1], "its parent changed: the program that started it is gone"

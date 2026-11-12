@@ -14,7 +14,7 @@ use std::{
     io::{BufRead, BufReader},
     net::TcpListener,
     path::{Path, PathBuf},
-    process::{Child, Stdio},
+    process::Stdio,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
@@ -31,7 +31,7 @@ const MAX_ANSWER: u32 = 6000;
 const IDLE_SECONDS: u64 = 600;
 
 struct Running {
-    child: Child,
+    child: sys::Contained,
     port: u16,
     key: String,
     model: String,
@@ -103,7 +103,8 @@ impl Assistant {
         let key = store::random_id();
         let log = store.data().join("assistant.log");
         let out = fs::File::create(&log).map_err(|e| e.to_string())?;
-        let mut c = sys::engine(&exe, false);
+        let gentle = store.settings().gentle;
+        let mut c = sys::engine(&exe, gentle);
         c.arg("--model").arg(&model);
         if let Some(file) = vision {
             c.arg("--mmproj").arg(file);
@@ -111,8 +112,12 @@ impl Assistant {
         c.args(["--host", "127.0.0.1", "--port", &port.to_string(), "--ctx-size", CONTEXT, "--parallel", "1", "--jinja", "--no-webui"]);
         c.env("LLAMA_API_KEY", &key); // not on the command line, where every program can read it
         c.args(["--n-gpu-layers", gpu_layers(&installed.device)]);
+        if gentle {
+            // llama.cpp takes every core by itself; the person keeps some
+            c.args(["--threads", &sys::threads().to_string()]);
+        }
         c.stdin(Stdio::null()).stdout(Stdio::from(out.try_clone().map_err(|e| e.to_string())?)).stderr(Stdio::from(out));
-        let mut child = c.spawn().map_err(|e| e.to_string())?;
+        let mut child = sys::start(&mut c, gentle).map_err(|e| e.to_string())?;
         let agent = local_agent(Some(Duration::from_secs(2)));
         let started = Instant::now();
         while started.elapsed().as_secs() < LOAD_SECONDS {
