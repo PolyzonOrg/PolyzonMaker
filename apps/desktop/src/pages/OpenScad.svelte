@@ -252,14 +252,20 @@
 	});
 
 	onMount(async () => {
-		programs = own(await core.programs());
-		const { ScadViewer } = await import('../studio/openscad/three-viewer');
-		if (!host) return;
+		// the build needs neither the list nor the view: it starts at once, beside them (a second of the four the
+		// page took went by before it began), and a model built before the view is there is shown as it comes
+		if (code.trim() && !stl && !compiling) void compile();
+		const [{ ScadViewer }, mine] = await Promise.all([import('../studio/openscad/three-viewer'), core.programs()]);
+		programs = own(mine);
+		if (!host || left) return;
 		const made = await ScadViewer.create(host, { color: 0xc9c9cc });
 		if (left) return made.dispose();
 		viewer = made;
 		view = sceneView(made);
-		if (code.trim() && !stl && !compiling) void compile();
+		if (stl) {
+			size = (await made.setStl(stl)) ?? size;
+			view.again();
+		}
 	});
 
 	onDestroy(() => {

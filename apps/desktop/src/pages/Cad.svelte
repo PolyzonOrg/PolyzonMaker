@@ -364,13 +364,16 @@
 
 	onMount(async () => {
 		warm();
-		const [{ cadLanguage }, { CadViewer }] = await Promise.all([import('../cad/editor'), import('../cad/viewer')]);
-		language = cadLanguage();
+		// the build needs only the programs a code may use: it starts with them, beside the editor's and the view's
+		// code and the library, and a model built before the view is there is shown as it comes
 		programs = own(await core.programs());
-		library = (await core.jobs()).filter((j) => j.state === 'succeeded');
+		if (code.trim() && !parts.length && !compiling) void compile();
+		const [{ cadLanguage }, { CadViewer }, jobs] = await Promise.all([import('../cad/editor'), import('../cad/viewer'), core.jobs()]);
+		language = cadLanguage();
+		library = jobs.filter((j) => j.state === 'succeeded');
 		if (!host || left) return;
 		viewer = new CadViewer(host, { onPick: pick, onMove: moved });
-		if (code.trim() && !parts.length && !compiling) void compile();
+		if (parts.length) viewer.show(parts, true);
 	});
 
 	onDestroy(() => {
