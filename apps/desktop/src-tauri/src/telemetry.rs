@@ -148,6 +148,10 @@ pub fn event(store: &Arc<Store>, event: &str, model: &str, device: &str, code: &
 fn event_with(store: &Arc<Store>, event: &str, model: &str, device: &str, code: &str, seconds: f64, detail: &str) {
     let Some(id) = yes(store) else { return };
     keep(store, &record(&id, event, model, device, code, seconds, detail));
+    // a test reads what waits: a send under way moved it as it counted
+    if cfg!(test) {
+        return;
+    }
     let store = store.clone();
     std::thread::spawn(move || send(&store));
 }
@@ -172,7 +176,11 @@ pub fn from_page(store: &Arc<Store>, name: &str, model: &str, device: &str, code
     }
 }
 
+/// Never from a test: its made-up records went to the real server.
 fn post(rows: &[Value]) -> bool {
+    if cfg!(test) {
+        return false;
+    }
     crate::download::agent()
         .post(ENDPOINT)
         .header("Content-Type", "application/json")
@@ -439,7 +447,11 @@ mod tests {
     fn a_crash_is_noted_by_place_and_reported_once() {
         let s = store(Some(true));
         fs::write(crash_note(s.data()), "jobs_rs_120").unwrap();
+        let crashes = |s: &Store| [file(s), outbox(s)].iter().map(|f| fs::read_to_string(f).unwrap_or_default().matches("\"app_crash\"").count()).sum::<usize>();
         started(&s, &Hardware::default());
         assert!(!crash_note(s.data()).exists());
+        assert_eq!(crashes(&s), 1);
+        started(&s, &Hardware::default());
+        assert_eq!(crashes(&s), 1);
     }
 }
