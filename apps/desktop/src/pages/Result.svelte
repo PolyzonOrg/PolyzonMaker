@@ -545,15 +545,16 @@
 				</section>
 			{/each}
 
-			<footer>
+			<footer class="menu-list">
+				{#if !finished && !engine?.photos && job.model !== 'triposr'}<button onclick={variant}><Icon name="refresh" size={16} />{t('job.newSeed')}</button>{/if}
+				<button onclick={() => exportAs('model.glb', 'glb')}><Icon name="download" size={16} />{t('print.saveGlb')}</button>
+				{#if source}<button onclick={() => { app.scad = { title: job.title, code: source, program: '' }; go('openscad'); }}><Icon name="code" size={16} />{t('scad.edit')}</button>{/if}
+				{#if cadSource}<button onclick={() => { app.cad = { title: job.title, code: cadSource, program: '' }; go('cad'); }}><Icon name="cube" size={16} />{t('cad.edit')}</button>{/if}
 				{#each commands as { plugin, item } (plugin.id + '/' + item.id)}
-					<button class="btn small ghost" data-tip={t('plugins.from', { name: plugin.name })} onclick={() => runCommand(plugin.id, item.id, id)}><Icon name="puzzle" size={14} />{item.title}</button>
+					<button data-tip={t('plugins.from', { name: plugin.name })} onclick={() => runCommand(plugin.id, item.id, id)}><Icon name="puzzle" size={16} />{item.title}</button>
 				{/each}
-				<button class="btn small ghost" onclick={() => exportAs('model.glb', 'glb')}><Icon name="download" size={14} />{t('print.saveGlb')}</button>
-				{#if source}<button class="btn small ghost" onclick={() => { app.scad = { title: job.title, code: source, program: '' }; go('openscad'); }}><Icon name="code" size={14} />{t('scad.edit')}</button>{/if}
-				{#if cadSource}<button class="btn small ghost" onclick={() => { app.cad = { title: job.title, code: cadSource, program: '' }; go('cad'); }}><Icon name="cube" size={14} />{t('cad.edit')}</button>{/if}
-				{#if !finished && !engine?.photos && job.model !== 'triposr'}<button class="btn small ghost" onclick={variant}><Icon name="refresh" size={14} />{t('job.newSeed')}</button>{/if}
-				<button class="btn small ghost danger" onclick={() => (confirmDelete = true)}><Icon name="trash" size={14} />{t('job.delete')}</button>
+				<hr />
+				<button class="danger" onclick={() => (confirmDelete = true)}><Icon name="trash" size={16} />{t('job.delete')}</button>
 			</footer>
 		</aside>
 	</div>
@@ -829,10 +830,8 @@
 		font-size: 13px;
 	}
 
+	/* the page's other actions, at the foot of the panel */
 	footer {
 		margin-top: auto;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 2px;
 	}
 </style>
