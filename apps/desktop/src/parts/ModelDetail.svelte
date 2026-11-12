@@ -3,7 +3,7 @@
 	// needs, and what it has made.
 	import { fit, formatRange, modelFacts, type Model } from '../lib/catalog';
 	import { core } from '../lib/core';
-	import { examplesOf, MEASURED_ON } from '../lib/examples';
+	import { groupsOf, MEASURED_ON } from '../lib/examples';
 	import { lang, t, type Key } from '../lib/i18n.svelte';
 	import { app, benchOf } from '../lib/state.svelte';
 	import ModelExamples from './ModelExamples.svelte';
@@ -13,7 +13,7 @@
 
 	const f = $derived(fit(model, app.hw!, benchOf()));
 	const facts = $derived(modelFacts(model));
-	const examples = $derived(examplesOf(model.id));
+	const examples = $derived(groupsOf(model.id));
 	const chip = $derived(f.band === 'fast' ? 'good' : f.band === 'no' ? 'bad' : 'warn');
 	const does = $derived(model.kind === 'text' ? 'text' : model.kind === 'picture' ? 'picture' : model.photos ? 'photos' : 'photo');
 	const CARD = { nvidia: 'NVIDIA', 'amd-intel': 'AMD, Intel', apple: 'Apple' };
@@ -48,7 +48,7 @@
 		<section>
 			<h3>{t('models.examples')}</h3>
 			{#if examples.length}
-				<ModelExamples {examples} />
+				<ModelExamples groups={examples} of={model.id} />
 				<p class="faint note-under">{t(model.kind === 'picture' ? 'models.examplesFrom' : 'models.examplesNote', { on: MEASURED_ON })}</p>
 			{:else}
 				<p class="muted">{t('models.noExamples')}</p>
