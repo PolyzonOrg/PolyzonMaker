@@ -34,7 +34,7 @@ pub enum Runtime {
         weights: Vec<Weight>,
         #[serde(default)]
         steps: u32,
-        /// The turn, by rows, the model's own export gives its GLB and the engine leaves out
+        /// The turn, by rows, that stands the engine's GLB up facing glTF's front, +Z, as its picture did
         #[serde(default)]
         turn: Option<[[f32; 3]; 3]>,
     },
@@ -210,12 +210,15 @@ mod tests {
                 assert_eq!(det, 1.0, "{}", m.id);
             }
         }
-        // TencentARC/Pixal3D inference.py turns TRELLIS.2's export by this; trellis.cpp v0.8.1 does not
+        // TencentARC/Pixal3D inference.py turns TRELLIS.2's export by [[-1,0,0],[0,0,-1],[0,-1,0]], which
+        // trellis.cpp v0.8.1 leaves out. That stands the model up facing -Z: from glTF's front, +Z, where the
+        // viewer and the slicers look, its back. The owner's renders of 2026-11-12 showed it, kitten, dragon
+        // and tank. Half a turn about the up axis more faces it the way its picture did.
         let turn = |id: &str| match &model(id).unwrap().runtime {
             Runtime::Native { turn, .. } => *turn,
             _ => None,
         };
-        assert_eq!(turn("pixal3d"), Some([[-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0]]));
+        assert_eq!(turn("pixal3d"), Some([[1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]]));
         assert_eq!(turn("trellis2"), None);
     }
 
