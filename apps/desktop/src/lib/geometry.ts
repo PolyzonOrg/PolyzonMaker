@@ -43,6 +43,11 @@ export class Geometry {
 		return this.call<Prepared>({ op: 'prepare', height, name, solid, provenance });
 	}
 
+	/** The screen's picture of print files made before, placed over the opened model */
+	printed(stl: Uint8Array) {
+		return this.call<Float32Array>({ op: 'printed', stl }, [stl.buffer as ArrayBuffer]);
+	}
+
 	close() {
 		this.worker.terminate();
 	}
