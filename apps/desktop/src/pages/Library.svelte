@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { SvelteSet } from 'svelte/reactivity';
 	import { lang, t } from '../lib/i18n.svelte';
+	import { near } from '../lib/near';
 	import { problem } from '../lib/problem';
 	import { app, deleteThread, formatDate, go, loadThumb } from '../lib/state.svelte';
 	import { threads, type Thread } from '../lib/threads';
@@ -13,7 +15,10 @@
 
 	const shown = $derived(threads(app.jobs).filter((th) => (th.title + ' ' + th.cover.model).toLowerCase().includes(query.trim().toLowerCase())));
 
-	$effect(() => shown.forEach((th) => loadThumb(th.cover)));
+	// a cover is read when its tile comes near the screen: all at once, a long library read and shrank hundreds of
+	// pictures as it opened; once near, a cover that changes (a job that finished) is read again
+	const nearby = new SvelteSet<string>();
+	$effect(() => shown.forEach((th) => nearby.has(th.id) && loadThumb(th.cover)));
 
 	const label = (state: string) =>
 		state === 'failed' ? t('job.failed') : state === 'cancelled' ? t('job.cancelled') : state === 'interrupted' ? t('job.interrupted') : state === 'queued' ? t('job.queued') : '';
@@ -52,7 +57,7 @@
 	{:else}
 		<ul class="grid">
 			{#each shown as thread (thread.id)}
-				<li>
+				<li {@attach near(() => nearby.add(thread.id))}>
 					<button class="tile" data-tip-cut onclick={() => go('result', thread.cover.id)}>
 						<span class="thumb">
 							{#if app.thumbs[thread.cover.id]}<img src={app.thumbs[thread.cover.id]} alt="" />{:else}<Icon name="cube" size={28} />{/if}
