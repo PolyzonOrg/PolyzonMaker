@@ -419,6 +419,11 @@ struct Install<'a> {
 }
 
 impl Install<'_> {
+    /// An install runs as gently as a generation: the person may be working while models arrive
+    fn gentle(&self) -> bool {
+        self.store.settings().gentle
+    }
+
     fn stage(&self, stage: &str, done: u64, total: u64) {
         (self.emit)(Progress {
             id: self.model.id.clone(),
@@ -573,7 +578,7 @@ impl Install<'_> {
         })?;
         self.stage("check", 0, 0);
         let device = self.device.to_string();
-        let mut check = sys::engine(&py, false);
+        let mut check = sys::engine(&py, self.gentle());
         check.arg(&script).args([engine.as_str(), "--repo"]).arg(root).args(["--check", "--device", &device]);
         cache_env(&mut check, root, false);
         self.call(check, &log)
@@ -664,7 +669,7 @@ impl Install<'_> {
     #[allow(clippy::too_many_arguments)]
     fn prefetch(&self, py: &Path, script: &Path, engine: &str, variant: &str, repo: &Path, cut: bool, root: &Path, log: &Path, stalled: &AtomicBool) -> Result<(), Failure> {
         let run = |name: &str| {
-            let mut c = sys::engine(py, false);
+            let mut c = sys::engine(py, self.gentle());
             c.arg(script).args([name, "--repo"]).arg(repo).arg("--prefetch");
             if !variant.is_empty() {
                 c.args(["--variant", variant]);
@@ -710,7 +715,7 @@ impl Install<'_> {
     /// uv with everything kept in our folder: no links on PATH, no Windows registry entries, none of
     /// the person's uv settings, the computer's own certificates for networks that inspect traffic.
     fn tool(&self, uv: &Path, args: &[&str]) -> Command {
-        let mut c = sys::engine(uv, false);
+        let mut c = sys::engine(uv, self.gentle());
         c.args(args);
         let scratch = self.store.packs().join(".tmp");
         let _ = fs::create_dir_all(&scratch);
@@ -774,7 +779,7 @@ impl Install<'_> {
         let mut out = fs::OpenOptions::new().create(true).append(true).open(log).map_err(disk)?;
         writeln!(out, "\n$ {c:?}").map_err(disk)?;
         c.stdout(Stdio::from(out.try_clone().map_err(disk)?)).stderr(Stdio::from(out));
-        let mut child = c.spawn().map_err(disk)?;
+        let mut child = sys::start(&mut c, self.gentle()).map_err(disk)?;
         loop {
             if self.cancel.load(Ordering::Relaxed) {
                 sys::kill_tree(&mut child);

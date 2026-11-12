@@ -577,6 +577,9 @@ impl Jobs {
                     if job.device != "cpu" {
                         c.arg("--offload-to-cpu"); // measured: half the graphics memory for about the same time
                     }
+                    if gentle {
+                        c.args(["-t", &sys::threads().to_string()]); // sd-cli takes every core by itself
+                    }
                 } else {
                     c.arg(&job.input).arg(output).arg("--models").arg(&w);
                     c.args(["--seed", &job.seed.to_string(), "--box-uv"]);
@@ -669,6 +672,9 @@ impl Jobs {
         let weights = plain_path(self.store.data(), &root.join("weights"));
         c.arg("-m").arg(weights.join(file)).args(["-p", &job.prompt, "--cfg-scale", "6", "--steps", "24"]);
         c.args(["-W", "768", "-H", "768", "--seed", &job.seed.to_string(), "-o", PICTURE_FILE]);
+        if gentle {
+            c.args(["-t", &sys::threads().to_string()]);
+        }
         self.update(app, &job.id, |j| {
             j.state = "running".into();
             j.stage = "generate".into();
@@ -684,7 +690,7 @@ impl Jobs {
         // the log grows over retries: what went wrong is read from this run alone
         let earlier = fs::metadata(&log_path).map_or(0, |m| m.len() as usize);
         c.current_dir(dir).stdout(Stdio::piped()).stderr(Stdio::piped());
-        let mut child = c.spawn().map_err(|e| ("ENGINE_CRASH".to_string(), e.to_string()))?;
+        let mut child = sys::start(&mut c, self.store.settings().gentle).map_err(|e| ("ENGINE_CRASH".to_string(), e.to_string()))?;
         let (stdout, stderr) = (child.stdout.take(), child.stderr.take());
         let log = Arc::new(Mutex::new(fs::OpenOptions::new().create(true).append(true).open(&log_path).ok()));
         let started = Instant::now();

@@ -29,7 +29,9 @@ pub struct Settings {
     /// What the first-run check measured, as the page sent it
     pub benchmark: Option<serde_json::Value>,
     pub show_mature: bool,
-    /// Keep the computer usable while generating: lower priority for the engines
+    /// Keep the computer usable while generating: lower priority for the engines. On unless the person turned it
+    /// off: a settings file from before the switch says nothing, and the default of a bool would be off
+    #[serde(default = "on")]
     pub gentle: bool,
     /// The version of the reports the person said yes or no to: an answer to an older one counts for nothing
     pub consent: u32,
@@ -52,6 +54,10 @@ pub struct Settings {
 
 /// Reports now say more than version 0.1 asked about: a yes to that one is asked again, a no stays.
 pub const CONSENT: u32 = 2;
+
+fn on() -> bool {
+    true
+}
 
 pub struct Store {
     config: PathBuf,
@@ -277,6 +283,18 @@ mod tests {
         assert_eq!((again.settings().analytics, again.settings().language.as_str()), (Some(false), "ru"));
         fs::write(d.join("c/settings.json"), "{ half a file").unwrap();
         assert!(Store::open(d.join("c"), d.join("d")).unwrap().settings().gentle);
+    }
+
+    #[test]
+    fn settings_from_before_the_gentle_switch_keep_the_computer_usable() {
+        let d = temp();
+        fs::create_dir_all(d.join("c")).unwrap();
+        // what 0.1 wrote: no word about it
+        fs::write(d.join("c/settings.json"), r#"{ "onboarded": true, "language": "ru" }"#).unwrap();
+        assert!(Store::open(d.join("c"), d.join("d")).unwrap().settings().gentle);
+        // a person who turned it off keeps it off
+        fs::write(d.join("c/settings.json"), r#"{ "onboarded": true, "gentle": false }"#).unwrap();
+        assert!(!Store::open(d.join("c"), d.join("d")).unwrap().settings().gentle);
     }
 
     #[test]

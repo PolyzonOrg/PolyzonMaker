@@ -22,6 +22,7 @@ import importlib
 import json
 import os
 import sys
+import threading
 import time
 import types
 from pathlib import Path
@@ -407,6 +408,17 @@ def mc_xyz(vol, level):
     return verts[:, ::-1].copy(), faces.astype("int64")
 
 
+def stop_with_parent(getppid=os.getppid, wait=time.sleep, end=os._exit):
+    """An engine whose program has gone stops too: nobody would take its result or stop it, and it would hold
+    its memory meanwhile. On Windows the job it runs in ends it."""
+    parent = getppid()
+    while True:
+        wait(2)
+        if getppid() != parent:
+            end(1)
+            return
+
+
 def check(a):
     """Can torch compute on the device at all? Prints what a failure report needs."""
     import torch
@@ -433,6 +445,8 @@ def main():
     ap.add_argument("--vram-cap-gb", type=float, default=0)
     ap.add_argument("--offload", choices=["none", "model", "sequential"], default="none")
     a = ap.parse_args()
+    if os.name != "nt":
+        threading.Thread(target=stop_with_parent, daemon=True).start()
     if a.check:
         return check(a)
     if not a.prefetch:
