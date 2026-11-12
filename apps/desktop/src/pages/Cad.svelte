@@ -383,6 +383,8 @@
 
 <div class="desk" bind:clientWidth={room} style:--code="{panes.code}px" style:--side="{panes.side}px">
 	<header bind:offsetHeight={top}>
+		<!-- the page's heading for a screen reader; on the screen the icon and the program's name say it -->
+		<h1 class="sr-only">{t('nav.cad')}</h1>
 		<Icon name="cube" size={18} />
 		<input class="input small title" aria-label={t('scad.name')} placeholder={t('scad.untitled')} bind:value={title} />
 		<div class="choose">
@@ -438,7 +440,7 @@
 	</section>
 
 	<aside class="side studio">
-		<h3>{t('cad.add')}</h3>
+		<h2>{t('cad.add')}</h2>
 		<div class="adds">
 			<button class="btn small" onclick={() => add('box', 'box(40, 40, 40)')}>{t('cad.box')}</button>
 			<button class="btn small" onclick={() => add('cylinder', 'cyl(20, 40)')}>{t('cad.cylinder')}</button>
@@ -450,7 +452,7 @@
 		{/if}
 
 		{#if params.length}
-			<h3>{t('cad.params')}</h3>
+			<h2>{t('cad.params')}</h2>
 			{#each params as param (param.name)}
 				<label class="param">
 					<span>{param.name}</span>
@@ -461,7 +463,7 @@
 		{/if}
 
 		{#if names.length}
-			<h3>{t('cad.parts')}</h3>
+			<h2>{t('cad.parts')}</h2>
 			<ul class="parts">
 				{#each names as part (part.name)}
 					<li class:on={picked === part.name}>
@@ -611,10 +613,12 @@
 		border-left: 1px solid var(--line);
 	}
 
-	h3 {
+	/* the side panel's sections, under the page's heading */
+	h2 {
 		margin: 8px 0 0;
 		font-size: 13px;
 		font-weight: 600;
+		letter-spacing: normal;
 	}
 
 	.adds {

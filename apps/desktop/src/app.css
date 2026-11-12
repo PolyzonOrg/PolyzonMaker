@@ -112,9 +112,28 @@ h2 {
 	letter-spacing: -0.01em;
 }
 
-h3 {
+/* read out and not shown: the heading of a page whose title is already on the screen another way */
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+h3,
+.h3 {
 	font-size: 14px;
 	font-weight: 600;
+}
+
+/* a section's heading one level under the page's, in the look of an h3 */
+h2.h3 {
+	letter-spacing: normal;
 }
 
 button,

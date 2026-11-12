@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { core, isMac, on, type After } from './lib/core';
-	import { chatWidth, dragged, RAIL, settled, stepped, WIDEST } from './lib/menu';
+	import { dragged, RAIL, settled, stepped, WIDEST } from './lib/menu';
 	import { reportError } from './lib/report';
 	import { lang, t } from './lib/i18n.svelte';
 	import { actionFor, run, type Scope } from './lib/keys';
-	import { app, go, init, loadThumb, save, setAfter, setChatWidth, setMenuWidth, toggleMenu, togglePin, working, type Page } from './lib/state.svelte';
+	import { app, go, init, loadThumb, save, setAfter, setMenuWidth, toggleMenu, togglePin, working, type Page } from './lib/state.svelte';
 	import { installsShare } from './lib/catalog';
 	import { threads, threadWith } from './lib/threads';
 	import Create from './pages/Create.svelte';
@@ -149,7 +149,7 @@
 	</div>
 {:else}
 	<div class="app" class:folded class:resizing style:--menu="{app.menuWidth}px">
-		<aside class="side" data-tip-side="right">
+		<aside class="side" data-tip-side="right" aria-label={t('nav.menu')}>
 		<div class="rail">
 			<button class="btn new" data-keys="new" data-tip={folded ? t('nav.new') : undefined} aria-current={app.page === 'create' ? 'page' : undefined} onclick={() => go('create')}><Icon name="plus" size={16} /><span class="title">{t('nav.new')}</span></button>
 			<nav aria-label={t('app.name')}>
@@ -224,7 +224,8 @@
 				</p>
 			</div>
 		</div>
-		</aside>
+		<!-- inside the menu's landmark, where a screen reader finds it with the menu; the menu is not positioned and
+		     its overflow does not clip it, so it stands on the app's grid as before -->
 		<Edge
 			label={t('nav.menuWidth')}
 			value={app.menuWidth}
@@ -236,6 +237,7 @@
 			onstep={(by) => setMenuWidth(stepped(app.menuWidth, by))}
 			bind:held={resizing}
 		/>
+		</aside>
 		<div class="work" style:--chat="{app.chatWidth}px">
 		<main class="content pane">
 			{#key `${app.page}:${openThread ?? app.jobId}`}
@@ -286,17 +288,7 @@
 		{/if}
 		{#if app.chatOpen}
 			{#await import('./assistant/Panel.svelte') then panel}
-				<Edge
-					label={t('chat.width')}
-					value={app.chatWidth}
-					min={300}
-					max={640}
-					grow={-1}
-					place="right: calc(var(--chat) + 4px)"
-					onchange={(width) => (app.chatWidth = chatWidth(width))}
-					onsettle={() => setChatWidth(app.chatWidth)}
-					onstep={(by) => setChatWidth(chatWidth(app.chatWidth + by))}
-				/>
+				<!-- its edge lives in the panel's own landmark (Panel.svelte) -->
 				<panel.default />
 			{/await}
 		{/if}
