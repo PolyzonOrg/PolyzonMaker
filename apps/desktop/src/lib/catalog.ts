@@ -291,6 +291,55 @@ export interface HfModel {
 	tags: string[];
 	gated: boolean;
 	files: string[];
+	/** When the repository last changed, ISO; empty when Hugging Face does not say */
+	updated: string;
+}
+
+/** One icon for each thing a model makes, the same in the list and on its page. */
+export function kindIcon(model: Pick<Model, 'kind' | 'photos'>) {
+	return model.kind === 'text' ? 'chat' : model.kind === 'picture' ? 'image' : model.photos ? 'layers' : 'cube';
+}
+
+/** Whole days from an ISO date to `now`; null when the date is missing or unreadable. */
+export function daysSince(iso: string, now: number): number | null {
+	const at = Date.parse(iso);
+	return Number.isNaN(at) ? null : Math.max(Math.floor((now - at) / 86_400_000), 0);
+}
+
+export type Card = 'nvidia' | 'amd-intel' | 'apple';
+
+/** What a model needs and how it was checked, for its page: the same rules as the landing's list. */
+export interface Facts {
+	/** The least video memory of any graphics card it runs on, in GB */
+	vramGb: number | null;
+	cards: Card[];
+	/** A processor makes it in minutes, not hours */
+	noCard: boolean;
+	/** It has made models on some system */
+	tested: boolean;
+	/** The fastest measured time on a graphics card */
+	seconds: number | null;
+	limits: ('regions' | 'noncommercial')[];
+}
+
+/** A processor run under this many seconds counts as «no graphics card needed»; the others take hours there. */
+const QUICK_ON_CPU = 120;
+const CARD: Record<Device, Card | null> = { cuda: 'nvidia', vulkan: 'amd-intel', metal: 'apple', mps: 'apple', cpu: null };
+
+export function modelFacts(model: Model): Facts {
+	const cards = model.targets.filter((t) => t.device !== 'cpu');
+	const tested = model.targets.filter((t) => t.status === 'tested');
+	const vram = Math.min(...cards.map((t) => t.min_vram_mb).filter((mb) => mb > 0));
+	const fastest = tested.filter((t) => t.device !== 'cpu' && t.ref_seconds > 0).sort((a, b) => a.ref_seconds - b.ref_seconds)[0];
+	const kinds = new Set(cards.map((t) => CARD[t.device]));
+	return {
+		vramGb: Number.isFinite(vram) ? Math.round(vram / 1000) : null,
+		cards: (['nvidia', 'amd-intel', 'apple'] as Card[]).filter((c) => kinds.has(c)),
+		noCard: tested.some((t) => t.device === 'cpu' && t.ref_seconds > 0 && t.ref_seconds <= QUICK_ON_CPU),
+		tested: tested.length > 0,
+		seconds: fastest ? fastest.ref_seconds : null,
+		limits: [model.regions_excluded.length ? ('regions' as const) : null, /no commercial|BY-NC/i.test(model.license) ? ('noncommercial' as const) : null].filter((l) => l !== null)
+	};
 }
 
 /**

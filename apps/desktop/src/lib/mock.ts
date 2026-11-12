@@ -188,14 +188,39 @@ async function runInstall(id: string, device: string) {
 }
 
 const search: HfModel[] = [
-	{ id: 'stabilityai/TripoSR', downloads: 512034, likes: 1800, task: 'image-to-3d', tags: ['image-to-3d'], gated: false, files: ['model.ckpt'] },
-	{ id: 'stabilityai/stable-diffusion-xl-base-1.0', downloads: 2400310, likes: 7100, task: 'text-to-image', tags: ['diffusers'], gated: false, files: ['sd_xl_base_1.0.safetensors', 'unet/diffusion_pytorch_model.safetensors'] },
-	{ id: 'someone/flat-icons-xl', downloads: 90421, likes: 88, task: 'text-to-image', tags: [], gated: false, files: ['model.safetensors'] },
-	{ id: 'lab/shape-from-image', downloads: 8040, likes: 120, task: 'image-to-3d', tags: ['image-to-3d'], gated: false, files: ['model.safetensors'] },
-	{ id: 'old/checkpoint-only', downloads: 1201, likes: 3, task: 'text-to-image', tags: [], gated: false, files: ['model.ckpt'] },
-	{ id: 'corp/closed-model', downloads: 40123, likes: 900, task: 'text-to-image', tags: [], gated: true, files: ['model.safetensors'] },
-	{ id: 'someone/adult-model', downloads: 7000, likes: 10, task: 'text-to-image', tags: ['not-for-all-audiences'], gated: false, files: ['model.safetensors'] }
+	{ id: 'google/gemma-4-31b-qat-gguf', downloads: 524212, likes: 25, task: 'image-text-to-text', tags: ['gguf'], gated: false, files: ['gemma-4-31b-Q4_0.gguf', 'mmproj-F16.gguf'], updated: '2026-08-05T10:00:00.000Z' },
+	{ id: 'stabilityai/TripoSR', downloads: 512034, likes: 1800, task: 'image-to-3d', tags: ['image-to-3d'], gated: false, files: ['model.ckpt'], updated: '2024-03-04T12:00:00.000Z' },
+	{ id: 'stabilityai/stable-diffusion-xl-base-1.0', downloads: 2400310, likes: 7100, task: 'text-to-image', tags: ['diffusers'], gated: false, files: ['sd_xl_base_1.0.safetensors', 'unet/diffusion_pytorch_model.safetensors'], updated: '2023-10-30T16:03:47.000Z' },
+	{ id: 'someone/flat-icons-xl', downloads: 90421, likes: 88, task: 'text-to-image', tags: [], gated: false, files: ['model.safetensors'], updated: '2026-06-01T08:00:00.000Z' },
+	{ id: 'lab/shape-from-image', downloads: 8040, likes: 120, task: 'image-to-3d', tags: ['image-to-3d'], gated: false, files: ['model.safetensors'], updated: '' },
+	{ id: 'old/checkpoint-only', downloads: 1201, likes: 3, task: 'text-to-image', tags: [], gated: false, files: ['model.ckpt'], updated: '2022-01-20T00:00:00.000Z' },
+	{ id: 'corp/closed-model', downloads: 40123, likes: 900, task: 'text-to-image', tags: [], gated: true, files: ['model.safetensors'], updated: '2026-09-09T09:00:00.000Z' },
+	{ id: 'someone/adult-model', downloads: 7000, likes: 10, task: 'text-to-image', tags: ['not-for-all-audiences'], gated: false, files: ['model.safetensors'], updated: '2026-02-02T00:00:00.000Z' }
 ];
+
+const README = `---
+license: gemma
+tags: [gguf]
+---
+<p align="center"><img src="banner.png"></p>
+
+# Gemma 4 31B QAT
+
+Gemma 4 31B QAT is the **Quantization-Aware Training** version of Gemma 4 31B. It aims to keep quality close to bfloat16 while using much less memory. See [the model card](https://ai.google.dev/gemma).
+
+## Highlights
+- **Vision**: reads pictures as well as text
+- **Long context**: up to 128K tokens
+- Runs with \`llama.cpp\`
+
+| Quant | Size |
+|---|---|
+| Q4_0 | 18.85 GB |
+
+\`\`\`bash
+llama-cli -m gemma-4-31b-Q4_0.gguf
+\`\`\`
+`;
 
 let programs: { id: string }[] = [];
 let chats: { id: string }[] = [];
@@ -259,6 +284,21 @@ export async function invoke<T>(cmd: string, args?: unknown, options?: { headers
 			case 'pack_install':
 				void runInstall(a.id, a.device);
 				return null;
+			case 'hf_readme':
+				await sleep(300);
+				return (a.repo as string).startsWith('google/') ? README : '';
+			case 'hf_files':
+				await sleep(300);
+				return [
+					{ name: 'gemma-4-31b-Q4_0.gguf', size: 18_850_000_000, sha256: 'a'.repeat(64) },
+					{ name: 'mmproj-F16.gguf', size: 850_000_000, sha256: 'b'.repeat(64) }
+				];
+			case 'pack_install_text': {
+				const files = a.files as { name: string }[];
+				const id = `hf-${`${a.repo}-${files[0].name.replace(/\.gguf$/, '')}`.replace(/[^a-z0-9]/gi, '-').toLowerCase()}`;
+				void runInstall(id, a.device);
+				return id;
+			}
 			case 'pack_install_file': {
 				const id = `hf-${(a.repo as string).replace(/[/.]/g, '-').toLowerCase()}`;
 				void runInstall(id, a.device).then(() => {
@@ -273,7 +313,7 @@ export async function invoke<T>(cmd: string, args?: unknown, options?: { headers
 				return null;
 			case 'hf_search':
 				await sleep(350);
-				return search.filter((m) => m.id.includes(a.query) && (!a.task || m.task === (a.task as string)));
+				return search.filter((m) => m.id.includes(a.query) && (!a.task || m.task === (a.task as string) || (a.task === 'gguf' && m.tags.includes('gguf'))));
 			case 'job_image': {
 				const id = crypto.randomUUID().slice(0, 16);
 				const name = decodeURIComponent(options!.headers['x-name']);

@@ -174,7 +174,7 @@ describe('times', () => {
 });
 
 describe('Hugging Face', () => {
-	const hf = (m: Partial<HfModel>): HfModel => ({ id: 'a/b', downloads: 0, likes: 0, task: '', tags: [], gated: false, files: [], ...m });
+	const hf = (m: Partial<HfModel>): HfModel => ({ id: 'a/b', downloads: 0, likes: 0, task: '', tags: [], gated: false, files: [], updated: '', ...m });
 
 	it('tells what can run from what only downloads', () => {
 		expect(classify(hf({ id: 'stabilityai/TripoSR' }))).toBe('known');
@@ -294,7 +294,7 @@ describe('withSpeed', () => {
 });
 
 describe('the file of a model from Hugging Face', () => {
-	const repo = (files: string[]) => ({ id: 'a/b', downloads: 0, likes: 0, task: 'text-to-image', tags: [], gated: false, files });
+	const repo = (files: string[]) => ({ id: 'a/b', downloads: 0, likes: 0, task: 'text-to-image', tags: [], gated: false, files, updated: '' });
 
 	it('is never a piece of a model', () => {
 		expect(modelFile(repo(['ae_vae.safetensors', 'model.safetensors']))).toBe('model.safetensors');
