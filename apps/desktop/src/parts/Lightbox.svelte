@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fileUrl } from '../lib/core';
 	import { t } from '../lib/i18n.svelte';
+	import { modal } from '../lib/modal';
 	import { app, go } from '../lib/state.svelte';
 	import Icon from './Icon.svelte';
 
@@ -33,8 +34,7 @@
 	}
 
 	function keys(e: KeyboardEvent) {
-		if (e.key === 'Escape') onclose();
-		else if (e.key === 'ArrowLeft') step(-1);
+		if (e.key === 'ArrowLeft') step(-1);
 		else if (e.key === 'ArrowRight') step(1);
 	}
 </script>
@@ -42,7 +42,7 @@
 <svelte:window onkeydown={keys} />
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-<div class="box" role="dialog" tabindex="-1" aria-modal="true" aria-label={t('job.full')} onclick={(e) => e.target === e.currentTarget && onclose()}>
+<div class="box" role="dialog" tabindex="-1" aria-modal="true" aria-label={t('job.full')} onclick={(e) => e.target === e.currentTarget && onclose()} {@attach modal(() => onclose())}>
 	<img src={full || app.thumbs[ids[at]]} alt="" />
 	<button class="round close" aria-label={t('window.close')} title={t('window.close')} onclick={onclose}><Icon name="x" /></button>
 	{#if ids.length > 1}

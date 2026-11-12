@@ -110,7 +110,12 @@
 		opacity: 1;
 	}
 
+	/* the keys' focus: the line itself, in the ring's colour, not hover's faint one */
 	.edge:focus-visible {
 		outline: none;
+	}
+
+	.edge:focus-visible::after {
+		background: var(--ink);
 	}
 </style>
