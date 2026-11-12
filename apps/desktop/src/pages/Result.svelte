@@ -128,17 +128,21 @@
 		if (loading || !canvas) return;
 		loading = true;
 		try {
+			// The view's WebGL holds this thread while it starts (two seconds on a computer without a graphics card),
+			// and the page, the file and its reading all waited behind it. Now the file comes first: waiting for it
+			// lets the page be drawn, and the worker reads it while WebGL starts.
+			geometry = new Geometry();
+			geometry.onStage = (s) => (stage = s);
+			const bytes = new Uint8Array(await core.readFile(id, 'model.glb'));
+			if (left || !canvas) return;
+			fileBytes = bytes.length;
+			const opening = geometry.open(bytes.slice(), finished);
 			try {
 				viewer = new Viewer(canvas, viewerColor());
 			} catch {
 				noWebgl = true;
 			}
-			geometry = new Geometry();
-			geometry.onStage = (s) => (stage = s);
-			const bytes = new Uint8Array(await core.readFile(id, 'model.glb'));
-			if (left) return;
-			fileBytes = bytes.length;
-			opened = await geometry.open(bytes.slice(), finished);
+			opened = await opening;
 			// a generator's size means nothing; a finished model is the size it was made
 			const tall = opened.report.size[2];
 			height = finished ? +tall.toFixed(2) : Math.min(80, Math.round(tall) || 80);
