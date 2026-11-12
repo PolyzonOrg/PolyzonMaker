@@ -273,6 +273,56 @@ textarea:focus-visible {
 	color: var(--ink);
 }
 
+/* a page's secondary actions, one to a row with an icon and a word, in one block; what cannot be undone
+   last, below a line. The same rows make a menu behind «⋯» (DESIGN.md) */
+.menu-list {
+	display: grid;
+	padding: 4px;
+	border: 1px solid var(--line);
+	border-radius: var(--r);
+	background: var(--surface-2);
+}
+
+.menu-list > button {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	height: 34px;
+	padding: 0 10px;
+	/* 12 of the block less its 4 of padding */
+	border-radius: var(--r-sm);
+	color: var(--ink);
+	font-size: 13px;
+	text-align: left;
+	white-space: nowrap;
+	transition: background 0.12s;
+}
+
+.menu-list > button > :first-child {
+	flex: none;
+	color: var(--ink-muted);
+}
+
+.menu-list > button:hover:not(:disabled) {
+	background: var(--surface-3);
+}
+
+.menu-list > button:disabled {
+	opacity: 0.35;
+}
+
+.menu-list > button.danger,
+.menu-list > button.danger > :first-child {
+	color: var(--bad);
+}
+
+.menu-list > hr {
+	height: 1px;
+	margin: 4px 6px;
+	border: 0;
+	background: var(--line);
+}
+
 .buttons {
 	display: flex;
 	gap: 8px;
