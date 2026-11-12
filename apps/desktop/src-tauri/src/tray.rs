@@ -19,7 +19,7 @@ use tauri::{
     image::Image,
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Emitter, Manager, Wry,
+    AppHandle, Manager, Wry,
 };
 use tauri_plugin_notification::NotificationExt;
 
@@ -198,7 +198,7 @@ fn leave(app: &AppHandle) {
     let busy = app.state::<Arc<Jobs>>().busy() || app.state::<Packs>().busy();
     if busy {
         show(app);
-        let _ = app.emit("close-requested", ());
+        crate::news(app, "close-requested", ());
     } else {
         app.exit(0);
     }

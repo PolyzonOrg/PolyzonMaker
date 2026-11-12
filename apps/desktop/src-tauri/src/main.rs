@@ -42,6 +42,12 @@ use tauri_plugin_updater::{Update, UpdaterExt};
 
 type Result<T> = std::result::Result<T, String>;
 
+/// Everything the core tells the window goes as one event, «core», as [what, payload]: the window listens
+/// once, as each listen is a trip into the webview (the dozen made as it started took a tenth of a second).
+pub fn news(app: &AppHandle, what: &str, payload: impl serde::Serialize + Clone) {
+    let _ = app.emit("core", (what, payload));
+}
+
 const IMAGE_TYPES: [&str; 4] = ["png", "jpg", "jpeg", "webp"];
 
 fn text<E: std::fmt::Display>(e: E) -> String {
@@ -75,7 +81,7 @@ fn report(store: State<Arc<Store>>, event: String, model: String, device: String
 #[tauri::command]
 fn job_rate(app: AppHandle, jobs: State<Arc<Jobs>>, id: String, rating: String) {
     if let Some(job) = jobs.rate(&id, &rating) {
-        let _ = app.emit("job", job);
+        news(&app, "job", job);
     }
 }
 
@@ -98,7 +104,7 @@ async fn measure(app: AppHandle, store: State<'_, Arc<Store>>, threads: usize) -
     let dir = store.packs();
     blocking(move || {
         hardware::measure(threads, &dir, |step| {
-            let _ = app.emit("bench", step);
+            news(&app, "bench", step);
         })
     })
     .await
@@ -200,14 +206,14 @@ fn queue_after(jobs: State<Arc<Jobs>>, after: Option<power::After>) -> Result<po
 #[tauri::command]
 fn job_move(app: AppHandle, jobs: State<Arc<Jobs>>, id: String, earlier: bool) {
     for job in jobs.shift(&id, earlier) {
-        let _ = app.emit("job", &job);
+        news(&app, "job", &job);
     }
 }
 
 #[tauri::command]
 fn job_add(app: AppHandle, jobs: State<Arc<Jobs>>, job: Job) -> Result<Job> {
     let job = jobs.add(job)?;
-    let _ = app.emit("job", &job); // a job waiting in the queue is shown too, not only one that runs
+    news(&app, "job", &job); // a job waiting in the queue is shown too, not only one that runs
     Ok(job)
 }
 
@@ -222,7 +228,7 @@ fn header_text(request: &Request<'_>, name: &str) -> String {
 fn job_import(request: Request<'_>, app: AppHandle, jobs: State<Arc<Jobs>>) -> Result<Job> {
     let InvokeBody::Raw(bytes) = request.body() else { return Err("expected raw bytes".into()) };
     let job = jobs.import(&header_text(&request, "x-title"), bytes)?;
-    let _ = app.emit("job", &job);
+    news(&app, "job", &job);
     Ok(job)
 }
 
@@ -313,7 +319,7 @@ fn jobs_list(jobs: State<Arc<Jobs>>) -> Vec<Job> {
 #[tauri::command]
 fn job_cancel(app: AppHandle, jobs: State<Arc<Jobs>>, id: String) {
     if let Some(job) = jobs.cancel(&id) {
-        let _ = app.emit("job", job);
+        news(&app, "job", job);
     }
 }
 
@@ -430,12 +436,12 @@ async fn models_folder(app: AppHandle, store: State<'_, Arc<Store>>, packs: Stat
 fn announce(app: &AppHandle) -> api::Notify {
     let app = app.clone();
     Arc::new(move |tell| {
-        let _ = match tell {
-            Tell::Job(job) => app.emit("job", job),
-            Tell::Open(id) => app.emit("api-open", id),
-            Tell::Prepare(id, height) => app.emit("api-prepare", (id, height)),
-            Tell::Install(id) => app.emit("api-install", id),
-            Tell::Tool(id, call, args) => app.emit("api-tool", serde_json::json!({ "id": id, "call": call, "args": args })),
+        match tell {
+            Tell::Job(job) => news(&app, "job", job),
+            Tell::Open(id) => news(&app, "api-open", id),
+            Tell::Prepare(id, height) => news(&app, "api-prepare", (id, height)),
+            Tell::Install(id) => news(&app, "api-install", id),
+            Tell::Tool(id, call, args) => news(&app, "api-tool", serde_json::json!({ "id": id, "call": call, "args": args })),
         };
     })
 }
@@ -551,7 +557,7 @@ async fn update_download(app: AppHandle, fetched: State<'_, Fetched>) -> Result<
     let (mut done, progress) = (0u64, app.clone());
     let report = move |chunk: usize, total: Option<u64>| {
         done += chunk as u64;
-        let _ = progress.emit("update", (done, total));
+        news(&progress, "update", (done, total));
     };
     let bytes = update.download(report, || {}).await.map_err(text)?;
     *fetched.0.lock().unwrap() = Some((update, bytes));
@@ -647,14 +653,14 @@ fn main() {
                     if app.state::<Arc<Store>>().settings().tray_told {
                         let _ = window.hide();
                     } else {
-                        let _ = app.emit("close-to-tray", ());
+                        news(app, "close-to-tray", ());
                     }
                     return;
                 }
                 let busy = app.state::<Arc<Jobs>>().busy() || app.state::<Packs>().busy();
                 if busy {
                     api.prevent_close();
-                    let _ = app.emit("close-requested", ());
+                    news(app, "close-requested", ());
                 }
             }
         })

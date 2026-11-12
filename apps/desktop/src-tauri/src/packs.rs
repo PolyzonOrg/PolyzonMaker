@@ -23,7 +23,7 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 pub const RUNNER: &str = include_str!("../../../../tools/bench/runner.py");
 
@@ -279,7 +279,7 @@ impl Packs {
             let heard = Mutex::new(Heard::default());
             let emit = |p: Progress| {
                 heard.lock().unwrap().tell(&p);
-                let _ = keep.emit("pack", p);
+                crate::news(&keep, "pack", p);
             };
             let started = std::time::Instant::now();
             let job = Install { store: &store, model: &model, device: &device, cancel: &cancel, emit: &emit };
@@ -321,7 +321,7 @@ impl Packs {
             let heard = Mutex::new(Heard::default());
             let emit = |p: Progress| {
                 heard.lock().unwrap().tell(&p);
-                let _ = keep.emit("pack", p);
+                crate::news(&keep, "pack", p);
             };
             let engine = catalog::model(PICTURE_ENGINE).expect("the catalog has a picture engine");
             let job = Install { store: &store, model: &Model { id: pack.clone(), ..engine.clone() }, device: &device, cancel: &cancel, emit: &emit };
@@ -353,7 +353,7 @@ impl Packs {
             let heard = Mutex::new(Heard::default());
             let emit = |p: Progress| {
                 heard.lock().unwrap().tell(&p);
-                let _ = keep.emit("pack", p);
+                crate::news(&keep, "pack", p);
             };
             let engine = catalog::model(TEXT_ENGINE).expect("the catalog has a text engine");
             let job = Install { store: &store, model: &Model { id: pack.clone(), ..engine.clone() }, device: &device, cancel: &cancel, emit: &emit };

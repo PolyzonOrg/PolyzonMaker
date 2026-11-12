@@ -25,7 +25,7 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 const MODEL_FILE: &str = "model.glb";
 const PICTURE_FILE: &str = "picture.png";
@@ -221,14 +221,14 @@ impl Jobs {
 
     /// When the queue has run out: the choice comes due, with the window up and a minute to say no.
     fn after_queue(&self, app: &AppHandle, due: Option<After>) {
-        let tell = |soon| drop(app.emit("after-queue", power::Plan::new(self.chosen(), soon)));
+        let tell = |soon| crate::news(app, "after-queue", power::Plan::new(self.chosen(), soon));
         let Some(after) = due else { return tell(None) };
         tell(Some(power::GRACE));
         tray::show(app);
         let now = self.hold_off(after, power::GRACE);
         tell(None);
         if let (true, Err(e)) = (now, power::go(after)) {
-            let _ = app.emit("after-queue-failed", (after, e.to_string()));
+            crate::news(app, "after-queue-failed", (after, e.to_string()));
         }
     }
 
@@ -342,7 +342,7 @@ impl Jobs {
             job.notes.clear();
             job.peak_mb = 0;
             save(&self.store, job);
-            let _ = app.emit("job", job.clone());
+            crate::news(app, "job", job.clone());
         }
         drop(q);
         self.wake.notify_all();
@@ -367,7 +367,7 @@ impl Jobs {
         if let Some(job) = q.jobs.iter_mut().find(|j| j.id == id) {
             change(job);
             save(&self.store, job);
-            let _ = app.emit("job", job.clone());
+            crate::news(app, "job", job.clone());
         }
     }
 
@@ -705,7 +705,7 @@ impl Jobs {
                         let _ = writeln!(f, "{line}");
                     }
                     if let Some(stage) = next_stage(line) {
-                        let _ = app.emit("stage", (id.clone(), stage));
+                        crate::news(&app, "stage", (id.clone(), stage));
                     }
                 });
             })

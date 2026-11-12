@@ -181,8 +181,50 @@ const call = async <T>(cmd: string, args?: unknown, options?: { headers: Record<
 		throw reason;
 	});
 
+type Hear = (payload: never) => void;
+
+/** Who listens for what the core says, by its name. One that throws fails alone: the others still hear,
+ *  and the error goes on to the report as one nobody caught. */
+export function hub() {
+	const by = new Map<string, Set<Hear>>();
+	return {
+		add(name: string, hear: Hear) {
+			const all = by.get(name) ?? by.set(name, new Set()).get(name)!;
+			all.add(hear);
+			return () => void all.delete(hear);
+		},
+		tell([name, payload]: [string, unknown]) {
+			for (const hear of [...(by.get(name) ?? [])]) {
+				try {
+					hear(payload as never);
+				} catch (e) {
+					setTimeout(() => {
+						throw e;
+					});
+				}
+			}
+		}
+	};
+}
+
+// Everything the core says comes as one event, «core», with its name: [name, payload]. Each listen is a trip
+// into the webview, and the dozen made as the app started took a tenth of a second.
+const heard = hub();
+let hearing: Promise<unknown> | null = null;
+
 /** The way to stop listening comes back: a page that leaves must take it, or its listener stays for good. */
-export const on = async <T>(event: string, handler: (payload: T) => void) => (await load()).listen(event, handler as (payload: never) => void);
+export const on = async <T>(event: string, handler: (payload: T) => void) => {
+	const off = heard.add(event, handler as Hear);
+	// a listen that failed is tried again by the next one, as each was before
+	hearing ??= load()
+		.then((b) => b.listen('core', (news: [string, unknown]) => heard.tell(news)))
+		.catch((e) => {
+			hearing = null;
+			throw e;
+		});
+	await hearing;
+	return off;
+};
 
 export const core = {
 	settings: () => call<Settings>('settings'),

@@ -11,7 +11,7 @@ use std::{
         OnceLock,
     },
 };
-use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
+use tauri::{AppHandle, Manager, WebviewWindow};
 use windows_sys::{
     core::w,
     Win32::{
@@ -40,7 +40,7 @@ static OVER_BUTTON: AtomicIsize = AtomicIsize::new(0);
 
 fn tell_page(over: bool) {
     if let Some(app) = APP.get() {
-        let _ = app.emit("snap", over);
+        crate::news(app, "snap", over);
     }
 }
 
