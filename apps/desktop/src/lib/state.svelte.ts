@@ -1,6 +1,6 @@
 // What the whole window shares. The Rust side is the source of truth; this is its reflection.
 import { fit, recommend, withSpeed, type Bench, type Hardware, type HfModel, type Model } from './catalog';
-import { RAIL, storedChatWidth, storedPanes, storedWidth, type Panes } from './menu';
+import { RAIL, storedAreas, storedChatWidth, storedPanes, storedWidth, type Area, type Panes } from './menu';
 import { thumbUrl } from './picture';
 import { pluginTheme } from './plugins';
 import { isWorking, type Thread } from './threads';
@@ -14,6 +14,8 @@ const MENU_WIDE_KEY = 'maker-menu-wide';
 const CHAT_WIDTH_KEY = 'maker-chat-width';
 /** The code and side panel widths of a desk: CAD and OpenSCAD each keep their own */
 const PANES_KEY = { cad: 'maker-cad-panes', openscad: 'maker-openscad-panes' } as const;
+/** The side area of Models, the result and a tool: one width each */
+const AREAS_KEY = 'maker-areas';
 const HARDWARE_KEY = 'maker-hardware';
 const CHOSEN_KEY = 'maker-chosen';
 const PINNED_KEY = 'maker-pinned-tools';
@@ -48,6 +50,7 @@ export const app = $state({
 	menuWidth: storedWidth(stored(MENU_WIDTH_KEY)),
 	chatWidth: storedChatWidth(stored(CHAT_WIDTH_KEY)),
 	panes: { cad: storedPanes(stored(PANES_KEY.cad)), openscad: storedPanes(stored(PANES_KEY.openscad)) },
+	areas: storedAreas(stored(AREAS_KEY)),
 	page: 'create' as Page,
 	/** A program on its way to the OpenSCAD page. */
 	scad: null as { title: string; code: string; program: string } | null,
@@ -204,6 +207,11 @@ export function setChatWidth(width: number) {
 export function setPanes(desk: keyof typeof PANES_KEY, panes: Panes) {
 	app.panes[desk] = panes;
 	store(PANES_KEY[desk], panes);
+}
+
+export function setArea(area: Area, width: number) {
+	app.areas[area] = width;
+	store(AREAS_KEY, $state.snapshot(app.areas));
 }
 
 export function togglePin(slug: string) {

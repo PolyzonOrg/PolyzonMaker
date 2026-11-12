@@ -12,6 +12,8 @@
 	import { app, choose, go, isInstalled, jobExpected, jobTitle, modelName, pick3d, pickPicture, runCommand, save, setThumb } from '../lib/state.svelte';
 	import { Viewer } from '../lib/viewer';
 	import { threadOf, threadWith } from '../lib/threads';
+	import { areaWidth } from '../lib/menu';
+	import AreaEdge from '../parts/AreaEdge.svelte';
 	import Dialog from '../parts/Dialog.svelte';
 	import FenceOpen from '../parts/FenceOpen.svelte';
 	import Gather from '../parts/Gather.svelte';
@@ -97,6 +99,8 @@
 	/** The model as generated, and as it will be printed once that is known; the view shows one of them */
 	let original: [Float32Array, Float32Array?] | null = null;
 	let printView = $state.raw<Float32Array | null>(null);
+	/** The page's width: the panel's edge keeps the view at least its narrowest */
+	let room = $state(0);
 	let showing = $state<'print' | 'original'>('original');
 
 	function look(which: 'print' | 'original') {
@@ -429,7 +433,8 @@
 		</div>
 	</div>
 {:else}
-	<div class="result">
+	<div class="result" bind:clientWidth={room} style:--panel="{areaWidth('result', room, app.areas.result)}px">
+		<AreaEdge area="result" {room} at="right" />
 		<div class="view">
 			<canvas bind:this={canvas} aria-label={job.title}></canvas>
 			{#if opened && viewer}<ViewControls {viewer} {facts} shadows />{/if}
@@ -690,9 +695,11 @@
 
 	/* the row is the page's height whatever is in it: an auto row grew to fit the canvas */
 	.result {
+		position: relative;
 		height: 100%;
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 320px;
+		/* the panel as wide as it was pulled by its edge */
+		grid-template-columns: minmax(0, 1fr) var(--panel);
 		grid-template-rows: minmax(0, 1fr);
 	}
 
@@ -755,6 +762,11 @@
 			overflow: visible;
 			border-left: 0;
 			border-top: 1px solid var(--line);
+		}
+
+		/* the panel under the view: no border beside it to pull */
+		.result > :global(.edge) {
+			display: none;
 		}
 	}
 

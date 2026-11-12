@@ -11,7 +11,9 @@
 	import { classify, fit, formatRange, installProgress, isMature, kindIcon, onDisk, recommend, type HfClass, type HfModel, type Model } from '../lib/catalog';
 	import { core } from '../lib/core';
 	import { lang, t, type Key } from '../lib/i18n.svelte';
+	import { areaWidth } from '../lib/menu';
 	import { app, benchOf, installing, isInstalled, refreshInstalled } from '../lib/state.svelte';
+	import AreaEdge from '../parts/AreaEdge.svelte';
 	import HfDetail from '../parts/HfDetail.svelte';
 	import Icon from '../parts/Icon.svelte';
 	import ModelDetail from '../parts/ModelDetail.svelte';
@@ -22,6 +24,7 @@
 	let query = $state(kept.query);
 	let searching = $state(false);
 	const s = app.search;
+	let room = $state(0);
 
 	$effect(() => {
 		kept = { tab, picked, query };
@@ -146,7 +149,8 @@
 	</button>
 {/snippet}
 
-<div class="browser" class:chosen={picked !== null}>
+<div class="browser" class:chosen={picked !== null} bind:clientWidth={room} style:--list="{areaWidth('models', room, app.areas.models)}px">
+	<AreaEdge area="models" {room} />
 	<section class="list" aria-label={t('models.title')}>
 		<div class="head">
 			<h1>{t('models.title')}</h1>
@@ -248,10 +252,12 @@
 </div>
 
 <style>
+	/* the list as wide as it was pulled by its edge */
 	.browser {
+		position: relative;
 		height: 100%;
 		display: grid;
-		grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+		grid-template-columns: var(--list) minmax(0, 1fr);
 	}
 
 	.list {
@@ -455,6 +461,11 @@
 	@container (max-width: 760px) {
 		.browser {
 			grid-template-columns: minmax(0, 1fr);
+		}
+
+		/* one of the two at a time: no border between them to pull */
+		.browser > :global(.edge) {
+			display: none;
 		}
 
 		.list {
