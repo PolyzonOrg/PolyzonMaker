@@ -17,6 +17,7 @@ Several photos of one object lie beside --image as view-1.png, view-2.png and so
 
 import argparse
 import functools
+import gc
 import importlib
 import json
 import os
@@ -45,8 +46,59 @@ def cap_vram(gb):
 
 
 def tight(a):
-    """Memory is short, as measured or as the ladder decided: engines cut their work into smaller pieces."""
-    return bool(a.vram_cap_gb) or a.offload != "none"
+    """Memory is short, as measured or as the ladder decided, or shared with the whole computer as on a Mac:
+    engines cut their work into smaller pieces."""
+    return bool(a.vram_cap_gb) or a.offload != "none" or a.device == "mps"
+
+
+def lean(torch, build, half, parts=None):
+    """Builds a model as lightly as the computer allows, and says how: "fp16" or "fp32".
+
+    Weights are mapped from the disk instead of read whole into memory, and on a graphics device, where the
+    model runs in half precision anyway, its modules are built in half precision from the start. Hunyuan3D-2.1
+    read its 7.4 GB checkpoint into memory and built 13 GB of full-precision modules beside it before it
+    halved them: a 24 GB Mac ran out. A build that fails in half precision, or holds a value half precision
+    cannot (`parts` names the modules to look over), is made again in full, still mapped."""
+    load, dtype = torch.load, torch.get_default_dtype()
+
+    def mapped(f, *args, **kw):
+        if isinstance(f, (str, os.PathLike)) and "mmap" not in kw:
+            try:
+                return load(f, *args, mmap=True, **kw)
+            except RuntimeError:  # saved in torch's old format, which cannot be mapped
+                pass
+        return load(f, *args, **kw)
+
+    def finite(made):
+        return all(torch.isfinite(t).all().item() for part in (parts(made) if parts else []) for t in [*part.parameters(), *part.buffers()])
+
+    torch.load = mapped
+    try:
+        if half:
+            torch.set_default_dtype(torch.float16)
+            try:
+                made = build()
+                if finite(made):
+                    return made, "fp16"
+            except RuntimeError:  # an operation without a half-precision kernel on this device
+                pass
+            finally:
+                torch.set_default_dtype(dtype)
+            made = None
+            gc.collect()
+        return build(), "fp32"
+    finally:
+        torch.load = load
+        torch.set_default_dtype(dtype)
+
+
+def free(torch, device):
+    """What loading left behind goes back to the system before the work starts."""
+    gc.collect()
+    if device == "mps":
+        torch.mps.empty_cache()
+    elif device == "cuda":
+        torch.cuda.empty_cache()
 
 
 def place(pipe, offload, device):
@@ -113,15 +165,17 @@ def hunyuan(a, clock):
         return
     gpu = a.device != "cpu"
     # on the CPU first: enable_flashvdm swaps in another VAE, and two on the GPU at once ran out of 4 GB
-    pipe = Pipeline.from_pretrained(
+    pipe, how = lean(torch, lambda: Pipeline.from_pretrained(
         repo_id, subfolder=sub, use_safetensors=not newer, device="cpu",  # 2.1 comes only as .ckpt: its code reads it weights-only
-        dtype=torch.float16 if gpu else torch.float32)
+        dtype=torch.float16 if gpu else torch.float32), half=gpu, parts=lambda p: [p.model, p.vae, p.conditioner])
+    print(json.dumps({"lean": how}), flush=True)
     if a.device == "cuda" and not newer:
         pipe.enable_flashvdm(topk_mode="merge")
     if a.offload == "none":
         pipe.to(a.device)
     else:
         hunyuan_offload(pipe, a.offload, a.device)
+    free(torch, a.device)
     clock.mark("load")
     def ready(path):
         image = Image.open(path)
@@ -170,10 +224,12 @@ def triposg(a, clock):
     TripoSGPipeline.model_cpu_offload_seq = "image_encoder_dinov2->transformer->vae"
     gpu = a.device != "cpu"
     rmbg = BriaRMBG.from_pretrained(rmbg_dir).to(a.device).eval()
-    pipe = TripoSGPipeline.from_pretrained(weights).to(torch.float16 if gpu else torch.float32)
+    # built in the precision it runs in: a full-precision copy first and a half one after needed both at once
+    pipe = TripoSGPipeline.from_pretrained(weights, torch_dtype=torch.float16 if gpu else torch.float32)
     place(pipe, a.offload, a.device)
     if tight(a):  # the decoder asks about 17M grid points 50K at a time; at 2 GB that ran out of memory
         pipe.vae._decode = functools.partial(pipe.vae._decode, num_chunks=10000)
+    free(torch, a.device)
     clock.mark("load")
     with torch.no_grad():
         img = prepare_image(a.image, bg_color=np.array([1.0, 1.0, 1.0]), rmbg_net=rmbg)
@@ -207,9 +263,11 @@ def triposr(a, clock):
     from tsr.system import TSR
     from tsr.utils import remove_background, resize_foreground, to_gradio_3d_orientation
 
-    model = TSR.from_pretrained("stabilityai/TripoSR", config_name="config.yaml", weight_name="model.ckpt")
+    # mapped from the disk, in full precision: TripoSR runs in it
+    model, _ = lean(torch, lambda: TSR.from_pretrained("stabilityai/TripoSR", config_name="config.yaml", weight_name="model.ckpt"), half=False)
     model.renderer.set_chunk_size(2048 if tight(a) else 8192)  # smaller chunks = lower peak memory
     model.to(a.device)
+    free(torch, a.device)
     clock.mark("load")
     image = resize_foreground(remove_background(Image.open(a.image), rembg.new_session()), 0.85)
     image = np.array(image).astype(np.float32) / 255.0

@@ -903,6 +903,10 @@ pub fn cache_env(c: &mut Command, root: &Path, mirror: bool) {
     // an operation Apple's graphics lack runs on the processor instead of stopping the model, as
     // Hunyuan3D's authors advise for Macs; elsewhere torch never reads it
     c.env("PYTORCH_ENABLE_MPS_FALLBACK", "1");
+    // torch lets MPS take 1.7 times what macOS recommends, past the memory the Mac has: Hunyuan3D-2.1 then
+    // swapped a 24 GB Mac to a halt. At 1.0 MPS says it is out of memory instead, which the app can tell.
+    // The low mark, where MPS starts to give memory back, may not stand over the high one.
+    c.env("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "1.0").env("PYTORCH_MPS_LOW_WATERMARK_RATIO", "0.8");
     if mirror {
         c.env("HF_ENDPOINT", "https://hf-mirror.com");
     }
@@ -1154,6 +1158,18 @@ mod tests {
         let mut c = Command::new("python");
         cache_env(&mut c, Path::new("pack"), false);
         assert!(c.get_envs().any(|(k, v)| k == "PYTORCH_ENABLE_MPS_FALLBACK" && v == Some("1".as_ref())));
+    }
+
+    #[test]
+    fn graphics_memory_on_a_mac_stops_at_what_the_system_can_give_and_never_swaps_the_mac_to_a_halt() {
+        // torch's own limit lets MPS take 1.7 times what macOS recommends: past the memory the Mac has
+        let mut c = Command::new("python");
+        cache_env(&mut c, Path::new("pack"), false);
+        let env = |name: &str| c.get_envs().find(|(k, _)| *k == name).and_then(|(_, v)| v).and_then(|v| v.to_str()).map(str::to_string);
+        assert_eq!(env("PYTORCH_MPS_HIGH_WATERMARK_RATIO").as_deref(), Some("1.0"));
+        // the low mark may not stand over the high one, or torch refuses to start on the Mac
+        let low: f32 = env("PYTORCH_MPS_LOW_WATERMARK_RATIO").unwrap().parse().unwrap();
+        assert!(low <= 1.0, "{low}");
     }
 
     #[test]
