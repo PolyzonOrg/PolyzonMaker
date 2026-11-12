@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { lang, t } from '../lib/i18n.svelte';
+	import { problem } from '../lib/problem';
 	import { app, deleteThread, formatDate, go, loadThumb } from '../lib/state.svelte';
 	import { threads, type Thread } from '../lib/threads';
 	import Dialog from '../parts/Dialog.svelte';
@@ -8,7 +9,7 @@
 	let query = $state('');
 	let doomed = $state<Thread | null>(null);
 	let deleting = $state(false);
-	let problem = $state('');
+	let trouble = $state('');
 
 	const shown = $derived(threads(app.jobs).filter((th) => (th.title + ' ' + th.cover.model).toLowerCase().includes(query.trim().toLowerCase())));
 
@@ -19,12 +20,12 @@
 
 	async function remove() {
 		deleting = true;
-		problem = '';
+		trouble = '';
 		try {
 			await deleteThread(doomed!);
 			doomed = null;
 		} catch (e) {
-			problem = String(e);
+			trouble = t('job.deleteFailed', { why: problem(e) });
 		}
 		deleting = false;
 	}
@@ -71,7 +72,7 @@
 {#if doomed}
 	<Dialog title={t('job.deleteTitle')} onclose={() => !deleting && (doomed = null)}>
 		<p class="muted">{doomed.jobs.length > 1 ? t('job.deleteAll', { n: doomed.jobs.length }) : t('job.deleteText')}</p>
-		{#if problem}<p class="note bad selectable">{problem}</p>{/if}
+		{#if trouble}<p class="note bad selectable" role="alert">{trouble}</p>{/if}
 		<div class="row-end">
 			<button class="btn ghost" disabled={deleting} onclick={() => (doomed = null)}>{t('models.cancel')}</button>
 			<button class="btn danger" disabled={deleting} onclick={remove}><Icon name="trash" size={16} />{t('job.delete')}</button>

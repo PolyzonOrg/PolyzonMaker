@@ -3,7 +3,8 @@
 	import { core, isMac, on, type After } from './lib/core';
 	import { dragged, RAIL, settled, stepped, WIDEST } from './lib/menu';
 	import { reportError } from './lib/report';
-	import { lang, t } from './lib/i18n.svelte';
+	import { lang, setLang, t } from './lib/i18n.svelte';
+	import { problem } from './lib/problem';
 	import { actionFor, run, type Scope } from './lib/keys';
 	import { app, go, init, loadThumb, save, setAfter, setMenuWidth, toggleMenu, togglePin, working, type Page } from './lib/state.svelte';
 	import { installsShare } from './lib/catalog';
@@ -71,7 +72,11 @@
 	}
 
 	onMount(() => {
-		init().catch((e) => (failed = String(e)));
+		init().catch((e) => {
+			// in the person's language even when their settings were what could not be read
+			setLang(app.settings?.language ?? '');
+			failed = problem(e);
+		});
 		const error = (e: ErrorEvent) => reportError(e.error ?? e);
 		// whatever nobody caught: the person is told something did not work, the code goes to the report
 		const rejected = (e: PromiseRejectionEvent) => {
@@ -143,7 +148,13 @@
 {#if failed || !app.ready || !app.settings.onboarded}
 	<div class="pane alone">
 		{#if failed}
-			<main class="center"><p class="muted selectable">{failed}</p></main>
+			<main class="center">
+				<div class="failed" role="alert">
+					<h1>{t('app.startFailed')}</h1>
+					<p class="muted selectable">{failed}</p>
+					<button class="btn primary" onclick={() => location.reload()}>{t('app.startAgain')}</button>
+				</div>
+			</main>
 		{:else if !app.ready}
 			<main class="center"><Boat size={48} /></main>
 		{:else}
@@ -358,6 +369,25 @@
 		display: grid;
 		place-items: center;
 		padding: 40px;
+	}
+
+	/* what did not work, why, and the one thing to do about it */
+	.failed {
+		max-width: 520px;
+		display: grid;
+		justify-items: center;
+		gap: 12px;
+		text-align: center;
+	}
+
+	.failed h1 {
+		margin: 0;
+		font-size: 18px;
+		font-weight: 600;
+	}
+
+	.failed p {
+		margin: 0 0 4px;
 	}
 
 	.dropping {
