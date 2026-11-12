@@ -59,12 +59,34 @@ pub fn detect(data_dir: &Path) -> Hardware {
         cores: System::physical_core_count().unwrap_or(1),
         threads: s.cpus().len().max(1),
         avx2,
-        ram_mb: s.total_memory() >> 20,
+        ram_mb: total_mb(s.total_memory() >> 20),
         ram_free_mb: s.available_memory() >> 20,
         disk_free_gb: free_gb(data_dir),
         gpus: gpus(),
         webview: tauri::webview_version().unwrap_or_default(),
     }
+}
+
+/// For a test of a smaller computer on a big one (tools/bench/ballast.py): POLYZON_RAM_MB=8192 makes a 24 GB
+/// Mac count as an 8 GB one, in what it is offered and in how far an engine may go. Never more than it has.
+pub fn total_mb(real_mb: u64) -> u64 {
+    capped(real_mb, std::env::var("POLYZON_RAM_MB").ok().as_deref())
+}
+
+/// All the memory this computer has, whatever a test asks it to count.
+pub fn real_total_mb() -> u64 {
+    let mut s = System::new();
+    s.refresh_memory();
+    s.total_memory() >> 20
+}
+
+fn capped(real_mb: u64, asked: Option<&str>) -> u64 {
+    asked.and_then(|v| v.trim().parse::<u64>().ok()).filter(|&v| v >= 1024).map_or(real_mb, |v| v.min(real_mb))
+}
+
+/// The share of this computer's memory the app counts with: below 1 only in such a test.
+pub fn counted_share(real_mb: u64) -> f64 {
+    if real_mb == 0 { 1.0 } else { total_mb(real_mb) as f64 / real_mb as f64 }
 }
 
 /// Free space on the disk that holds `path`: the mount with the longest matching prefix.
@@ -449,6 +471,15 @@ mod tests {
     fn the_newest_card_decides_the_compute_capability() {
         assert_eq!(compute_capability_of("12.0\n8.6\n"), Some(12.0));
         assert_eq!(compute_capability_of("[N/A]\n"), None);
+    }
+
+    #[test]
+    fn a_big_computer_counts_as_a_small_one_only_when_asked_and_never_as_a_bigger_one() {
+        assert_eq!(capped(24576, Some("8192")), 8192);
+        assert_eq!(capped(24576, None), 24576);
+        assert_eq!(capped(8192, Some("65536")), 8192, "never more than it has");
+        assert_eq!(capped(24576, Some("eight")), 24576);
+        assert_eq!(capped(24576, Some("8")), 24576, "a slip of a unit, gigabytes for megabytes, is not a computer");
     }
 
     #[test]
