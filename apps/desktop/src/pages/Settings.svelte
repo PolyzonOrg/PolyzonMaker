@@ -42,7 +42,7 @@
 			const measured = await core.measure(hw.threads);
 			const g = await gpuTest();
 			await save({ benchmark: { ...measured, gpu_score: g.score, gpu_renderer: g.renderer } });
-			app.hw = await core.hardware();
+			app.hw = await core.hardware(true);
 		} finally {
 			checking = false;
 		}

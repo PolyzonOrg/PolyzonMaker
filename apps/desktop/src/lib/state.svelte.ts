@@ -297,7 +297,7 @@ export function hasRoom(model: Model) {
 }
 
 async function refreshFolder() {
-	const [folders, hw, installed] = await Promise.all([core.folders(), core.hardware(), core.installed()]);
+	const [folders, hw, installed] = await Promise.all([core.folders(), core.hardware(true), core.installed()]);
 	Object.assign(app, { folder: folders.models, version: folders.version, hw, installed });
 }
 

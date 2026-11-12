@@ -79,10 +79,11 @@ fn job_rate(app: AppHandle, jobs: State<Arc<Jobs>>, id: String, rating: String) 
     }
 }
 
+/// `again`: a fresh look (another models folder, a new test) instead of the one made as the app started.
 #[tauri::command]
-async fn hardware(store: State<'_, Arc<Store>>) -> Result<hardware::Hardware> {
+async fn hardware(store: State<'_, Arc<Store>>, again: Option<bool>) -> Result<hardware::Hardware> {
     let dir = store.packs();
-    blocking(move || hardware::detect(&dir)).await
+    blocking(move || if again == Some(true) { hardware::detect(&dir) } else { hardware::at_start(&dir) }).await
 }
 
 #[tauri::command]
@@ -666,7 +667,7 @@ fn main() {
             let jobs = Arc::new(Jobs::open(store.clone(), assistant.clone()));
             jobs.clone().work(app.handle().clone());
             let reporting = store.clone();
-            std::thread::spawn(move || telemetry::started(&reporting, &hardware::detect(reporting.data())));
+            std::thread::spawn(move || telemetry::started(&reporting, &hardware::at_start(&reporting.packs())));
             let door = Api::default();
             // a port taken by something else only turns the door off: the app itself is fine
             let _ = door.apply(&store, &jobs, announce(app.handle()));

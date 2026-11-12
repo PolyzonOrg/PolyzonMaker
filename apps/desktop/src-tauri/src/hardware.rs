@@ -8,7 +8,10 @@ use std::{
     hint::black_box,
     io::Write,
     path::Path,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        OnceLock,
+    },
     thread,
     time::{Duration, Instant},
 };
@@ -65,6 +68,13 @@ pub fn detect(data_dir: &Path) -> Hardware {
         gpus: gpus(),
         webview: tauri::webview_version().unwrap_or_default(),
     }
+}
+
+/// The look at this computer made as the app starts: the window asks for it at once and the start's report
+/// needs it too, and two looks side by side ran the driver tools twice. A later question looks again.
+pub fn at_start(data_dir: &Path) -> Hardware {
+    static FIRST: OnceLock<Hardware> = OnceLock::new();
+    FIRST.get_or_init(|| detect(data_dir)).clone()
 }
 
 /// For a test of a smaller computer on a big one (tools/bench/ballast.py): POLYZON_RAM_MB=8192 makes a 24 GB
@@ -237,29 +247,50 @@ fn cuda_version(text: &str) -> Option<f32> {
     })
 }
 
+/// The display adapters' class in the registry: one numbered key (0000, 0001…) a driver.
+#[cfg(target_os = "windows")]
+const ADAPTERS: &str = r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}";
+
+/// The registry, because Win32_VideoController's memory field stops at 4 GB; read here and not through
+/// PowerShell, which took 0.7-2.6 s to start each time, twice as the app started.
 #[cfg(target_os = "windows")]
 fn system_gpus() -> Vec<Gpu> {
-    // The registry, because Win32_VideoController's memory field stops at 4 GB
-    let script = r#"[Console]::OutputEncoding=[Text.Encoding]::UTF8;
-        @(Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0*' -ErrorAction SilentlyContinue |
-        ForEach-Object { $m=0; try { $m=[uint64]$_.'HardwareInformation.qwMemorySize' } catch {};
-        if (-not $m) { $v=$_.'HardwareInformation.MemorySize'; try { if ($v -is [byte[]]) { $m=[BitConverter]::ToUInt32($v,0) } elseif ($v) { $m=[uint64]$v } } catch {} };
-        @{name=[string]$_.DriverDesc; vram=$m; driver=[string]$_.DriverVersion} }) | ConvertTo-Json -Compress"#;
-    let Some(out) = quiet("powershell", &["-NoProfile", "-NonInteractive", "-Command", script]) else { return vec![] };
-    let Ok(json) = serde_json::from_str::<serde_json::Value>(out.trim()) else { return vec![] };
-    let rows = if json.is_array() { json.as_array().cloned().unwrap_or_default() } else { vec![json] };
-    rows.iter()
-        .filter_map(|r| {
-            let name = r["name"].as_str().filter(|n| !n.is_empty())?;
+    use winreg::{enums::HKEY_LOCAL_MACHINE, RegKey};
+    let Ok(class) = RegKey::predef(HKEY_LOCAL_MACHINE).open_subkey(ADAPTERS) else { return vec![] };
+    class
+        .enum_keys()
+        .flatten()
+        .filter(|k| k.starts_with('0'))
+        .filter_map(|k| class.open_subkey(k).ok())
+        .filter_map(|key| {
+            let name = key.get_value::<String, _>("DriverDesc").ok().filter(|n| !n.is_empty())?;
+            let size = |value: &str| key.get_raw_value(value).map_or(0, |v| registry_number(&v.bytes));
+            let memory = match size("HardwareInformation.qwMemorySize") {
+                0 => size("HardwareInformation.MemorySize"),
+                m => m,
+            };
             Some(Gpu {
-                vendor: vendor_of(name).into(),
-                name: name.into(),
-                vram_mb: r["vram"].as_u64().unwrap_or(0) >> 20,
-                driver: r["driver"].as_str().unwrap_or("").into(),
+                vendor: vendor_of(&name).into(),
+                vram_mb: memory >> 20,
+                driver: key.get_value("DriverVersion").unwrap_or_default(),
+                name,
                 cuda: 0.0,
             })
         })
         .collect()
+}
+
+/// A size as drivers write it, little-endian: a QWORD (NVIDIA's qwMemorySize), a DWORD (Intel's MemorySize),
+/// or the same four bytes as binary (AMD's). Fewer than four bytes are no size.
+#[cfg(any(target_os = "windows", test))]
+fn registry_number(bytes: &[u8]) -> u64 {
+    if bytes.len() < 4 {
+        return 0;
+    }
+    let mut wide = [0u8; 8];
+    let n = bytes.len().min(8);
+    wide[..n].copy_from_slice(&bytes[..n]);
+    u64::from_le_bytes(wide)
 }
 
 #[cfg(target_os = "macos")]
@@ -418,6 +449,18 @@ mod tests {
         assert_eq!(vendor_of("Intel(R) Arc(TM) A750 Graphics"), "intel");
         assert_eq!(vendor_of("Apple M3 Pro"), "apple");
         assert_eq!(vendor_of("Microsoft Basic Display Adapter"), "other");
+    }
+
+    #[test]
+    fn a_cards_memory_is_read_as_each_driver_writes_it() {
+        // NVIDIA: qwMemorySize, a QWORD past 4 GB (16 GB)
+        assert_eq!(registry_number(&(16u64 << 30).to_le_bytes()) >> 20, 16384);
+        // AMD: MemorySize as four bytes of binary (4 GB - 1, all it can hold); Intel: a DWORD (2 GB)
+        assert_eq!(registry_number(&[0xff, 0xff, 0xff, 0xff]), u32::MAX as u64);
+        assert_eq!(registry_number(&(2u32 << 30).to_le_bytes()) >> 20, 2048);
+        // nothing written, or too little to be a size
+        assert_eq!(registry_number(&[]), 0);
+        assert_eq!(registry_number(&[1, 2]), 0);
     }
 
     #[test]
