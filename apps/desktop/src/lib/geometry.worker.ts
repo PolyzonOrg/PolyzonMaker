@@ -4,7 +4,10 @@ import wasmUrl from 'manifold-3d/manifold.wasm?url';
 
 const BED: [number, number, number] = [256, 256, 256];
 
-export type Request = { op: 'open'; bytes: Uint8Array; finished: boolean } | { op: 'prepare'; height: number; name: string; solid: boolean; provenance?: Provenance };
+export type Request =
+	| { op: 'open'; bytes: Uint8Array; finished: boolean }
+	| { op: 'prepare'; height: number; name: string; solid: boolean; provenance?: Provenance }
+	| { op: 'printed'; stl: Uint8Array };
 
 export interface Opened {
 	preview: Float32Array;
@@ -69,6 +72,11 @@ async function run(req: Request): Promise<[unknown, Transferable[]]> {
 		return [value, [preview.buffer]];
 	}
 	if (!model || !report) throw new Error('no model');
+	// print files made on an earlier visit: only their picture for the screen, over the opened model
+	if (req.op === 'printed') {
+		const preview = (await previewMesh(overOpened(await readModel('print.stl', req.stl), report))).slice();
+		return [preview, [preview.buffer]];
+	}
 	const wasm = await manifold();
 	// a rebuild on a grid smooths the detail away: only when the person asks for it
 	const whole = req.solid;

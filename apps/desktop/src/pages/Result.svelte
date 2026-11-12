@@ -5,6 +5,7 @@
 	import { formatTime } from '../lib/catalog';
 	import { core, fileUrl, type Slicer } from '../lib/core';
 	import { Geometry, type Opened, type Prepared } from '../lib/geometry';
+	import { keep, kept, KEPT_FILE } from '../lib/print-kept';
 	import { lang, t, type Key } from '../lib/i18n.svelte';
 	import { handle } from '../lib/keys';
 	import { contributed } from '../lib/plugins';
@@ -131,11 +132,32 @@
 			original = shown;
 			viewer?.show(...shown);
 			await saveThumb();
-			// a generated model comes out ready for print, not as the generator left it
-			if (!finished && app.prepare?.id !== id) void prepare();
+			if (app.prepare?.id === id) return; // asked for through the API: that asks for its own size
+			// prepared on an earlier visit: shown as it was; else a generated model comes out ready for print
+			if (!(await restore()) && !finished) void prepare();
 		} catch (e) {
 			openFailed = String(e);
 		}
+	}
+
+	/** The print files of an earlier visit, as they were made: a model is repaired and simplified once. */
+	async function restore(): Promise<boolean> {
+		const k = kept(await text(KEPT_FILE), { version: app.version, source: fileBytes });
+		if (!k || !geometry) return false;
+		// before the files are read: another size clears what was prepared
+		height = k.height;
+		mend = k.mend;
+		const file = (name: string) => core.readFile(id, name).then((b) => new Uint8Array(b), () => null);
+		const [stl, threemf] = await Promise.all([file('print.stl'), file('print.3mf')]);
+		if (left) return true;
+		if (!stl) return false;
+		const preview = await geometry.printed(stl.slice()).catch(() => null);
+		if (left) return true;
+		if (!preview) return false;
+		prepared = { ...k.summary, stl, threemf, preview };
+		printView = preview;
+		if (!finished || mend || showing === 'print') look('print');
+		return true;
 	}
 
 	/** Parts with colours show in them: all their triangles, as the file gives them. */
@@ -237,8 +259,11 @@
 			prepared = r;
 			printView = r.preview;
 			if (!finished || mend || showing === 'print') look('print');
+			// what was kept says nothing until the new files are all written: a crash halfway prepares again
+			await core.writeFile(id, KEPT_FILE, new TextEncoder().encode('{}'));
 			if (r.stl) await core.writeFile(id, 'print.stl', r.stl);
 			if (r.threemf) await core.writeFile(id, 'print.3mf', r.threemf);
+			if (r.stl) await core.writeFile(id, KEPT_FILE, keep(r, { version: app.version, source: fileBytes, height: wanted, mend }));
 			said('print_done', [r.ready ? 'ready' : 'not_ready', r.filled && 'filled', r.solid && 'solid', r.crumbs && 'crumbs', r.flat && 'flat'].filter(Boolean).join('_'));
 		} catch (e) {
 			failed = t('print.failed', { text: String(e) });
