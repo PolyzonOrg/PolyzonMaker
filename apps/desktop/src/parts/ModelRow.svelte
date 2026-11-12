@@ -33,13 +33,15 @@
 	const otherDevice = $derived(!!installed && !!f.target && f.band !== 'no' && installed.device !== f.target.device);
 	const chip = $derived(f.band === 'fast' ? 'good' : f.band === 'no' ? 'bad' : 'warn');
 	const gb = (mb: number) => Math.ceil(mb / 1024);
+	/** On this system its engine runs on CUDA or on nothing at all: say so, an AMD or Intel card does not help */
+	const nvidiaOnly = $derived(model.targets.filter((t) => t.os === hw.os && t.device !== 'cpu').every((t) => t.device === 'cuda'));
 	const why = $derived(
 		f.reason === 'vram'
 			? t('models.needVram', { gb: gb(f.missing_mb ?? 0) })
 			: f.reason === 'ram'
 				? t('models.needRam', { gb: gb(f.missing_mb ?? 0) })
 				: f.reason === 'gpu'
-					? t('models.needGpu')
+					? t(nvidiaOnly ? 'models.needNvidia' : 'models.needGpu')
 					: f.reason === 'driver'
 						? t('models.needDriver')
 					: f.reason === 'chip'
@@ -109,6 +111,7 @@
 			<p class="note warn">{t('models.experimental')}</p>
 		{/if}
 		{#if f.offload && f.band !== 'no'}<p class="note warn">{t(`models.offload.${f.offload}`)}</p>{/if}
+		{#if f.graphics && f.band !== 'no'}<p class="note warn">{t(`models.graphics.${f.graphics}`)}</p>{/if}
 		{#if problem}<p class="note bad">{t(problem)}</p>{/if}
 	</div>
 	<div class="actions" hidden={!actions}>

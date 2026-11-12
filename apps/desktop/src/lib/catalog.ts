@@ -192,7 +192,34 @@ export interface Fit {
 	missing_mb?: number;
 	/** The card is short: part of the model waits in main memory, and the time counts it */
 	offload?: Offload;
+	/** Vulkan on the graphics in the processor (`shared`), or on an AMD or Intel card: tested only on NVIDIA */
+	graphics?: 'shared' | 'untested';
 }
+
+/** Graphics built into the processor, by its name: it has little memory of its own and works in main memory. */
+const BUILT_IN = /\b(uhd|iris|hd graphics)\b|arc\(tm\) graphics|radeon\(tm\)( \d{3,4}m)? graphics|radeon vega|\b\d{3}m graphics/i;
+
+export function builtIn(g: Gpu): boolean {
+	return (g.vendor === 'intel' || g.vendor === 'amd') && (BUILT_IN.test(g.name) || (g.vram_mb > 0 && g.vram_mb <= 2048));
+}
+
+/**
+ * The card Vulkan works on: ggml takes a card with memory of its own first, and the graphics in the processor
+ * only when there is none. Those use up to half of main memory, as Windows and the drivers let them.
+ */
+function vulkanCard(hw: Hardware): { vram: number; vendor: string; shared: boolean } | null {
+	const cards = hw.gpus.filter((g) => g.vendor === 'nvidia' || g.vendor === 'amd' || g.vendor === 'intel');
+	const own = cards.filter((g) => !builtIn(g)).sort((a, b) => b.vram_mb - a.vram_mb)[0];
+	if (own) return { vram: own.vram_mb, vendor: own.vendor, shared: false };
+	const chip = cards.find(builtIn);
+	return chip ? { vram: Math.max(chip.vram_mb, Math.round(hw.ram_mb / 2)), vendor: chip.vendor, shared: true } : null;
+}
+
+/**
+ * How much slower built-in graphics are than the reference card when its graphics test cannot tell.
+ * ponytail: a guess from their paper speed (an Iris Xe is about a twentieth of an RTX 5070 Ti); measure one
+ */
+const BUILT_IN_SLOWER = 20;
 
 /**
  * The reference PC behind every `ref_seconds`: the RTX 5070 Ti machine of `tools/bench`.
@@ -208,11 +235,10 @@ const SPREAD: [number, number] = [0.7, 1.6];
 
 function devicesOf(hw: Hardware): Map<Device, number> {
 	const out = new Map<Device, number>([['cpu', 0]]);
+	const vulkan = vulkanCard(hw);
+	if (vulkan) out.set('vulkan', vulkan.vram);
 	for (const g of hw.gpus) {
-		const vram = g.vram_mb;
-		if (g.vendor === 'nvidia' && g.cuda >= 12) out.set('cuda', Math.max(out.get('cuda') ?? 0, vram));
-		if (g.vendor === 'nvidia' || g.vendor === 'amd' || g.vendor === 'intel')
-			out.set('vulkan', Math.max(out.get('vulkan') ?? 0, vram));
+		if (g.vendor === 'nvidia' && g.cuda >= 12) out.set('cuda', Math.max(out.get('cuda') ?? 0, g.vram_mb));
 		if (g.vendor === 'apple') {
 			out.set('mps', hw.ram_mb);
 			out.set('metal', hw.ram_mb);
@@ -235,18 +261,21 @@ function testedCard(device: Device, hw: Hardware, renderer: string): boolean {
 	return !maker || (MAKERS[maker]?.test(renderer) ?? true);
 }
 
-function speedFactor(device: Device, bench: Bench | null, hw: Hardware): number {
+function speedFactor(device: Device, bench: Bench | null, hw: Hardware, shared = false): number {
 	// a Mac's `ref_seconds` are an M4 Pro's own times (bench 2026-11-05c): its web view reads Metal 5 times
 	// slow and its processor past the other limit, so the PC's scale says nothing there.
 	// ponytail: every Apple chip gets the M4 Pro's time; scale by chip once a second Mac has been measured
-	if (!bench || hw.os === 'macos') return 1;
+	if (hw.os === 'macos') return 1;
+	const untold = shared ? BUILT_IN_SLOWER : 1;
+	if (!bench) return untold;
 	const ratio =
 		device === 'cpu'
 			? REFERENCE.cpu_multi / Math.max(bench.cpu_multi, 1)
 			: REFERENCE.gpu_score / Math.max(bench.gpu_score, 1);
 	// the graphics test only ranks cards roughly, and only the card it ran on
-	if (device !== 'cpu' && (!bench.gpu_score || !testedCard(device, hw, bench.gpu_renderer))) return 1;
-	return Math.min(Math.max(ratio, 0.4), device === 'cpu' ? 40 : 5);
+	if (device !== 'cpu' && (!bench.gpu_score || !testedCard(device, hw, bench.gpu_renderer))) return untold;
+	// built-in graphics are slower than any card by far: they get the processor's room
+	return Math.min(Math.max(ratio, 0.4), device === 'cpu' || shared ? 40 : 5);
 }
 
 function band(seconds: number): Band {
@@ -259,6 +288,7 @@ function band(seconds: number): Band {
 /** The best way to run `model` on this machine. */
 export function fit(model: Model, hw: Hardware, bench: Bench | null, preset?: Preset): Fit {
 	const devices = devicesOf(hw);
+	const vulkan = vulkanCard(hw);
 	const targets = model.targets.filter((t) => t.os === hw.os);
 	if (!targets.length) return { band: 'no', target: null, seconds: null, reason: 'system' };
 	// every Mac engine in the catalog is an arm64 build and torch has no Intel Mac wheels; Rosetta runs only the other way
@@ -275,20 +305,23 @@ export function fit(model: Model, hw: Hardware, bench: Bench | null, preset?: Pr
 			blocked = { band: 'no', target, seconds: null, reason: 'vram', missing_mb: leastVram(model, target.device, needVram) - vram };
 			continue;
 		}
-		// what leaves the card waits in main memory
-		const moved = step ? needVram - vram : 0;
+		const shared = target.device === 'vulkan' && !!vulkan?.shared;
+		// what leaves the card waits in main memory, and built-in graphics work in main memory anyway
+		const moved = step ? needVram - vram : shared ? needVram : 0;
 		if (hw.ram_mb < target.min_ram_mb * 0.92 + moved) {
 			blocked = { band: 'no', target, seconds: null, reason: 'ram', missing_mb: target.min_ram_mb + moved - hw.ram_mb };
 			continue;
 		}
 		const slower = step ? OFFLOAD[step].slower : 1;
-		const middle = target.ref_seconds * (preset?.time_factor ?? 1) * speedFactor(target.device, bench, hw) * slower;
+		const middle = target.ref_seconds * (preset?.time_factor ?? 1) * speedFactor(target.device, bench, hw, shared) * slower;
+		const graphics = shared ? 'shared' : target.device === 'vulkan' && vulkan && vulkan.vendor !== 'nvidia' ? 'untested' : null;
 		const here: Fit = {
 			band: band(middle),
 			target,
 			seconds: [middle * SPREAD[0], middle * SPREAD[1]],
 			reason: band(middle) === 'no' ? 'slow' : null,
-			...(step && { offload: step })
+			...(step && { offload: step }),
+			...(graphics && { graphics })
 		};
 		if (!best || middle < best.seconds![0] / SPREAD[0]) best = here;
 	}
