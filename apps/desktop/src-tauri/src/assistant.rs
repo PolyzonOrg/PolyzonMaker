@@ -110,7 +110,7 @@ impl Assistant {
         }
         c.args(["--host", "127.0.0.1", "--port", &port.to_string(), "--ctx-size", CONTEXT, "--parallel", "1", "--jinja", "--no-webui"]);
         c.env("LLAMA_API_KEY", &key); // not on the command line, where every program can read it
-        c.args(["--n-gpu-layers", if installed.device == "cpu" { "0" } else { "999" }]);
+        c.args(["--n-gpu-layers", gpu_layers(&installed.device)]);
         c.stdin(Stdio::null()).stdout(Stdio::from(out.try_clone().map_err(|e| e.to_string())?)).stderr(Stdio::from(out));
         let mut child = c.spawn().map_err(|e| e.to_string())?;
         let agent = local_agent(Some(Duration::from_secs(2)));
@@ -232,6 +232,13 @@ fn talk(port: u16, key: &str, messages: serde_json::Value, stop: &AtomicBool, em
     }
 }
 
+/// The layers on the card. With `auto`, llama.cpp's own fit (on by default since b7xxx, the catalog pins
+/// b11854) puts there as many as its free memory holds and keeps the rest in main memory, as LM Studio
+/// does; a number here, as the 999 before, switches that off and a model bigger than the card fails to load.
+fn gpu_layers(device: &str) -> &'static str {
+    if device == "cpu" { "0" } else { "auto" }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -239,6 +246,14 @@ mod tests {
         io::{Read, Write},
         net::TcpStream,
     };
+
+    #[test]
+    fn a_text_model_bigger_than_the_card_keeps_the_rest_in_main_memory() {
+        assert_eq!(gpu_layers("cuda"), "auto");
+        assert_eq!(gpu_layers("vulkan"), "auto");
+        assert_eq!(gpu_layers("metal"), "auto");
+        assert_eq!(gpu_layers("cpu"), "0", "on the processor nothing goes to a card");
+    }
 
     #[test]
     fn the_text_model_leaves_only_when_a_generation_needs_the_room() {

@@ -21,6 +21,12 @@ describe('what a model needs, as its page tells it', () => {
 		expect(modelFacts(real('trellis2')).noCard).toBe(false);
 	});
 
+	it('tells how little video memory it can do with when part of it waits in main memory', () => {
+		expect(modelFacts(real('hunyuan-2-1'))).toMatchObject({ vramGb: 10, leastVramGb: 5 });
+		expect(modelFacts(real('triposg'))).toMatchObject({ vramGb: 7, leastVramGb: 2 });
+		expect(modelFacts(real('trellis2')).leastVramGb).toBeNull();
+	});
+
 	it('names the limits of a licence', () => {
 		expect(modelFacts(real('hunyuan-2')).limits).toEqual(['regions']);
 		expect(modelFacts(real('vggt')).limits).toEqual(['noncommercial']);
