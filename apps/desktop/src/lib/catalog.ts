@@ -357,6 +357,17 @@ export function formatRange([lo, hi]: [number, number], lang: string): string {
 	return a === b ? a : `${a.split(' ')[0]}${a.split(' ')[1] === b.split(' ')[1] ? '' : ' ' + a.split(' ')[1]}–${b}`;
 }
 
+export type Left = { kind: 'range'; seconds: [number, number] } | { kind: 'upto'; seconds: number } | { kind: 'over' };
+
+/** What is left of a run `elapsed` seconds in, by its estimate for this computer: a range under the short end,
+ * "up to" the long end, then only that it takes longer than usual. A second seed is a second run. */
+export function timeLeft(elapsed: number, [lo, hi]: [number, number], twice = false): Left {
+	const [short, long] = twice ? [lo * 2, hi * 2] : [lo, hi];
+	if (elapsed < short) return { kind: 'range', seconds: [short - elapsed, long - elapsed] };
+	if (elapsed < long) return { kind: 'upto', seconds: long - elapsed };
+	return { kind: 'over' };
+}
+
 // ---------------------------------------------------------------- Hugging Face
 
 export interface HfModel {
