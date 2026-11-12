@@ -8,7 +8,8 @@ import pkg from '../../package.json';
 
 type Handler = (payload: never) => void;
 const handlers = new Map<string, Handler[]>();
-const emit = (event: string, payload: unknown) => handlers.get(event)?.forEach((h) => h(payload as never));
+// as the core does: everything as one event, «core», with its name
+const emit = (event: string, payload: unknown) => handlers.get('core')?.forEach((h) => h([event, payload] as never));
 
 const KEY = 'maker-mock';
 /** A plugin with every kind of thing a plugin can bring, so that each place it appears can be looked at */

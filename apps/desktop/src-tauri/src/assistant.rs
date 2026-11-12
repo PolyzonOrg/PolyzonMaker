@@ -21,7 +21,7 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 /// A 16 GB model takes its time coming off a disk.
 const LOAD_SECONDS: u64 = 300;
@@ -146,12 +146,12 @@ impl Assistant {
         self.talks.lock().unwrap().insert(id.clone(), stop.clone());
         std::thread::spawn(move || {
             let result = talk(port, &key, messages, &stop, &mut |text| {
-                let _ = app.emit("assistant-delta", Delta { id: &id, text });
+                crate::news(&app, "assistant-delta", Delta { id: &id, text });
             });
             self.talks.lock().unwrap().remove(&id);
             *self.used.lock().unwrap() = Some(Instant::now());
             let error = result.err().unwrap_or_default();
-            let _ = app.emit("assistant-end", End { id: &id, error: &error });
+            crate::news(&app, "assistant-end", End { id: &id, error: &error });
         });
         Ok(())
     }
