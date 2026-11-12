@@ -666,6 +666,6 @@ mod tests {
     fn a_wrong_key_is_turned_away() {
         let s = stand();
         let port: u16 = s.client.base.rsplit(':').next().unwrap().parse().unwrap();
-        assert_eq!(Client::new(port, "wrong".into()).get("/v1/status").unwrap_err().contains("key"), true);
+        assert!(Client::new(port, "wrong".into()).get("/v1/status").unwrap_err().contains("key"));
     }
 }

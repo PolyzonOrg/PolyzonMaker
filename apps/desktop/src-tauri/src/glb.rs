@@ -23,7 +23,7 @@ impl Shape {
     }
 
     pub fn better_than(self, other: Shape) -> bool {
-        self.failed() < other.failed() || (self.failed() == other.failed() && self.flat < other.flat)
+        (!self.failed() && other.failed()) || (self.failed() == other.failed() && self.flat < other.flat)
     }
 }
 
@@ -123,7 +123,7 @@ fn measure(parts: &[Part]) -> Shape {
     let mut slabs = [0f64; 3 * SLABS_PER_AXIS];
     let (mut faces, mut total) = (0, 0f64);
     for part in parts {
-        for corners in part.corners.chunks_exact(3) {
+        for corners in part.corners.as_chunks::<3>().0 {
             let at = |i: usize| part.points.get(corners[i] as usize).filter(|p| p.iter().all(|v| v.is_finite()));
             let (Some(a), Some(b), Some(c)) = (at(0), at(1), at(2)) else { continue };
             faces += 1;

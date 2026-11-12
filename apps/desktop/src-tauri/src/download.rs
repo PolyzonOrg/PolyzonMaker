@@ -550,7 +550,7 @@ mod tests {
         let dest = temp().join("file.bin");
         let cancel = AtomicBool::new(false);
         let half = big().len() as u64 / 2;
-        let got = fetch(&agent(), &[url.clone()], &dest, "", &cancel, &mut |done, _| {
+        let got = fetch(&agent(), std::slice::from_ref(&url), &dest, "", &cancel, &mut |done, _| {
             if done > half {
                 cancel.store(true, Ordering::Relaxed);
             }
@@ -649,7 +649,7 @@ mod tests {
         let (url, _) = serve(None, true);
         let dest = temp().join("file.bin");
         let cancel = AtomicBool::new(false);
-        let got = fetch(&agent(), &[url.clone()], &dest, "", &cancel, &mut |done, _| {
+        let got = fetch(&agent(), std::slice::from_ref(&url), &dest, "", &cancel, &mut |done, _| {
             if done > 1000 {
                 cancel.store(true, Ordering::Relaxed);
             }

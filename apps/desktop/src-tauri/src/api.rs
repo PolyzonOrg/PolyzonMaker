@@ -39,7 +39,8 @@ fn now() -> u64 {
 
 /// What the window has to hear about or do: print preparation and model choice live there.
 pub enum Tell {
-    Job(Job),
+    /// boxed: the other news is a few words, and every Tell is as big as its biggest
+    Job(Box<Job>),
     Open(String),
     Prepare(String, u32),
     Install(String),
@@ -305,7 +306,7 @@ impl Door {
         };
         match self.jobs.add(job) {
             Ok(job) => {
-                (self.notify)(Tell::Job(job.clone()));
+                (self.notify)(Tell::Job(Box::new(job.clone())));
                 Reply::Json(201, json!(job))
             }
             Err(_) => fail(500, "queue"),
@@ -335,7 +336,7 @@ impl Door {
             return fail(404, "job");
         }
         if let Some(job) = self.jobs.cancel(id) {
-            (self.notify)(Tell::Job(job));
+            (self.notify)(Tell::Job(Box::new(job)));
         }
         Reply::Json(202, json!({ "ok": true }))
     }
