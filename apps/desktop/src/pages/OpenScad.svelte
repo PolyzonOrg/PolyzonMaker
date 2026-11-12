@@ -271,6 +271,8 @@
 
 <div class="desk" bind:clientWidth={room} style:--code="{panes.code}px" style:--side="{panes.side}px">
 	<header bind:offsetHeight={top}>
+		<!-- the page's heading for a screen reader; on the screen the icon and the program's name say it -->
+		<h1 class="sr-only">{t('nav.scad')}</h1>
 		<Icon name="code" size={18} />
 		<input class="input small title" aria-label={t('scad.name')} placeholder={t('scad.untitled')} bind:value={title} />
 		<div class="choose">

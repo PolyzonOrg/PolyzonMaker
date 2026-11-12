@@ -460,12 +460,13 @@
 		</div>
 		<aside class="panel">
 			<header>
-				<h2 class="selectable">{job.title || t('job.untitled')}</h2>
+				<!-- the page's own heading, in the size of a panel's -->
+				<h1 class="selectable title">{job.title || t('job.untitled')}</h1>
 				{#if !finished}<p class="faint">{engine?.name ?? job.model}, {formatTime(job.seconds, lang.value)}</p>{/if}
 			</header>
 
 			<section>
-				<h3>{t('print.size')}</h3>
+				<h2 class="h3">{t('print.size')}</h2>
 				<label class="height">
 					<span class="faint">{t('print.height')}</span>
 					<input class="input" type="number" min="1" max="1000" bind:value={height} />
@@ -488,7 +489,7 @@
 
 			<section>
 				<div class="line">
-					<h3>{t('print.check')}</h3>
+					<h2 class="h3">{t('print.check')}</h2>
 					{#if report}<span class="chip {statusChip}">{t(`print.status.${report.status}` as Key)}</span>{/if}
 				</div>
 				{#if report}
@@ -553,7 +554,7 @@
 
 			{#each panels as { plugin, item } (plugin.id + '/' + item.id)}
 				<section class="plugin">
-					<h3 title={t('plugins.from', { name: plugin.name })}>{item.title}</h3>
+					<h2 class="h3" title={t('plugins.from', { name: plugin.name })}>{item.title}</h2>
 					<div class="frame" style:height="{item.height}px">
 						<PluginFrame id={plugin.id} file={item.file} title={item.title} context={{ page: 'result', job: id }} />
 					</div>
@@ -755,6 +756,13 @@
 		padding: 20px;
 		overflow-y: auto;
 		border-left: 1px solid var(--line);
+	}
+
+	/* the page's heading looks like a panel's */
+	.title {
+		font-size: 18px;
+		letter-spacing: -0.01em;
+		line-height: normal;
 	}
 
 	/* no room for the view beside the panel: one column that scrolls, the model on top, as tall as its toolbar needs */

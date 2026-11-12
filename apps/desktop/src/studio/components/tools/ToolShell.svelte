@@ -199,7 +199,7 @@
 	<aside>
 		<header>
 			<button class="tool" aria-label={t('tools.all')} title={t('tools.all')} onclick={() => go('tools')}><Icon name="back" size={16} /></button>
-			<h2>{tool.title}</h2>
+			<h1>{tool.title}</h1>
 			<span class="ends">
 				{#if changed}<button class="tool" aria-label={t('tools.reset')} data-tip={t('tools.reset')} onclick={reset}><Icon name="reset" size={16} /></button>{/if}
 				<FavoriteButton slug={tool.slug} />
@@ -297,11 +297,14 @@
 		margin-left: auto;
 	}
 
-	h2 {
+	/* the page's heading, in the size of a panel's */
+	h1 {
 		min-width: 0;
 		margin: 0;
 		font-size: 15px;
 		font-weight: 600;
+		letter-spacing: normal;
+		line-height: normal;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;

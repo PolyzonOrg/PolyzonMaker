@@ -2,7 +2,9 @@
 	import { onMount, tick } from 'svelte';
 	import { core } from '../lib/core';
 	import { t } from '../lib/i18n.svelte';
-	import { app, go, isInstalled } from '../lib/state.svelte';
+	import { CHAT_NARROWEST, CHAT_WIDEST, chatWidth } from '../lib/menu';
+	import { app, go, isInstalled, setChatWidth } from '../lib/state.svelte';
+	import Edge from '../parts/Edge.svelte';
 	import Icon from '../parts/Icon.svelte';
 	import Select from '../parts/Select.svelte';
 	import { chat, newChat, openThread, removeThread, send, stop, useModel } from './chat.svelte';
@@ -74,6 +76,19 @@
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 <div class="behind" aria-hidden="true" onclick={() => (app.chatOpen = false)}></div>
 <aside class="panel pane" aria-label={t('chat.title')}>
+	<!-- its width's edge, inside its landmark: on the work area's grid beside the panel, as the panel is not
+	     positioned; where the panel lies over the page the panel is the edge's box, and the edge keeps inside it -->
+	<Edge
+		label={t('chat.width')}
+		value={app.chatWidth}
+		min={CHAT_NARROWEST}
+		max={CHAT_WIDEST}
+		grow={-1}
+		place="right: calc(var(--chat) + 4px)"
+		onchange={(width) => (app.chatWidth = chatWidth(width))}
+		onsettle={() => setChatWidth(app.chatWidth)}
+		onstep={(by) => setChatWidth(chatWidth(app.chatWidth + by))}
+	/>
 	<header>
 		<div class="grow">
 			<Select small icon="sparkles" label={t('chat.model')} value={chat.model} onchange={pickModel} options={texts.length ? texts.map((m) => ({ value: m.id, label: m.name })) : [{ value: '', label: t('chat.noModel') }]} />
@@ -180,6 +195,12 @@
 			top: 0;
 			right: 0;
 			border: 1px solid var(--line);
+		}
+
+		/* the panel clips what lies outside it: its edge along its left side, inside */
+		.panel > :global(.edge) {
+			right: auto !important;
+			left: 0;
 		}
 
 		.behind {
