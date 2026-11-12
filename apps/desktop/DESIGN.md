@@ -92,7 +92,7 @@ Colours are defined for light and dark in `src/app.css`. Never write a colour va
 
 Icons come from `Icon.svelte`, one stroke width, Lucide's geometry. Every navigation item and primary
 action has an icon and a word: on first use people do better with both (Wiedenbeck 1999). An icon alone is
-for conventions only: close, search, settings, window controls, fold menu, and it has a tooltip. The
+for conventions only: close, search, settings, window controls, fold menu, «⋯» for more actions (`MoreMenu`, its rows an action list), and it has a tooltip. The
 folded menu is the one exception: the person chose it, having seen the words.
 
 ## Behaviour

@@ -9,6 +9,7 @@
 	import DeskEdges from '../parts/DeskEdges.svelte';
 	import Dialog from '../parts/Dialog.svelte';
 	import Icon from '../parts/Icon.svelte';
+	import MoreMenu from '../parts/MoreMenu.svelte';
 	import Select from '../parts/Select.svelte';
 	import ViewControls from '../parts/ViewControls.svelte';
 	import { sceneView, type SceneView } from '../lib/view-scene';
@@ -279,10 +280,14 @@
 			<Select small icon="grid" label={t('scad.templates')} value="" onchange={pickTemplate} options={[{ value: '', label: t('scad.templates') }, ...SCAD_TEMPLATES.map((p) => ({ value: p.id, label: p.label }))]} />
 		</div>
 		<input bind:this={picker} class="hidden" type="file" accept=".scad,.txt" aria-hidden="true" tabindex="-1" onchange={(e) => openFile(e.currentTarget.files?.[0])} />
-		<button class="btn small ghost" onclick={() => picker?.click()}><Icon name="folder" size={14} />{t('scad.open')}</button>
-		<button class="btn small ghost" onclick={saveText}><Icon name="download" size={14} />{t('scad.saveFile')}</button>
-		<button class="btn small ghost" onclick={() => (app.connect = true)}><Icon name="plug" size={14} />{t('agent.button')}</button>
-		{#if program}<button class="btn small ghost danger" onclick={() => (removing = true)}><Icon name="trash" size={14} />{t('scad.delete')}</button>{/if}
+		<MoreMenu
+			actions={[
+				{ label: t('scad.open'), icon: 'folder', run: () => picker?.click() },
+				{ label: t('scad.saveFile'), icon: 'download', run: saveText },
+				{ label: t('agent.button'), icon: 'plug', run: () => (app.connect = true) },
+				...(program ? [{ label: t('scad.delete'), icon: 'trash' as const, run: () => (removing = true), danger: true }] : [])
+			]}
+		/>
 		<button class="btn small" disabled={!code.trim() || (!dirty && !!program)} onclick={keep}><Icon name="check" size={14} />{t(dirty || !program ? 'scad.save' : 'scad.saved')}</button>
 	</header>
 
