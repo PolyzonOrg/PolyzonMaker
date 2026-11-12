@@ -187,7 +187,8 @@ export const on = async <T>(event: string, handler: (payload: T) => void) => (aw
 export const core = {
 	settings: () => call<Settings>('settings'),
 	saveSettings: (settings: Settings) => call<Settings>('save_settings', { new: settings }),
-	hardware: () => call<Hardware>('hardware'),
+	/** `again`: look anew instead of taking the look made as the app started */
+	hardware: (again = false) => call<Hardware>('hardware', { again }),
 	diskFree: () => call<number | null>('disk_free'),
 	measure: (threads: number) => call<Omit<Bench, 'gpu_score' | 'gpu_renderer'>>('measure', { threads }),
 	catalog: () => call<{ models: Model[] }>('models'),
