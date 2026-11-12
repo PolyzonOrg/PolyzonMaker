@@ -7,6 +7,7 @@
 	import { Geometry, type Opened, type Prepared } from '../lib/geometry';
 	import { keep, kept, KEPT_FILE } from '../lib/print-kept';
 	import { lang, t, type Key } from '../lib/i18n.svelte';
+	import { problem } from '../lib/problem';
 	import { handle } from '../lib/keys';
 	import { contributed } from '../lib/plugins';
 	import { app, choose, go, isInstalled, jobExpected, jobTitle, modelName, pick3d, pickPicture, runCommand, save, setThumb } from '../lib/state.svelte';
@@ -150,7 +151,7 @@
 			// prepared on an earlier visit: shown as it was; else a generated model comes out ready for print
 			if (!(await restore()) && !finished) void prepare();
 		} catch (e) {
-			openFailed = String(e);
+			openFailed = t('job.openFailed', { why: problem(e) });
 		}
 	}
 
@@ -280,7 +281,7 @@
 			if (r.stl) await core.writeFile(id, KEPT_FILE, keep(r, { version: app.version, source: fileBytes, height: wanted, mend }));
 			said('print_done', [r.ready ? 'ready' : 'not_ready', r.filled && 'filled', r.solid && 'solid', r.crumbs && 'crumbs', r.flat && 'flat'].filter(Boolean).join('_'));
 		} catch (e) {
-			failed = t('print.failed', { text: String(e) });
+			failed = t('print.failed', { text: problem(e) });
 			said('print_failed', e instanceof Error ? e.name : 'unknown');
 		} finally {
 			preparing = false;

@@ -4,6 +4,7 @@
 	import { queue, readyBy } from '../lib/queue';
 	import { showToast } from '../studio/toast';
 	import { lang, t, type Key } from '../lib/i18n.svelte';
+	import { problem } from '../lib/problem';
 	import { app, benchOf, choose, chooseModelsFolder, go, hasRoom, installModel, installing, isInstalled, pick3d, pickPicture, pictureModels, setAfter, startModel, startPictures } from '../lib/state.svelte';
 	import Boat from '../parts/Boat.svelte';
 	import Icon, { type IconName } from '../parts/Icon.svelte';
@@ -108,7 +109,7 @@
 				next(job.id);
 			}
 		} catch (e) {
-			error = String(e);
+			error = t('create.failed', { why: problem(e) });
 		} finally {
 			busy = false;
 		}

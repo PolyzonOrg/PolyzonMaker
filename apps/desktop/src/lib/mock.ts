@@ -254,6 +254,9 @@ async function scripted(id: string, messages: { role: string; content: unknown }
 }
 
 export async function invoke<T>(cmd: string, args?: unknown, options?: { headers: Record<string, string> }): Promise<T> {
+	// what a failed call looks like: ?broken=job_delete:32 answers as Windows does for a file another program holds
+	const [broken, number] = (params.get('broken') ?? '').split(':');
+	if (broken === cmd) throw `The process cannot access the file because it is being used by another process. (os error ${number || 32})`;
 	const a = (args ?? {}) as Record<string, never>;
 	const result = await (async (): Promise<unknown> => {
 		switch (cmd) {
