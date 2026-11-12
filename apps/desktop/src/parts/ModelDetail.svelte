@@ -34,7 +34,7 @@
 
 	<dl class="facts">
 		<div><dt>{t('models.fact.does')}</dt><dd>{t(`models.does.${does}` as Key)}{#if model.vision}, {t('models.sees')}{/if}</dd></div>
-		{#if facts.vramGb}<div><dt>{t('models.fact.vram')}</dt><dd>{t('models.fact.vramFrom', { gb: facts.vramGb })}</dd></div>{/if}
+		{#if facts.vramGb}<div><dt>{t('models.fact.vram')}</dt><dd>{t('models.fact.vramFrom', { gb: facts.vramGb })}{#if facts.leastVramGb}; {t('models.fact.vramLeast', { gb: facts.leastVramGb })}{/if}</dd></div>{/if}
 		{#if facts.cards.length || facts.noCard}
 			<div><dt>{t('models.fact.cards')}</dt><dd>{facts.cards.map((c) => CARD[c]).join(', ')}{#if facts.noCard}{facts.cards.length ? ', ' : ''}{t('models.fact.noCard')}{/if}</dd></div>
 		{/if}

@@ -41,6 +41,41 @@ export interface Model {
 	runtime: { type: 'native' | 'python' | 'plugin' };
 	/** A plugin's model: which plugin brought it (PLUGINS.md) */
 	plugin?: { id: string; name: string };
+	/** How its engine leaves part of it in main memory when the card is short, fastest first */
+	offload?: Offload[];
+}
+
+/**
+ * The memory ladder (TZ §6): stages take turns on the card (runner.py `--offload model`), layers do
+ * (`sequential`), or llama.cpp keeps the layers that do not fit in main memory (`layers`).
+ */
+export type Offload = 'model' | 'sequential' | 'layers';
+
+/**
+ * What share of a model's video memory each step needs and how much slower it runs. Measured on an
+ * RTX 5070 Ti with its memory capped (bench 2026-11-05): stages in turn, TripoSG 57 s for 51 at 4 GB
+ * of its 7 and Hunyuan3D-2 mini 40 s for 32 at 4 of 8; layer by layer, TripoSG 354 s at 2 GB.
+ * llama.cpp's layers in main memory run on the processor: a guess, text models show no time.
+ */
+const OFFLOAD: Record<Offload, { share: number; slower: number }> = {
+	model: { share: 0.5, slower: 1.3 },
+	sequential: { share: 0.28, slower: 7 },
+	layers: { share: 0.25, slower: 2 }
+};
+
+/** Only a card with memory of its own has anything to move out of it. */
+const OWN_MEMORY: Device[] = ['cuda', 'vulkan'];
+
+/** The fastest step of the ladder that fits `vram` of the `need` a model has on the card. */
+function offloadStep(model: Model, device: Device, vram: number, need: number): Offload | null {
+	if (!OWN_MEMORY.includes(device)) return null;
+	return (model.offload ?? []).find((step) => vram >= need * OFFLOAD[step].share) ?? null;
+}
+
+/** The least video memory a model runs with at all, on its lowest step. */
+function leastVram(model: Model, device: Device, need: number): number {
+	const steps = OWN_MEMORY.includes(device) ? (model.offload ?? []) : [];
+	return Math.min(need, ...steps.map((step) => need * OFFLOAD[step].share));
 }
 
 const STEPS = {
@@ -155,6 +190,8 @@ export interface Fit {
 	/** What stands in the way, for the `no` band */
 	reason: 'vram' | 'ram' | 'gpu' | 'driver' | 'system' | 'chip' | 'slow' | null;
 	missing_mb?: number;
+	/** The card is short: part of the model waits in main memory, and the time counts it */
+	offload?: Offload;
 }
 
 /**
@@ -232,20 +269,26 @@ export function fit(model: Model, hw: Hardware, bench: Bench | null, preset?: Pr
 		const vram = devices.get(target.device);
 		if (vram === undefined) continue;
 		const needVram = target.min_vram_mb * (preset?.vram_factor ?? 1);
-		if (needVram > 0 && vram > 0 && vram < needVram) {
-			blocked = { band: 'no', target, seconds: null, reason: 'vram', missing_mb: needVram - vram };
+		const short = needVram > 0 && vram > 0 && vram < needVram;
+		const step = short ? offloadStep(model, target.device, vram, needVram) : null;
+		if (short && !step) {
+			blocked = { band: 'no', target, seconds: null, reason: 'vram', missing_mb: leastVram(model, target.device, needVram) - vram };
 			continue;
 		}
-		if (hw.ram_mb < target.min_ram_mb * 0.92) {
-			blocked = { band: 'no', target, seconds: null, reason: 'ram', missing_mb: target.min_ram_mb - hw.ram_mb };
+		// what leaves the card waits in main memory
+		const moved = step ? needVram - vram : 0;
+		if (hw.ram_mb < target.min_ram_mb * 0.92 + moved) {
+			blocked = { band: 'no', target, seconds: null, reason: 'ram', missing_mb: target.min_ram_mb + moved - hw.ram_mb };
 			continue;
 		}
-		const middle = target.ref_seconds * (preset?.time_factor ?? 1) * speedFactor(target.device, bench, hw);
+		const slower = step ? OFFLOAD[step].slower : 1;
+		const middle = target.ref_seconds * (preset?.time_factor ?? 1) * speedFactor(target.device, bench, hw) * slower;
 		const here: Fit = {
 			band: band(middle),
 			target,
 			seconds: [middle * SPREAD[0], middle * SPREAD[1]],
-			reason: band(middle) === 'no' ? 'slow' : null
+			reason: band(middle) === 'no' ? 'slow' : null,
+			...(step && { offload: step })
 		};
 		if (!best || middle < best.seconds![0] / SPREAD[0]) best = here;
 	}
@@ -312,6 +355,8 @@ export type Card = 'nvidia' | 'amd-intel' | 'apple';
 export interface Facts {
 	/** The least video memory of any graphics card it runs on, in GB */
 	vramGb: number | null;
+	/** Less still, with part of it in main memory and more time; null when its engine cannot */
+	leastVramGb: number | null;
 	cards: Card[];
 	/** A processor makes it in minutes, not hours */
 	noCard: boolean;
@@ -332,8 +377,10 @@ export function modelFacts(model: Model): Facts {
 	const vram = Math.min(...cards.map((t) => t.min_vram_mb).filter((mb) => mb > 0));
 	const fastest = tested.filter((t) => t.device !== 'cpu' && t.ref_seconds > 0).sort((a, b) => a.ref_seconds - b.ref_seconds)[0];
 	const kinds = new Set(cards.map((t) => CARD[t.device]));
+	const least = Math.min(...cards.filter((t) => t.min_vram_mb > 0).map((t) => leastVram(model, t.device, t.min_vram_mb)));
 	return {
 		vramGb: Number.isFinite(vram) ? Math.round(vram / 1000) : null,
+		leastVramGb: Number.isFinite(least) && least < vram ? Math.round(least / 1000) : null,
 		cards: (['nvidia', 'amd-intel', 'apple'] as Card[]).filter((c) => kinds.has(c)),
 		noCard: tested.some((t) => t.device === 'cpu' && t.ref_seconds > 0 && t.ref_seconds <= QUICK_ON_CPU),
 		tested: tested.length > 0,

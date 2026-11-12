@@ -108,6 +108,7 @@
 		{:else if f.target?.status === 'experimental'}
 			<p class="note warn">{t('models.experimental')}</p>
 		{/if}
+		{#if f.offload && f.band !== 'no'}<p class="note warn">{t(`models.offload.${f.offload}`)}</p>{/if}
 		{#if problem}<p class="note bad">{t(problem)}</p>{/if}
 	</div>
 	<div class="actions" hidden={!actions}>

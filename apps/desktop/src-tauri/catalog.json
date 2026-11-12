@@ -479,6 +479,9 @@
 			"license": "Tencent Hunyuan Community",
 			"license_url": "https://huggingface.co/tencent/Hunyuan3D-2mini/blob/main/LICENSE",
 			"source_url": "https://huggingface.co/tencent/Hunyuan3D-2mini",
+			"offload": [
+				"model"
+			],
 			"regions_excluded": [
 				"EU",
 				"UK",
@@ -621,6 +624,9 @@
 			"license": "Tencent Hunyuan Community",
 			"license_url": "https://huggingface.co/tencent/Hunyuan3D-2mini/blob/main/LICENSE",
 			"source_url": "https://huggingface.co/tencent/Hunyuan3D-2",
+			"offload": [
+				"model"
+			],
 			"regions_excluded": [
 				"EU",
 				"UK",
@@ -764,6 +770,9 @@
 			"license": "Tencent Hunyuan 3D 2.1 Community",
 			"license_url": "https://huggingface.co/tencent/Hunyuan3D-2.1/blob/main/LICENSE",
 			"source_url": "https://huggingface.co/tencent/Hunyuan3D-2.1",
+			"offload": [
+				"model"
+			],
 			"regions_excluded": [
 				"EU",
 				"UK",
@@ -902,6 +911,10 @@
 			"license": "MIT",
 			"license_url": "https://github.com/VAST-AI-Research/TripoSG/blob/main/LICENSE",
 			"source_url": "https://huggingface.co/VAST-AI/TripoSG",
+			"offload": [
+				"model",
+				"sequential"
+			],
 			"regions_excluded": [],
 			"presets": [],
 			"runtime": {
@@ -1646,6 +1659,9 @@
 			"license": "Tencent Hunyuan Community",
 			"license_url": "https://huggingface.co/tencent/Hunyuan3D-2mini/blob/main/LICENSE",
 			"source_url": "https://huggingface.co/tencent/Hunyuan3D-2mv",
+			"offload": [
+				"model"
+			],
 			"regions_excluded": [
 				"EU",
 				"UK",
@@ -2065,6 +2081,9 @@
 			"license": "Apache-2.0",
 			"license_url": "https://www.apache.org/licenses/LICENSE-2.0",
 			"source_url": "https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF",
+			"offload": [
+				"layers"
+			],
 			"regions_excluded": [],
 			"presets": [],
 			"runtime": {
@@ -2230,6 +2249,9 @@
 			"license": "Apache-2.0",
 			"license_url": "https://www.apache.org/licenses/LICENSE-2.0",
 			"source_url": "https://huggingface.co/unsloth/gemma-4-12b-it-GGUF",
+			"offload": [
+				"layers"
+			],
 			"regions_excluded": [],
 			"presets": [],
 			"runtime": {
@@ -2395,6 +2417,9 @@
 			"license": "Apache-2.0",
 			"license_url": "https://www.apache.org/licenses/LICENSE-2.0",
 			"source_url": "https://huggingface.co/unsloth/Qwen3.6-27B-GGUF",
+			"offload": [
+				"layers"
+			],
 			"regions_excluded": [],
 			"presets": [],
 			"runtime": {
