@@ -43,6 +43,9 @@
 
 	function shortcut(e: KeyboardEvent) {
 		if (!app.ready || !app.settings?.onboarded) return;
+		// a key a part already took (the editor's, a menu's), or one pressed in a dialog, is not the page's:
+		// Delete in «Удалить программу?» deleted the selected part behind it too
+		if (e.defaultPrevented || document.querySelector('[aria-modal="true"]')) return;
 		const action = actionFor(e, typing(e.target), SCOPES[app.page] ?? null, app.keys);
 		if (!action) return;
 		const pages: Record<string, () => void> = {

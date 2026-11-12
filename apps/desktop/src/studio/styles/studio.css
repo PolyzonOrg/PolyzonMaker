@@ -120,6 +120,14 @@
 	cursor: pointer;
 }
 
+/* Studio's sliders and its field-like buttons (a select's) show focus only by a shade, the one hover
+   gives them too: with the keys they show the app's ring instead; a field typed in keeps its caret */
+.studio button.input:focus-visible,
+.studio .range:focus-visible {
+	outline: 2px solid var(--ink);
+	outline-offset: 2px;
+}
+
 .studio img,
 .studio svg,
 .studio canvas {

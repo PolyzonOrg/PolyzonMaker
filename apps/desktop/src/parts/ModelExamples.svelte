@@ -4,6 +4,7 @@
 	// pictures (Lightbox), with the source picture in its corner.
 	import { EXAMPLES, type Example, type Group } from '../lib/examples';
 	import { lang, t } from '../lib/i18n.svelte';
+	import { modal } from '../lib/modal';
 	import { app } from '../lib/state.svelte';
 	import Icon from './Icon.svelte';
 
@@ -33,8 +34,7 @@
 
 	function keys(e: KeyboardEvent) {
 		if (open === null) return;
-		if (e.key === 'Escape') open = null;
-		else if (e.key === 'ArrowLeft') step(-1);
+		if (e.key === 'ArrowLeft') step(-1);
 		else if (e.key === 'ArrowRight') step(1);
 	}
 </script>
@@ -76,7 +76,7 @@
 	{@const e = shown[open]}
 	{@const source = sourceOf(e)}
 	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-	<div class="box" class:sourced={source} role="dialog" tabindex="-1" aria-modal="true" aria-label={e.alt[lang.value]} onclick={(ev) => ev.target === ev.currentTarget && (open = null)}>
+	<div class="box" class:sourced={source} role="dialog" tabindex="-1" aria-modal="true" aria-label={e.alt[lang.value]} onclick={(ev) => ev.target === ev.currentTarget && (open = null)} {@attach modal(() => (open = null))}>
 		<img src="/examples/{e.file}" alt={e.alt[lang.value]} />
 		{#if source}
 			<figure class="source">
