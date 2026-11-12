@@ -63,13 +63,20 @@ def test_an_empty_picture_says_so():
 def hunyuan21(tmp_path, monkeypatch):
     """Hunyuan's two packages and torch as stand-ins that remember how they were called."""
     calls = {}
+    torch = FakeTorch()
+    torch.manual_seed = lambda seed: seed
+    torch.cuda = types.SimpleNamespace(empty_cache=lambda: calls.update(freed="cuda"))
+    torch.mps = types.SimpleNamespace(empty_cache=lambda: calls.update(freed="mps"))
+    part = types.SimpleNamespace(parameters=lambda: [], buffers=lambda: [])
 
     class Pipeline:
         device = None
+        model = vae = conditioner = part
 
         @classmethod
         def from_pretrained(cls, repo, **options):
             calls["load"] = (repo, options)
+            calls["built_in"] = torch.get_default_dtype()
             return cls()
 
         def enable_flashvdm(self, **_):
@@ -88,7 +95,7 @@ def hunyuan21(tmp_path, monkeypatch):
     module("hy3dshape.pipelines", Hunyuan3DDiTFlowMatchingPipeline=Pipeline)
     module("hy3dshape.rembg", BackgroundRemover=lambda: (lambda image: image))
     monkeypatch.setitem(sys.modules, "hy3dshape", types.ModuleType("hy3dshape"))
-    module("torch", float16="half", float32="full", manual_seed=lambda seed: seed)
+    monkeypatch.setitem(sys.modules, "torch", torch)
     module("huggingface_hub", snapshot_download=lambda repo, **options: calls.setdefault("downloads", []).append((repo, options)))
     monkeypatch.setenv("HF_HOME", str(tmp_path))
     monkeypatch.setattr(sys, "path", list(sys.path))
@@ -115,6 +122,17 @@ def test_short_memory_cuts_the_work_into_smaller_pieces(hunyuan21):
     assert hunyuan21["run"]["num_chunks"] == 20000
     assert not runner.tight(args())
     assert runner.tight(args(offload="model")) and runner.tight(args(vram_cap_gb=4))
+    assert runner.tight(args(device="mps")), "a Mac's graphics memory is the whole computer's"
+
+
+def test_hunyuan_is_built_in_half_on_a_graphics_device_and_in_full_on_the_processor(hunyuan21, capsys):
+    runner.hunyuan(args(variant="2.1", image=hunyuan21["image"], device="mps"), Clock())
+    assert hunyuan21["built_in"] == "half"
+    assert hunyuan21["freed"] == "mps", "what loading left goes back before the work"
+    assert '{"lean": "fp16"}' in capsys.readouterr().out
+    runner.hunyuan(args(variant="2.1", image=hunyuan21["image"], device="cpu"), Clock())
+    assert hunyuan21["built_in"] == "full"
+    assert sys.modules["torch"].get_default_dtype() == "full"
 
 
 def test_hunyuan_2_1_stays_inside_the_pack(hunyuan21, tmp_path):
@@ -191,3 +209,73 @@ def test_a_photo_taken_sideways_is_turned_before_the_cut(tmp_path, monkeypatch):
     monkeypatch.setitem(sys.modules, "rembg", types.SimpleNamespace(new_session=lambda name: name, remove=cut_out))
     runner.cut(args(image=str(source), out=str(tmp_path / "cut.png")), Clock())
     assert seen["size"] == (20, 40)
+
+
+class FakeTorch:
+    """Just enough torch for lean(): load, the default dtype, and parameters that can be looked at."""
+
+    float16, float32 = "half", "full"
+
+    def __init__(self, unmappable=False):
+        self.loads, self.dtype, self.unmappable = [], "full", unmappable
+        self.load = self._load
+
+    def _load(self, f, *args, **kw):
+        if kw.get("mmap") and self.unmappable:
+            raise RuntimeError("mmap can only be used with files saved with torch.save(_use_new_zipfile_serialization=True)")
+        self.loads.append(kw.get("mmap", False))
+        return {"model": {}}
+
+    def get_default_dtype(self):
+        return self.dtype
+
+    def set_default_dtype(self, d):
+        self.dtype = d
+
+    def isfinite(self, t):
+        return types.SimpleNamespace(all=lambda: types.SimpleNamespace(item=lambda: t != "inf"))
+
+
+def test_lean_maps_the_weights_from_the_disk_and_builds_in_half_then_puts_all_back(tmp_path):
+    torch, built = FakeTorch(), []
+    load = torch.load
+    def build():
+        built.append(torch.get_default_dtype())
+        torch.load(str(tmp_path / "w.ckpt"), map_location="cpu", weights_only=True)
+        return "pipe"
+    assert runner.lean(torch, build, half=True) == ("pipe", "fp16")
+    assert built == ["half"] and torch.loads == [True], "mapped, and built in half precision"
+    assert torch.get_default_dtype() == "full" and torch.load == load, "torch is as it was after"
+
+
+def test_lean_keeps_full_precision_where_the_model_runs_in_it(tmp_path):
+    torch, built = FakeTorch(), []
+    runner.lean(torch, lambda: built.append(torch.get_default_dtype()) or torch.load(str(tmp_path / "w")), half=False)
+    assert built == ["full"] and torch.loads == [True]
+
+
+def test_a_checkpoint_that_cannot_be_mapped_is_read_as_before(tmp_path):
+    torch = FakeTorch(unmappable=True)
+    assert runner.lean(torch, lambda: torch.load(str(tmp_path / "old.pt")), half=False) == ({"model": {}}, "fp32")
+    assert torch.loads == [False]
+
+
+def test_a_build_that_fails_in_half_precision_is_made_again_in_full(tmp_path):
+    torch, built = FakeTorch(), []
+    def build():
+        built.append(torch.get_default_dtype())
+        if torch.get_default_dtype() == "half":
+            raise RuntimeError('"erfinv_vml_cpu" not implemented for \'Half\'')
+        return "pipe"
+    assert runner.lean(torch, build, half=True) == ("pipe", "fp32")
+    assert built == ["half", "full"] and torch.get_default_dtype() == "full"
+
+
+def test_a_half_build_with_a_value_out_of_range_is_made_again_in_full(tmp_path):
+    torch, built = FakeTorch(), []
+    def build():
+        built.append(torch.get_default_dtype())
+        value = "inf" if torch.get_default_dtype() == "half" else "1.0"
+        return types.SimpleNamespace(model=types.SimpleNamespace(parameters=lambda: [value], buffers=lambda: []))
+    pipe, how = runner.lean(torch, build, half=True, parts=lambda p: [p.model])
+    assert how == "fp32" and built == ["half", "full"]

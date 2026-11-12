@@ -557,8 +557,11 @@ impl Jobs {
                         j.offload = if step == "none" { String::new() } else { step.to_string() };
                     });
                     match self.spawn(app, job, cmd, dir) {
-                        Err((code, _)) if code == "GPU_OOM" && next_step(step).is_some() => step = next_step(step).unwrap_or(step),
-                        result => return result,
+                        Err((code, detail)) => match lower(&job.device, &code, step) {
+                            Some(next) => step = next,
+                            None => return Err((code, detail)),
+                        },
+                        done => return done,
                     }
                 }
             }
@@ -885,6 +888,12 @@ fn first_step(free_mb: Option<u64>, need_mb: u64) -> &'static str {
     }
 }
 
+/// The step to try after a run that ran out of graphics memory. Only a card with memory of its own frees any
+/// by moving parts to main memory; on a Mac both are one, and the next run would need as much again.
+fn lower(device: &str, code: &str, step: &str) -> Option<&'static str> {
+    (code == "GPU_OOM" && device == "cuda").then(|| next_step(step)).flatten()
+}
+
 fn next_step(step: &str) -> Option<&'static str> {
     match step {
         "none" => Some("model"),
@@ -1179,6 +1188,14 @@ mod tests {
         assert_eq!(next_step("none"), Some("model"));
         assert_eq!(next_step("model"), Some("sequential"));
         assert_eq!(next_step("sequential"), None);
+    }
+
+    #[test]
+    fn only_a_card_with_memory_of_its_own_goes_down_the_ladder() {
+        assert_eq!(lower("cuda", "GPU_OOM", "none"), Some("model"));
+        assert_eq!(lower("cuda", "GPU_OOM", "sequential"), None, "the bottom of the ladder");
+        assert_eq!(lower("mps", "GPU_OOM", "none"), None, "on a Mac main memory is the same memory");
+        assert_eq!(lower("cuda", "HOST_OOM", "none"), None, "main memory short: moving parts there makes it worse");
     }
 
     #[test]
