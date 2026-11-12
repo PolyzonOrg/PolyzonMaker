@@ -421,7 +421,7 @@
 			{#snippet before()}
 				<button class="tool" data-keys="cad.handleMove" class:on={handle === 'translate'} title={t('cad.move')} aria-label={t('cad.move')} aria-pressed={handle === 'translate'} onclick={() => useHandle('translate')}><Icon name="move" size={16} /></button>
 				<button class="tool" data-keys="cad.handleTurn" class:on={handle === 'rotate'} title={t('cad.turn')} aria-label={t('cad.turn')} aria-pressed={handle === 'rotate'} onclick={() => useHandle('rotate')}><Icon name="rotate" size={16} /></button>
-				<hr class="split" />
+				<hr />
 			{/snippet}
 		</ViewControls>
 		<div class="actions">
@@ -582,14 +582,6 @@
 		max-height: 30vh;
 		overflow-y: auto;
 		white-space: pre-wrap;
-	}
-
-	.split {
-		width: 20px;
-		height: 1px;
-		margin: 4px 0;
-		border: 0;
-		background: var(--line);
 	}
 
 	/* clear of the view tools down the right, and centred under the model: as wide a margin on the left */

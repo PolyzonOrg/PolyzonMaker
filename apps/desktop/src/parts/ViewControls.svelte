@@ -78,7 +78,7 @@
 		{/if}
 	</div>
 	<div class="anchor">
-		<button class="tool word wide" aria-expanded={open === 'zoom'} title={t('view.zoom')} aria-label={t('view.zoom')} onclick={() => toggle('zoom')}>{zoom}%</button>
+		<button class="tool word zoom" class:long={zoom >= 1000} aria-expanded={open === 'zoom'} title={t('view.zoom')} aria-label={t('view.zoom')} onclick={() => toggle('zoom')}>{zoom}%</button>
 		{#if open === 'zoom'}
 			<div class="menu" role="menu">
 				{#each ZOOMS as z (z)}
@@ -122,14 +122,22 @@
 		gap: 2px;
 		padding: 4px;
 		border: 1px solid var(--line);
-		border-radius: var(--r-lg);
+		/* 12 outside, 4 of padding: the buttons' 8 inside */
+		border-radius: var(--r);
 		background: var(--surface-2);
 	}
 
-	hr {
-		width: 20px;
+	/* every button of the bar, a page's own too, one size: as far from the edge on each side. Nothing in
+	   it may be wider, or the bar grows and the sides with it */
+	.tools :global(.tool) {
+		width: 28px;
+		height: 28px;
+	}
+
+	.tools :global(hr) {
+		width: 16px;
 		height: 1px;
-		margin: 4px 0;
+		margin: 3px 0;
 		border: 0;
 		background: var(--line);
 	}
@@ -139,11 +147,16 @@
 		font-weight: 600;
 	}
 
-	.wide {
-		width: auto;
-		min-width: 32px;
-		padding: 0 4px;
+	/* the zoom in the width of a button, up to 2000 % */
+	.zoom {
+		font-size: 10px;
+		letter-spacing: -0.02em;
 		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+
+	.zoom.long {
+		font-size: 8.5px;
 	}
 
 	.anchor {
@@ -184,8 +197,8 @@
 		position: absolute;
 		z-index: 2;
 		top: 12px;
-		right: 66px; /* the toolbar is 42 wide at 12 from the edge: 12 between them */
-		width: min(280px, calc(100% - 86px));
+		right: 62px; /* the toolbar is 38 wide at 12 from the edge: 12 between them */
+		width: min(280px, calc(100% - 82px));
 		padding: 8px 12px 12px;
 		border: 1px solid var(--line);
 		border-radius: var(--r-lg);
