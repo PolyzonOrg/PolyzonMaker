@@ -73,3 +73,29 @@ export function storedPanes(value: unknown): Panes {
 	const width = (v: unknown, usual: number, low: number, high: number) => (typeof v === 'number' && Number.isFinite(v) ? within(v, low, high) : usual);
 	return { code: width(was.code, CODE_USUAL, CODE_NARROWEST, CODE_WIDEST), side: width(was.side, SIDE_USUAL, SIDE_NARROWEST, SIDE_WIDEST) };
 }
+
+/** A page's one side area, as wide as it was pulled: Models' list, the result's panel, a tool's settings.
+ * `usual` is the width each had before it could be pulled. */
+export const AREAS = {
+	models: { narrowest: 300, usual: 380, widest: 640 },
+	result: { narrowest: 300, usual: 320, widest: 600 },
+	tool: { narrowest: 300, usual: 360, widest: 600 }
+} as const;
+export type Area = keyof typeof AREAS;
+/** What the page keeps beside it: a model list's page, a 3D view */
+export const MAIN_NARROWEST = 360;
+
+/** The width on a page `room` wide; 0 while the page has not been measured, and then nothing is cut. */
+export function areaWidth(area: Area, room: number, asked: number): number {
+	const { narrowest, widest } = AREAS[area];
+	return within(room > 0 ? Math.min(asked, room - MAIN_NARROWEST) : asked, narrowest, widest);
+}
+
+export function storedAreas(value: unknown): Record<Area, number> {
+	const was = (value ?? {}) as Record<string, unknown>;
+	const one = (area: Area) => {
+		const v = was[area];
+		return typeof v === 'number' && Number.isFinite(v) ? within(v, AREAS[area].narrowest, AREAS[area].widest) : AREAS[area].usual;
+	};
+	return { models: one('models'), result: one('result'), tool: one('tool') };
+}

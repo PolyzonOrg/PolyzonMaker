@@ -33,6 +33,8 @@
 	import ViewControls from '../../../parts/ViewControls.svelte';
 	import { modelFile } from '../../../lib/plugins';
 	import { app, go } from '../../../lib/state.svelte';
+	import { areaWidth } from '../../../lib/menu';
+	import AreaEdge from '../../../parts/AreaEdge.svelte';
 	import Icon from '../../../parts/Icon.svelte';
 	import FavoriteButton from './FavoriteButton.svelte';
 
@@ -82,6 +84,8 @@
 	let viewerReady = $state(false);
 	let stlSize = $state<readonly [number, number, number] | null>(null);
 	let adding = $state(false);
+	/** The page's width: the form's edge keeps the view at least its narrowest */
+	let room = $state(0);
 	const size = $derived(sizeProp ?? (stl ? stlSize : null));
 	/** What the view's "About the model" says. */
 	const facts = $derived.by((): [Key, string][] => {
@@ -190,7 +194,8 @@
 	});
 </script>
 
-<div class="shell">
+<div class="shell" bind:clientWidth={room} style:--form="{areaWidth('tool', room, app.areas.tool)}px">
+	<AreaEdge area="tool" {room} />
 	<aside>
 		<header>
 			<button class="tool" aria-label={t('tools.all')} title={t('tools.all')} onclick={() => go('tools')}><Icon name="back" size={16} /></button>
@@ -245,10 +250,12 @@
 </div>
 
 <style>
+	/* the form as wide as it was pulled by its edge */
 	.shell {
+		position: relative;
 		height: 100%;
 		display: grid;
-		grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+		grid-template-columns: var(--form) minmax(0, 1fr);
 	}
 
 	/* no room beside the form: the model stays in sight under it */
@@ -256,6 +263,11 @@
 		.shell {
 			grid-template-columns: minmax(0, 1fr);
 			grid-template-rows: minmax(0, 1fr) minmax(220px, 40%);
+		}
+
+		/* the form above the view: no border beside it to pull */
+		.shell > :global(.edge) {
+			display: none;
 		}
 
 		aside {

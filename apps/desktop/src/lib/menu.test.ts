@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+	AREAS,
+	areaWidth,
+	MAIN_NARROWEST,
+	storedAreas,
 	CHAT_NARROWEST,
 	CHAT_USUAL,
 	CHAT_WIDEST,
@@ -129,5 +133,27 @@ describe('the code and the side panel of CAD and OpenSCAD', () => {
 		expect(storedPanes({ code: 'wide', side: Infinity })).toEqual({ code: CODE_USUAL, side: SIDE_USUAL });
 		expect(storedPanes(null)).toEqual({ code: CODE_USUAL, side: SIDE_USUAL });
 		expect(storedPanes({ code: 9000, side: 1 })).toEqual({ code: CODE_WIDEST, side: SIDE_NARROWEST });
+	});
+});
+
+describe("a page's side area: Models' list, the result's panel, a tool's settings", () => {
+	it('is as wide as it was pulled, within its narrowest and widest', () => {
+		expect(areaWidth('models', 1600, 450)).toBe(450);
+		expect(areaWidth('models', 1600, 50)).toBe(AREAS.models.narrowest);
+		expect(areaWidth('result', 1600, 5000)).toBe(AREAS.result.widest);
+	});
+
+	it('leaves the page its main part: a narrow window takes the width back first', () => {
+		expect(areaWidth('result', 900, 600)).toBe(900 - MAIN_NARROWEST);
+		expect(areaWidth('tool', 500, 600)).toBe(AREAS.tool.narrowest);
+	});
+
+	it('is not cut before the page knows how wide it is', () => {
+		expect(areaWidth('models', 0, 450)).toBe(450);
+	});
+
+	it('starts as the page was before it could be pulled', () => {
+		expect(storedAreas(null)).toEqual({ models: 380, result: 320, tool: 360 });
+		expect(storedAreas({ models: 'wide', result: 9000, tool: 10 })).toEqual({ models: 380, result: AREAS.result.widest, tool: AREAS.tool.narrowest });
 	});
 });
