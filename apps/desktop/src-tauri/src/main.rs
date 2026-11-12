@@ -13,6 +13,7 @@ mod glb;
 mod hardware;
 mod hf;
 mod jobs;
+mod memory;
 mod mcp;
 mod packs;
 mod plugins;

@@ -5,7 +5,9 @@
 use crate::{
     assistant::Assistant,
     catalog::{self, Model, Runtime},
-    glb, hardware, packs,
+    glb, hardware,
+    memory::{self, Verdict},
+    packs,
     power::{self, After},
     provenance,
     store::{self, Store},
@@ -16,7 +18,7 @@ use std::{
     fs,
     io::Read,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::{Child, Command, ExitStatus, Stdio},
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
         Arc, Condvar, Mutex,
@@ -32,6 +34,8 @@ const LOG_TAIL: usize = 4000;
 /// A run on a graphics card that says nothing for this long is stuck, not slow: progress bars and the
 /// heartbeats of `--verbose` count as saying something. A processor is left alone: a stage can take hours.
 const STALL_SECONDS: u64 = 1800;
+/// How often memory is looked at while an engine runs: a model can take gigabytes a second while it loads.
+const SAMPLE_EVERY: Duration = Duration::from_secs(1);
 /// Under this share of the picture the cut found nothing to make a model of.
 const EMPTY_PICTURE: f64 = 0.002;
 
@@ -71,6 +75,8 @@ pub struct Job {
     pub output: String,
     /// The step of the memory ladder it ran on: empty, model or sequential
     pub offload: String,
+    /// The most main memory its engine took, in MB; on a Mac graphics memory too
+    pub peak_mb: u64,
     /// What the person should know about how it went: see `job.note.*` in the page
     pub notes: Vec<String>,
     /// good or bad, if the person said
@@ -121,7 +127,7 @@ impl Jobs {
         let this = Self { store, queue: Mutex::new(Queue { jobs, active: None, after: After::Nothing }), wake: Condvar::new(), cancel: AtomicBool::new(false), assistant };
         let mut q = this.queue.lock().unwrap();
         for job in q.jobs.iter_mut().filter(|j| is_active(&j.state)) {
-            telemetry::event(&this.store, "job_lost", &job.model, &job.device, &job.stage, 0.0);
+            telemetry::event(&this.store, "job_lost", &job.model, &job.device, &lost_code(job), 0.0);
             job.state = "interrupted".into();
             job.stage.clear();
             save(&this.store, job);
@@ -334,6 +340,7 @@ impl Jobs {
             job.error.clear();
             job.detail.clear();
             job.notes.clear();
+            job.peak_mb = 0;
             save(&self.store, job);
             let _ = app.emit("job", job.clone());
         }
@@ -647,13 +654,7 @@ impl Jobs {
         if empty {
             return Err(("NO_SUBJECT".into(), String::new()));
         }
-        self.update(app, &job.id, |j| {
-            for note in notes {
-                if !j.notes.iter().any(|n| n == note) {
-                    j.notes.push(note.to_string());
-                }
-            }
-        });
+        self.update(app, &job.id, |j| notes.into_iter().for_each(|n| note(j, n)));
         Ok(image)
     }
 
@@ -707,24 +708,13 @@ impl Jobs {
         if let Some(s) = stderr {
             threads.push(reader(Box::new(s), log.clone(), job.id.clone(), app.clone()));
         }
-        let status = loop {
-            if self.cancel.load(Ordering::Relaxed) {
-                sys::kill_tree(&mut child);
-                return Err(("CANCELLED".into(), String::new()));
-            }
-            if stuck(&job.device, started.elapsed().as_secs(), heard.load(Ordering::Relaxed)) {
-                sys::kill_tree(&mut child);
-                return Err(("ENGINE_HANG".into(), format!("no output for {STALL_SECONDS} s")));
-            }
-            match child.try_wait() {
-                Ok(Some(status)) => break status,
-                Ok(None) => std::thread::sleep(Duration::from_millis(150)),
-                Err(e) => {
-                    sys::kill_tree(&mut child);
-                    return Err(("ENGINE_CRASH".into(), e.to_string()));
-                }
-            }
-        };
+        let mut sampler = memory::Sampler::new();
+        let mut watch = memory::Watch::new(sampler.budget);
+        let ended = self.wait(app, job, &mut child, (&mut sampler, &mut watch), started, &heard);
+        if watch.peak_mb > 0 {
+            self.update(app, &job.id, |j| j.peak_mb = j.peak_mb.max(watch.peak_mb));
+        }
+        let status = ended?;
         for t in threads {
             let _ = t.join();
         }
@@ -735,10 +725,79 @@ impl Jobs {
         let text = String::from_utf8_lossy(bytes.get(earlier..).unwrap_or_default()).into_owned();
         let start = text.char_indices().rev().nth(LOG_TAIL).map_or(0, |(i, _)| i);
         let tail = text[start..].to_string();
-        let detail = format!("exit code {:?}
-{tail}", status.code()); // an engine that cannot even start writes nothing
-        Err((classify(&tail).into(), detail))
+        let signal = signal_of(&status);
+        // an engine that cannot even start writes nothing
+        let detail = format!("exit code {:?}{}\n{tail}", status.code(), signal.map_or(String::new(), |s| format!(", signal {s}")));
+        let code = if killed_for_memory(status.code(), signal, watch.low) { "HOST_OOM" } else { classify(&tail) };
+        Err((code.into(), detail))
     }
+
+    /// Waits for the engine to end. It is stopped when the person cancels, when a card run goes silent, and
+    /// before the computer runs out of memory: the system must never have to choose what to close.
+    fn wait(&self, app: &AppHandle, job: &Job, child: &mut Child, (sampler, watch): (&mut memory::Sampler, &mut memory::Watch), started: Instant, heard: &AtomicU64) -> Result<ExitStatus, Failure> {
+        let mut next_sample = Duration::ZERO;
+        loop {
+            if self.cancel.load(Ordering::Relaxed) {
+                sys::kill_tree(child);
+                return Err(("CANCELLED".into(), String::new()));
+            }
+            if stuck(&job.device, started.elapsed().as_secs(), heard.load(Ordering::Relaxed)) {
+                sys::kill_tree(child);
+                return Err(("ENGINE_HANG".into(), format!("no output for {STALL_SECONDS} s")));
+            }
+            let at = started.elapsed();
+            if at >= next_sample {
+                next_sample = at + SAMPLE_EVERY;
+                match watch.see(&sampler.sample(child.id()), at) {
+                    Verdict::Stop(why) => {
+                        sys::kill_tree(child);
+                        return Err(("HOST_OOM".into(), format!("stopped by Polyzon Maker: {why}")));
+                    }
+                    Verdict::Low => self.update(app, &job.id, |j| note(j, "memory_low")),
+                    Verdict::Fine => {}
+                }
+            }
+            match child.try_wait() {
+                Ok(Some(status)) => return Ok(status),
+                Ok(None) => std::thread::sleep(Duration::from_millis(150)),
+                Err(e) => {
+                    sys::kill_tree(child);
+                    return Err(("ENGINE_CRASH".into(), e.to_string()));
+                }
+            }
+        }
+    }
+}
+
+fn note(job: &mut Job, note: &str) {
+    if !job.notes.iter().any(|n| n == note) {
+        job.notes.push(note.to_string());
+    }
+}
+
+#[cfg(unix)]
+fn signal_of(status: &ExitStatus) -> Option<i32> {
+    std::os::unix::process::ExitStatusExt::signal(status)
+}
+
+#[cfg(not(unix))]
+fn signal_of(_: &ExitStatus) -> Option<i32> {
+    None
+}
+
+/// The system took the engine down for memory: macOS and Linux kill it outright when memory runs out,
+/// Windows ends it with STATUS_NO_MEMORY or STATUS_COMMITMENT_LIMIT. A kill while memory was fine is
+/// somebody else's, a person's in Activity Monitor say.
+fn killed_for_memory(code: Option<i32>, signal: Option<i32>, low: bool) -> bool {
+    const NO_MEMORY: u32 = 0xC000_0017;
+    const COMMITMENT_LIMIT: u32 = 0xC000_012D;
+    const SIGKILL: i32 = 9;
+    matches!(code.map(|c| c as u32), Some(NO_MEMORY | COMMITMENT_LIMIT)) || (signal == Some(SIGKILL) && low)
+}
+
+/// What a report says of a job lost when the program stopped: the stage, and whether memory was short then.
+fn lost_code(job: &Job) -> String {
+    if job.notes.iter().any(|n| n == "memory_low") { format!("{}_mem", job.stage) } else { job.stage.clone() }
 }
 
 /// What a finished job adds to its report, in words short enough for the server's 40 letters: the
@@ -751,6 +810,7 @@ fn quality(job: &Job) -> String {
         "subject_cut" => Some("cut"),
         "subject_many" => Some("many"),
         "low_res" => Some("lowres"),
+        "memory_low" => Some("tight"),
         _ => None,
     });
     let step = match job.offload.as_str() {
@@ -758,8 +818,10 @@ fn quality(job: &Job) -> String {
         "sequential" => Some("seq"),
         other => Some(other),
     };
-    let preset = (!job.preset.is_empty()).then_some(job.preset.as_str());
-    preset.into_iter().chain(told).chain(step).collect::<Vec<_>>().join("_")
+    let preset = (!job.preset.is_empty()).then(|| job.preset.clone());
+    // the memory it took, in whole gigabytes up: what the catalog's numbers are checked against
+    let peak = (job.peak_mb > 0).then(|| format!("m{}", job.peak_mb.div_ceil(1024)));
+    preset.into_iter().chain(peak).chain(told.chain(step).map(String::from)).collect::<Vec<_>>().join("_")
 }
 
 /// What a report says of a job: what happened, then what it ran with. A rating or a failure says little
@@ -887,9 +949,11 @@ fn next_stage(line: &str) -> Option<&'static str> {
 fn classify(tail: &str) -> &'static str {
     let t = tail.to_lowercase();
     let has = |words: &[&str]| words.iter().any(|w| t.contains(w));
-    if has(&["cuda out of memory", "outofmemoryerror", "vk_error_out_of_device_memory", "not enough gpu memory", "mps backend out of memory", "failed to allocate metal buffer"]) {
+    // ggml's own words for the card come first: its CUDA build says just "out of memory"
+    let card = ["cuda out of memory", "outofmemoryerror", "vk_error_out_of_device_memory", "not enough gpu memory", "mps backend out of memory", "failed to allocate metal buffer", "cuda error: out of memory", "cudamalloc failed", "outofdevicememory", "device memory allocation"];
+    if has(&card) {
         "GPU_OOM"
-    } else if has(&["memoryerror", "paging file", "cannot allocate memory", "bad_alloc"]) {
+    } else if has(&["memoryerror", "paging file", "cannot allocate memory", "bad_alloc", "defaultcpuallocator", "not enough memory", "unable to allocate", "out of memory"]) {
         "HOST_OOM"
     } else if has(&["no space left", "not enough space", "disk full"]) {
         "DISK_FULL"
@@ -1072,6 +1136,41 @@ mod tests {
     }
 
     #[test]
+    fn main_memory_running_out_is_told_apart_from_graphics_memory() {
+        // PyTorch, numpy and a native engine, each in its own words
+        assert_eq!(classify("RuntimeError: [enforce fail at alloc_cpu.cpp:117] DefaultCPUAllocator: not enough memory: you tried to allocate 2147483648 bytes."), "HOST_OOM");
+        assert_eq!(classify("numpy.core._exceptions._ArrayMemoryError: Unable to allocate 3.20 GiB for an array"), "HOST_OOM");
+        assert_eq!(classify("[E] out of memory while reading weights"), "HOST_OOM");
+        assert_eq!(classify("RuntimeError: MPS backend out of memory (MPS allocated: 17.00 GB)"), "GPU_OOM");
+        assert_eq!(classify("torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.00 GiB"), "GPU_OOM");
+        // ggml, under sd-cli and llama.cpp
+        assert_eq!(classify("ggml_backend_cuda_buffer_type_alloc_buffer: allocating 4096.00 MiB on device 0: cudaMalloc failed: out of memory"), "GPU_OOM");
+        assert_eq!(classify("CUDA error: out of memory"), "GPU_OOM");
+        assert_eq!(classify("ggml_vulkan: Device memory allocation of size 4294967296 failed."), "GPU_OOM");
+        assert_eq!(classify("vk::Device::allocateMemory: ErrorOutOfDeviceMemory"), "GPU_OOM");
+    }
+
+    #[test]
+    fn an_engine_the_system_ended_for_memory_says_so() {
+        assert!(killed_for_memory(Some(0xC000_0017_u32 as i32), None, false), "Windows: STATUS_NO_MEMORY");
+        assert!(killed_for_memory(Some(0xC000_012D_u32 as i32), None, false), "Windows: STATUS_COMMITMENT_LIMIT");
+        assert!(killed_for_memory(None, Some(9), true), "macOS or Linux killed it while memory was short");
+        assert!(!killed_for_memory(None, Some(9), false), "a kill while memory was fine is somebody else's");
+        assert!(!killed_for_memory(None, Some(15), true));
+        assert!(!killed_for_memory(Some(1), None, true), "an engine that failed by itself says why in its log");
+    }
+
+    #[test]
+    fn a_job_lost_while_memory_was_short_says_so_and_keeps_its_note() {
+        let s = store();
+        save(&s, &Job { id: "a".into(), state: "running".into(), stage: "load".into(), notes: vec!["memory_low".into()], ..Job::default() });
+        let job = Jobs::open(s, Arc::default()).list().remove(0);
+        assert_eq!((job.state.as_str(), job.notes.as_slice()), ("interrupted", ["memory_low".to_string()].as_slice()));
+        assert_eq!(lost_code(&Job { stage: "load".into(), notes: vec!["memory_low".into()], ..Job::default() }), "load_mem");
+        assert_eq!(lost_code(&Job { stage: "generate".into(), ..Job::default() }), "generate");
+    }
+
+    #[test]
     fn the_ladder_starts_where_the_free_memory_says_and_only_goes_down() {
         assert_eq!(first_step(Some(16000), 8000), "none");
         assert_eq!(first_step(Some(6000), 8000), "model");
@@ -1151,6 +1250,10 @@ mod tests {
         assert!(all.len() <= 40 && all.ends_with("_seq"), "{all}");
         // what the person was told that says nothing of quality stays out
         assert_eq!(quality(&job("1024", &["made_up"], "")), "1024");
+        // the memory it took, in gigabytes up, and whether memory got short
+        let heavy = Job { peak_mb: 21_000, ..job("1024", &["second_try", "memory_low"], "sequential") };
+        assert_eq!(quality(&heavy), "1024_m21_2nd_tight_seq");
+        assert_eq!(quality(&Job { peak_mb: 10_241, ..job("", &[], "") }), "m11");
         // a rating and a failure go with what they were about
         assert_eq!(told("bad", &job("1024", &["flat"], "")), "bad_1024_flat");
         assert_eq!(told("good", &job("", &[], "")), "good");
