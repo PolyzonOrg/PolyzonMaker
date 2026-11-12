@@ -1,0 +1,52 @@
+# The core's and the page's tests on macOS and Linux, by hand only (Actions → Tests → Run workflow). The build
+# PC is Windows, so the core's code for these systems (memory pressure, an engine's limits and priority, the
+# graphics cards) is tested nowhere else. No secrets, nothing published.
+name: Tests
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System packages
+        if: runner.os == 'Linux'
+        timeout-minutes: 20
+        run: |
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "30";' | sudo tee /etc/apt/apt.conf.d/80-retries > /dev/null
+          sudo apt-get update -q
+          sudo apt-get install -y -q libwebkit2gtk-4.1-dev build-essential libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev
+
+      - name: Rust, as the builds pin it (tools/tauri-probe/probe.py)
+        run: |
+          rustup toolchain install 1.99.1 --profile minimal --component clippy
+          rustup default 1.99.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+
+      - name: The page's tests and its build (the core's build reads it)
+        working-directory: apps/desktop
+        run: |
+          (cd ../../packages/mesh-kit && npm ci --no-audit --no-fund && npm run build)
+          npm ci --no-audit --no-fund
+          npm test
+          npm run check
+          npm run build
+
+      - name: The core's tests
+        working-directory: apps/desktop/src-tauri
+        run: |
+          cargo clippy --all-targets -- -D warnings
+          cargo test
