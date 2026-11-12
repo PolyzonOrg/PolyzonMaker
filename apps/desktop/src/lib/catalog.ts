@@ -12,6 +12,8 @@ export interface Target {
 	min_vram_mb: number;
 	min_ram_mb: number;
 	disk_gb: number;
+	/** The CUDA it needs, where it differs from its kind of engine's (`needsCuda`) */
+	min_cuda?: number;
 }
 
 export interface Preset {
@@ -190,6 +192,8 @@ export interface Fit {
 	/** What stands in the way, for the `no` band */
 	reason: 'vram' | 'ram' | 'gpu' | 'driver' | 'system' | 'chip' | 'slow' | null;
 	missing_mb?: number;
+	/** With reason `driver`: the CUDA the NVIDIA driver must reach */
+	need_cuda?: number;
 	/** The card is short: part of the model waits in main memory, and the time counts it */
 	offload?: Offload;
 	/** Vulkan on the graphics in the processor (`shared`), or on an AMD or Intel card: tested only on NVIDIA */
@@ -233,12 +237,25 @@ const NIGHT_S = 12 * 3600;
 /** Real speed differs from one object to the next: every estimate is this wide. */
 const SPREAD: [number, number] = [0.7, 1.6];
 
+/** torch 2.7.1's cu118 build runs from CUDA 11.8 (driver 520) on GTX 9xx and newer; the installer picks it */
+const PYTORCH_CUDA = 11.8;
+/** The native engines (llama.cpp, trellis.cpp, sd-cli) are built for CUDA 12 */
+const NATIVE_CUDA = 12;
+
+/** The CUDA a target runs on: its own, when the catalog says, else what its kind of engine was built for. */
+export function needsCuda(model: Model, target: Target): number {
+	return target.min_cuda ?? (model.runtime.type === 'native' ? NATIVE_CUDA : PYTORCH_CUDA);
+}
+
+const cudaOf = (hw: Hardware) => Math.max(0, ...hw.gpus.filter((g) => g.vendor === 'nvidia').map((g) => g.cuda));
+
 function devicesOf(hw: Hardware): Map<Device, number> {
 	const out = new Map<Device, number>([['cpu', 0]]);
 	const vulkan = vulkanCard(hw);
 	if (vulkan) out.set('vulkan', vulkan.vram);
 	for (const g of hw.gpus) {
-		if (g.vendor === 'nvidia' && g.cuda >= 12) out.set('cuda', Math.max(out.get('cuda') ?? 0, g.vram_mb));
+		// the oldest CUDA any target runs on; each target asks for its own (`needsCuda`)
+		if (g.vendor === 'nvidia' && g.cuda >= PYTORCH_CUDA) out.set('cuda', Math.max(out.get('cuda') ?? 0, g.vram_mb));
 		if (g.vendor === 'apple') {
 			out.set('mps', hw.ram_mb);
 			out.set('metal', hw.ram_mb);
@@ -298,6 +315,10 @@ export function fit(model: Model, hw: Hardware, bench: Bench | null, preset?: Pr
 	for (const target of targets) {
 		const vram = devices.get(target.device);
 		if (vram === undefined) continue;
+		if (target.device === 'cuda' && cudaOf(hw) < needsCuda(model, target)) {
+			if (blocked.reason === 'gpu') blocked = { band: 'no', target, seconds: null, reason: 'driver', need_cuda: needsCuda(model, target) };
+			continue;
+		}
 		const needVram = target.min_vram_mb * (preset?.vram_factor ?? 1);
 		const short = needVram > 0 && vram > 0 && vram < needVram;
 		const step = short ? offloadStep(model, target.device, vram, needVram) : null;
@@ -327,8 +348,9 @@ export function fit(model: Model, hw: Hardware, bench: Bench | null, preset?: Pr
 	}
 	if (best) return best;
 	// an NVIDIA card is there, its driver is what is missing
-	const oldDriver = blocked.reason === 'gpu' && hw.gpus.some((g) => g.vendor === 'nvidia') && targets.some((t) => t.device === 'cuda');
-	return oldDriver ? { ...blocked, reason: 'driver' } : blocked;
+	const cudaTargets = targets.filter((t) => t.device === 'cuda');
+	const oldDriver = blocked.reason === 'gpu' && hw.gpus.some((g) => g.vendor === 'nvidia') && cudaTargets.length > 0;
+	return oldDriver ? { ...blocked, reason: 'driver', need_cuda: Math.min(...cudaTargets.map((t) => needsCuda(model, t))) } : blocked;
 }
 
 /** The one model to offer first. A license with holes in it is never the default (TZ §6). */
