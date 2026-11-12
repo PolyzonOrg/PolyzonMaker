@@ -477,7 +477,10 @@ export async function invoke<T>(cmd: string, args?: unknown, options?: { headers
 			case 'update_install':
 				return null;
 			case 'telemetry_sample':
-				return { id: '0123456789abcdef', app: '0.1.0', os: 'windows', arch: 'x86_64', event: 'job_failed', model: 'trellis2', device: 'vulkan', code: 'GPU_OOM_1024_seq', seconds: 42 };
+				return [
+					{ id: '0123456789abcdef', app: pkg.version, os: 'windows', arch: 'x86_64', event: 'machine', model: '', device: '', code: '', seconds: 0, detail: 'os=windows Windows 11 Pro 10.0.26300;arch=x86_64;cpu=AMD Ryzen 7 7840HS w/ Radeon 780M Graphics;cores=8;threads=16;avx2=1;ram=31950;gpu1=nvidia,NVIDIA GeForce RTX 4070 Laptop GPU,8188,32.0.15.8180,cuda12.9;webview=131.0.2903.112' },
+					{ id: '0123456789abcdef', app: pkg.version, os: 'windows', arch: 'x86_64', event: 'job_failed', model: 'trellis2', device: 'vulkan', code: 'GPU_OOM_1024_seq', seconds: 42 }
+				];
 			case 'data_folder':
 				return { version: pkg.version, exe: 'C:\\Users\\you\\AppData\\Local\\Polyzon Maker\\polyzon-maker.exe', data: 'C:\\Users\\you\\AppData\\Local\\org.polyzon.maker', models: state.settings.models_dir || 'C:\\Users\\you\\AppData\\Local\\org.polyzon.maker\\packs' };
 			default:

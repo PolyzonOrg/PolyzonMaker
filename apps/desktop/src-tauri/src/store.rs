@@ -52,8 +52,10 @@ pub struct Settings {
     pub plugins: BTreeMap<String, Grant>,
 }
 
-/// Reports now say more than version 0.1 asked about: a yes to that one is asked again, a no stays.
-pub const CONSENT: u32 = 2;
+/// Reports now say more than an earlier yes was given for: version 2 added rounded machine words, 3 the exact
+/// names and versions of the computer's parts and the memory a generation took. A yes to an older one is
+/// asked again, a no stays.
+pub const CONSENT: u32 = 3;
 
 fn on() -> bool {
     true
