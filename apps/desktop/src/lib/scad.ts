@@ -8,7 +8,10 @@ export interface Built {
 
 /** Text to a model. Bundled fonts the source names go along, so text looks as it does in the tools. */
 export async function build(source: string, signal?: AbortSignal): Promise<Built> {
-	const [{ compileScad }, { BUNDLED_FONTS, fontFiles }] = await Promise.all([import('../studio/openscad/runner'), import('../studio/tools/shared/fonts')]);
+	const [{ compileScad, warmScad }, { BUNDLED_FONTS, fontFiles }] = await Promise.all([import('../studio/openscad/runner'), import('../studio/tools/shared/fonts')]);
+	// as the tools do: this build takes the worker made ready before it, if there is one, and leaves the next
+	// one loading (starting OpenSCAD takes most of a small build); an unused one goes after two minutes
+	warmScad();
 	let fonts: Record<string, Uint8Array> = {};
 	for (const { family } of BUNDLED_FONTS) if (source.includes(family)) fonts = { ...fonts, ...(await fontFiles(family)) };
 	let log = '';
