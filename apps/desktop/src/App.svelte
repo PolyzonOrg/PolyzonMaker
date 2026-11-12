@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { core, isMac, on, type After } from './lib/core';
+	import { core, isMac, on, showTaskbar, type After } from './lib/core';
 	import { dragged, RAIL, settled, stepped, WIDEST } from './lib/menu';
 	import { reportError } from './lib/report';
 	import { lang, setLang, t } from './lib/i18n.svelte';
 	import { problem } from './lib/problem';
 	import { actionFor, run, type Scope } from './lib/keys';
-	import { app, go, init, loadThumb, save, setAfter, setMenuWidth, toggleMenu, togglePin, working, type Page } from './lib/state.svelte';
+	import { app, go, init, jobExpected, jobShare, loadThumb, save, setAfter, setMenuWidth, toggleMenu, togglePin, working, type Page } from './lib/state.svelte';
+	import { taskbar } from './lib/queue';
 	import { installsShare } from './lib/catalog';
 	import { threads, threadWith } from './lib/threads';
 	import Create from './pages/Create.svelte';
@@ -121,6 +122,24 @@
 	const installs = $derived(installsShare(app.packs, app.models));
 	const installPercent = $derived(installs === null ? '' : t('nav.installing', { p: Math.round(installs * 100) }));
 	const updatePercent = $derived(app.update?.total ? Math.round((app.update.done / app.update.total) * 100) : 0);
+
+	// the work on the taskbar's button, for a window behind others or minimized: a running job's share moves with
+	// time, so it ticks while one runs, and the system hears only of a change
+	let tick = $state(Date.now());
+	$effect(() => {
+		if (!active) return;
+		const timer = setInterval(() => (tick = Date.now()), 1000);
+		return () => clearInterval(timer);
+	});
+	const bar = $derived(taskbar(installs, active ? (jobExpected(active) && active.started ? jobShare(active, tick) : 'busy') : null));
+	let told = JSON.stringify({ status: 'none' });
+	$effect(() => {
+		const now = JSON.stringify(bar);
+		if (now !== told) {
+			told = now;
+			void showTaskbar(bar);
+		}
+	});
 
 	$effect(() => recent.forEach((thread) => loadThumb(thread.cover)));
 	// the tray's menu speaks the page's language, «as the system» included, which only the page can tell

@@ -42,3 +42,13 @@ export function readyBy([lo, hi]: [number, number], now: number): string {
 	if (days > 1) return t('queue.readyBy', { time: new Date(hi).toLocaleString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) });
 	return t('queue.readyBy', { time: clock(lo) === clock(hi) ? clock(hi) : `${clock(lo)}–${clock(hi)}` });
 }
+
+export type Taskbar = { status: 'none' } | { status: 'indeterminate' } | { status: 'normal'; progress: number };
+
+/** What the taskbar's button (the Dock's icon) shows of the work, for a window behind others or minimized: an
+ *  install by its bytes first, else the running job by its estimate, or only that it is busy where there is none. */
+export function taskbar(install: number | null, job: number | 'busy' | null): Taskbar {
+	const share = install ?? job;
+	if (share === null) return { status: 'none' };
+	return share === 'busy' ? { status: 'indeterminate' } : { status: 'normal', progress: Math.round(share * 100) };
+}

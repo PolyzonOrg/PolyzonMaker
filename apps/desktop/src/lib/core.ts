@@ -1,6 +1,8 @@
 // The page's only way to the computer: typed calls to the Rust commands. In a plain browser
 // (`npm run dev`) the same calls go to a stand-in, so the interface can be worked on without a build.
+import type { ProgressBarStatus } from '@tauri-apps/api/window';
 import type { Bench, Hardware, HfFile, HfModel, Model } from './catalog';
+import type { Taskbar } from './queue';
 
 export interface Settings {
 	onboarded: boolean;
@@ -148,6 +150,10 @@ export const isMac = /Mac/.test(navigator.userAgent);
 
 /** The window itself, for the title bar; there is none in a plain browser. */
 export const frame = async () => (inTauri ? (await import('@tauri-apps/api/window')).getCurrentWindow() : null);
+
+/** The work on the taskbar's button; nothing in a plain browser or on a desktop without such a thing (most of Linux). */
+export const showTaskbar = async (bar: Taskbar) =>
+	(await frame())?.setProgressBar({ status: bar.status as ProgressBarStatus, progress: 'progress' in bar ? bar.progress : undefined }).catch(() => {});
 
 let backend: Promise<{ invoke: Invoke; listen: Listen }> | null = null;
 
