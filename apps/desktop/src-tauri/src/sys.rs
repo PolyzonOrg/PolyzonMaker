@@ -447,20 +447,24 @@ mod windows_tests {
         c.args(["/c", "ping -n 60 127.0.0.1 > nul"]);
         let held = start(&mut c, true).unwrap();
         let shell = held.child.id();
+        // Waited for, not slept: starting a process took up to 4.5 s on a busy machine, past the 5 s once,
+        // and the system ends a job's processes on its own time. Ping runs a minute: gone in 10 s is the job.
+        fn within(seconds: u64, mut done: impl FnMut() -> bool) -> bool {
+            let until = std::time::Instant::now() + Duration::from_secs(seconds);
+            while !done() {
+                if std::time::Instant::now() > until {
+                    return false;
+                }
+                thread::sleep(Duration::from_millis(50));
+            }
+            true
+        }
         // it was let go: the shell got as far as starting ping
         let mut started = vec![];
-        for _ in 0..100 {
-            started = children_of(shell);
-            if !started.is_empty() {
-                break;
-            }
-            thread::sleep(Duration::from_millis(50));
-        }
-        assert!(!started.is_empty(), "the engine never ran: it was not let go");
+        assert!(within(30, || { started = children_of(shell); !started.is_empty() }), "the engine never ran: it was not let go");
         // the app gone, its job handle closes: the engine and what it started go with it
         drop(held);
-        thread::sleep(Duration::from_millis(500));
-        assert!(!alive(Pid::from_u32(shell)), "the engine outlived its job");
-        assert!(started.iter().all(|pid| !alive(*pid)), "what the engine started outlived its job");
+        assert!(within(10, || !alive(Pid::from_u32(shell))), "the engine outlived its job");
+        assert!(within(10, || started.iter().all(|pid| !alive(*pid))), "what the engine started outlived its job");
     }
 }
