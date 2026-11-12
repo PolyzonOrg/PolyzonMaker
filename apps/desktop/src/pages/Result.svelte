@@ -365,7 +365,7 @@
 				<FenceOpen plugin={pluginOf} then={() => core.retryJob(id)} />
 			{:else}
 				<p class="muted text">
-					{#if job.state === 'failed'}{t(`error.${job.error}` as Key)}{:else if job.state === 'cancelled'}{t('job.cancelledText')}{:else}{t('job.interruptedText')}{/if}
+					{#if job.state === 'failed'}{t(`error.${job.error}` as Key)}{:else if job.state === 'cancelled'}{t('job.cancelledText')}{:else}{t(job.notes?.includes('memory_low') ? 'job.interruptedMemoryText' : 'job.interruptedText')}{/if}
 				</p>
 			{/if}
 			<div class="buttons">
@@ -471,6 +471,7 @@
 				{/if}
 				{#each advice as note (note)}<p class="note warn">{t(`job.note.${note}` as Key)}</p>{/each}
 				{#if job.offload}<p class="faint">{t('job.note.offload')}</p>{/if}
+				{#if job.notes?.includes('memory_low')}<p class="faint">{t('job.note.memory_low')}</p>{/if}
 				{#if job.notes?.includes('second_try') && !job.notes.includes('flat')}<p class="faint">{t('job.note.second_try')}</p>{/if}
 				{#if prepared && (!closedOk || report?.status === 'has-errors') && !mend}
 					<button class="btn" disabled={preparing} onclick={() => ((mend = true), prepare())}><Icon name="wrench" size={16} />{t('print.mend')}</button>
