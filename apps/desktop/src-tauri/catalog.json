@@ -285,7 +285,7 @@
 			"runtime": {
 				"type": "native",
 				"exe": "trellis-cli",
-				"turn": [[-1, 0, 0], [0, 0, -1], [0, -1, 0]],
+				"turn": [[1, 0, 0], [0, 0, -1], [0, 1, 0]],
 				"archives": {
 					"windows-cuda": [
 						{

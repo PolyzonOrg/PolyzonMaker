@@ -595,7 +595,7 @@ impl Jobs {
                     j.stage = "generate".into();
                 });
                 self.spawn(app, job, c, dir)?;
-                // Pixal3D would lie on its back without the turn its own export gives (catalog.json)
+                // Pixal3D would lie on its back without its turn, and face away with only its own export's (catalog.json)
                 let Some(turn) = turn else { return Ok(()) };
                 match fs::read(&path).ok().and_then(|bytes| glb::turned(&bytes, turn)) {
                     Some(bytes) => fs::write(&path, bytes).map_err(|e| ("DISK_FULL".to_string(), e.to_string())),
