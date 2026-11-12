@@ -89,10 +89,18 @@ impl Store {
     pub fn open(config: PathBuf, data: PathBuf) -> io::Result<Self> {
         fs::create_dir_all(&config)?;
         fs::create_dir_all(&data)?;
-        let mut settings: Settings = fs::read(config.join("settings.json"))
-            .ok()
-            .and_then(|b| serde_json::from_slice(&b).ok())
-            .unwrap_or_else(|| Settings { gentle: true, ..Settings::default() });
+        let file = config.join("settings.json");
+        let read = |path: &Path| fs::read(path).ok().and_then(|b| serde_json::from_slice::<Settings>(&b).ok());
+        // A crash of the system can leave zeros where a file was being written. Starting afresh would lose all of
+        // it at the next save, the models folder included, so the models would look gone: the broken file is kept
+        // for a look, and the last good copy is used.
+        let found = read(&file).or_else(|| {
+            if file.exists() {
+                let _ = fs::rename(&file, config.join("settings.json.unreadable"));
+            }
+            read(&config.join("settings.json.bak"))
+        });
+        let mut settings = found.unwrap_or_else(|| Settings { gentle: true, ..Settings::default() });
         if settings.analytics == Some(true) && settings.consent < CONSENT {
             settings.analytics = None;
             settings.install_id.clear();
@@ -105,7 +113,12 @@ impl Store {
     }
 
     pub fn save_settings(&self, new: Settings) -> io::Result<()> {
-        write_atomic(&self.config.join("settings.json"), &serde_json::to_vec_pretty(&new)?)?;
+        let file = self.config.join("settings.json");
+        // the last good copy, for when the next one is broken
+        if file.exists() {
+            let _ = fs::copy(&file, self.config.join("settings.json.bak"));
+        }
+        write_atomic(&file, &serde_json::to_vec_pretty(&new)?)?;
         *self.settings.lock().unwrap() = new;
         Ok(())
     }
@@ -196,13 +209,17 @@ fn move_old_folder(base: &Path, old: &str, new: &str) {
     }
 }
 
-/// Temporary file in the same folder, then a rename: readers see all of it or nothing.
+/// Temporary file in the same folder, on the disk before it takes the name: readers see all of it or nothing, and
+/// a power cut or a crash of the system leaves the old file or the new one, not one of zeros in its place.
 pub fn write_atomic(path: &Path, bytes: &[u8]) -> io::Result<()> {
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir)?;
     }
     let tmp = path.with_extension("tmp");
-    fs::write(&tmp, bytes)?;
+    let mut file = fs::File::create(&tmp)?;
+    io::Write::write_all(&mut file, bytes)?;
+    file.sync_all()?;
+    drop(file);
     fs::rename(&tmp, path)
 }
 
@@ -285,6 +302,23 @@ mod tests {
         assert_eq!((again.settings().analytics, again.settings().language.as_str()), (Some(false), "ru"));
         fs::write(d.join("c/settings.json"), "{ half a file").unwrap();
         assert!(Store::open(d.join("c"), d.join("d")).unwrap().settings().gentle);
+    }
+
+    #[test]
+    fn settings_a_crash_broke_come_back_from_the_last_good_copy_and_the_broken_file_is_kept() {
+        let d = temp();
+        let s = Store::open(d.join("c"), d.join("d")).unwrap();
+        s.save_settings(Settings { onboarded: true, language: "ru".into(), models_dir: r"D:\models".into(), ..s.settings() }).unwrap();
+        s.save_settings(Settings { theme: "dark".into(), ..s.settings() }).unwrap();
+        // what a power cut can leave of a file that was being written: nothing but zeros
+        fs::write(d.join("c/settings.json"), [0u8; 300]).unwrap();
+        let back = Store::open(d.join("c"), d.join("d")).unwrap().settings();
+        assert!(back.onboarded && back.language == "ru" && back.models_dir == r"D:\models");
+        assert_eq!(fs::read(d.join("c/settings.json.unreadable")).unwrap(), [0u8; 300]);
+        // nothing to come back from: as at a first start, and still not fatal
+        fs::remove_file(d.join("c/settings.json.bak")).unwrap();
+        fs::write(d.join("c/settings.json"), "").unwrap();
+        assert!(!Store::open(d.join("c"), d.join("d")).unwrap().settings().onboarded);
     }
 
     #[test]
