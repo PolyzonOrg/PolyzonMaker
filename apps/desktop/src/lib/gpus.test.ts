@@ -56,3 +56,23 @@ describe('cards of every maker', () => {
 		expect(fit(real('trellis2'), pc({ gpus: [nvidia(16000)] }), bench).graphics).toBeUndefined();
 	});
 });
+
+describe('an older NVIDIA card or driver', () => {
+	// a GTX 1080 whose driver stops at CUDA 11.8: torch's cu118 build runs there, CUDA 12 builds do not
+	const gtx = { vendor: 'nvidia', name: 'NVIDIA GeForce GTX 1080', vram_mb: 8192, driver: '522.25', cuda: 11.8 };
+
+	it('runs the PyTorch models on the card with CUDA 11.8', () => {
+		expect(fit(real('hunyuan-mini'), pc({ gpus: [gtx] }), bench).target?.device).toBe('cuda');
+		expect(fit(real('triposr'), pc({ gpus: [gtx] }), bench).target?.device).toBe('cuda');
+	});
+
+	it('runs a native engine built for CUDA 12 through Vulkan on the same card', () => {
+		expect(fit(real('trellis2'), pc({ gpus: [gtx] }), bench).target?.device).toBe('vulkan');
+	});
+
+	it('asks for the driver a model needs, and names its CUDA', () => {
+		const old = { ...gtx, driver: '471.11', cuda: 11.4 };
+		const f = fit(real('hunyuan-2-1'), pc({ gpus: [old] }), bench);
+		expect(f).toMatchObject({ band: 'no', reason: 'driver', need_cuda: 11.8 });
+	});
+});

@@ -43,7 +43,7 @@
 				: f.reason === 'gpu'
 					? t(nvidiaOnly ? 'models.needNvidia' : 'models.needGpu')
 					: f.reason === 'driver'
-						? t('models.needDriver')
+						? t('models.needDriver', { cuda: String(f.need_cuda ?? 12) })
 					: f.reason === 'chip'
 						? t('models.needAppleChip')
 					: f.reason === 'slow'
