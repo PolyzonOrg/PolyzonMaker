@@ -199,6 +199,7 @@ export const core = {
 	cancelInstall: (id: string) => call<void>('pack_cancel', { id }),
 	remove: (id: string) => call<void>('pack_remove', { id }),
 	search: (query: string, task: string) => call<HfModel[]>('hf_search', { query, task }),
+	readme: (repo: string) => call<string>('hf_readme', { repo }),
 	addImage: (name: string, bytes: Uint8Array) =>
 		call<{ id: string; input: string }>('job_image', bytes, { headers: { 'x-name': encodeURIComponent(name) } }),
 	addJob: (job: Partial<Job>) => call<Job>('job_add', { job }),

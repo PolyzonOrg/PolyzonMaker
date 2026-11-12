@@ -39,7 +39,7 @@ test('models of Hugging Face that have a pack here are shown as ready to install
 	const { classify, knownPack } = await import('./catalog');
 	const catalog = (await import('../../src-tauri/catalog.json')).default;
 	for (const repo of ['tencent/Hunyuan3D-2.1', 'yyfz233/Pi3', 'facebook/VGGT-1B', 'TencentARC/Pixal3D']) {
-		expect(classify({ id: repo, downloads: 0, likes: 0, task: 'image-to-3d', tags: [], gated: false, files: [] })).toBe('known');
+		expect(classify({ id: repo, downloads: 0, likes: 0, task: 'image-to-3d', tags: [], gated: false, files: [], updated: '' })).toBe('known');
 		expect(catalog.models.some((m) => m.id === knownPack(repo))).toBe(true);
 	}
 });

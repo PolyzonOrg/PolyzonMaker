@@ -34,7 +34,7 @@ describe('room for a model', () => {
 });
 
 describe('a repository', () => {
-	const repo = (task: string, files: string[]) => ({ id: 'a/b', downloads: 0, likes: 0, task, tags: [], gated: false, files }) as HfModel;
+	const repo = (task: string, files: string[]) => ({ id: 'a/b', downloads: 0, likes: 0, task, tags: [], gated: false, files, updated: '' }) as HfModel;
 
 	it('of GGUF text is a text model', () => {
 		expect(classify(repo('text-generation', ['m.gguf']))).toBe('text');

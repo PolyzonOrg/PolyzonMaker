@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { fit, formatAmount, formatRange, formatSpeed, formatTime, installProgress, type Model } from '../lib/catalog';
+	import { fit, formatAmount, formatRange, formatSpeed, formatTime, installProgress, kindIcon, type Model } from '../lib/catalog';
 	import { core } from '../lib/core';
 	import { lang, t, type Key } from '../lib/i18n.svelte';
 	import { app, benchOf, chooseModelsFolder, hasRoom, installing, installModel, isBroken, isInstalled, refreshInstalled } from '../lib/state.svelte';
@@ -7,7 +7,8 @@
 	import FenceOpen from './FenceOpen.svelte';
 	import Icon from './Icon.svelte';
 
-	let { model, compact = false, actions = true }: { model: Model; compact?: boolean; actions?: boolean } = $props();
+	/** page: the head of a model's page, its name on the left and how it installs here on the right */
+	let { model, compact = false, actions = true, page = false }: { model: Model; compact?: boolean; actions?: boolean; page?: boolean } = $props();
 
 	let confirmRegion = $state(false);
 	let confirmRemove = $state(false);
@@ -66,15 +67,25 @@
 	}
 </script>
 
-<article class="row" class:compact>
+<article class="row" class:compact class:page>
 	<div class="info">
-		<div class="name">
-			<h3>{model.name}</h3>
-			<span class="chip {chip}">{t(`models.band.${f.band}`)}</span>
-			{#if f.seconds && model.kind !== 'text'}<span class="faint">{formatRange(f.seconds, lang.value)}</span>{/if}
-		</div>
-		<p class="muted">{model.summary[lang.value]}</p>
-		{#if !compact}
+		{#if page}
+			<header class="head">
+				<span class="tile"><Icon name={kindIcon(model)} size={22} /></span>
+				<div class="title">
+					<h2 class="selectable">{model.name}</h2>
+					<p class="faint">{model.publisher}</p>
+				</div>
+			</header>
+		{:else}
+			<div class="name">
+				<h3>{model.name}</h3>
+				<span class="chip {chip}">{t(`models.band.${f.band}`)}</span>
+				{#if f.seconds && model.kind !== 'text'}<span class="faint">{formatRange(f.seconds, lang.value)}</span>{/if}
+			</div>
+			<p class="muted">{model.summary[lang.value]}</p>
+		{/if}
+		{#if !compact && !page}
 			<p class="faint meta">
 				{#if f.target}<span>{t('models.size', { gb: f.target.disk_gb })}</span>{/if}
 				<button class="link" onclick={() => core.openUrl(model.license_url)}>{t('models.license')}: {model.license}</button>
@@ -101,17 +112,17 @@
 	</div>
 	<div class="actions" hidden={!actions}>
 		{#if busy}
-			<button class="btn small" onclick={() => core.cancelInstall(model.id)}><Icon name="x" size={14} />{t('models.cancel')}</button>
+			<button class="btn" class:small={!page} onclick={() => core.cancelInstall(model.id)}><Icon name="x" size={14} />{t('models.cancel')}</button>
 		{:else if installed}
 			{#if otherDevice}
-				<button class="btn small" onclick={install}><Icon name="refresh" size={14} />{t('models.reinstall')}</button>
+				<button class="btn" class:small={!page} onclick={install}><Icon name="refresh" size={14} />{t('models.reinstall')}</button>
 			{:else}
 				<span class="chip good"><Icon name="check" size={14} />{t('models.installed')}</span>
 			{/if}
-			<button class="btn small ghost" aria-label={t('models.remove')} title={t('models.remove')} onclick={() => (confirmRemove = true)}><Icon name="trash" size={16} /></button>
+			<button class="btn ghost" class:small={!page} aria-label={t('models.remove')} title={t('models.remove')} onclick={() => (confirmRemove = true)}><Icon name="trash" size={16} /></button>
 		{:else}
-			<button class="btn small primary" disabled={f.band === 'no' || noDisk} onclick={install}><Icon name="download" size={16} />{t('models.install')}</button>
-			{#if broken}<button class="btn small ghost" aria-label={t('models.remove')} title={t('models.remove')} onclick={() => (confirmRemove = true)}><Icon name="trash" size={16} /></button>{/if}
+			<button class="btn primary" class:small={!page} disabled={f.band === 'no' || noDisk} onclick={install}><Icon name="download" size={16} />{t('models.install')}</button>
+			{#if broken}<button class="btn ghost" class:small={!page} aria-label={t('models.remove')} title={t('models.remove')} onclick={() => (confirmRemove = true)}><Icon name="trash" size={16} /></button>{/if}
 		{/if}
 	</div>
 	{#if busy || pack?.state === 'failed'}
@@ -203,6 +214,55 @@
 
 	.chip {
 		background: var(--surface-3);
+	}
+
+	/* the head of a model's page: on the page itself, not in a block */
+	.row.page {
+		padding: 0;
+		background: none;
+	}
+
+	.page .chip {
+		background: var(--surface-2);
+	}
+
+	.head {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		min-width: 0;
+		margin-bottom: 4px;
+	}
+
+	.tile {
+		flex: none;
+		width: 48px;
+		height: 48px;
+		display: grid;
+		place-items: center;
+		border-radius: var(--r);
+		background: var(--surface-2);
+	}
+
+	.title {
+		min-width: 0;
+	}
+
+	h2 {
+		margin: 0;
+		font-size: 28px;
+		font-weight: 600;
+		line-height: 1.15;
+		overflow-wrap: anywhere;
+	}
+
+	.title p {
+		margin: 4px 0 0;
+		font-size: 13px;
+	}
+
+	.page .actions {
+		padding-top: 5px;
 	}
 
 	.meta {

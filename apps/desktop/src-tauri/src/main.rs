@@ -154,6 +154,11 @@ async fn hf_search(query: String, task: String) -> Result<Vec<hf::HfModel>> {
     blocking(move || hf::search(&query, &task)).await?
 }
 
+#[tauri::command]
+async fn hf_readme(repo: String) -> Result<String> {
+    blocking(move || hf::readme(&repo)).await?
+}
+
 /// A picture for a new job, as the raw request body; its name comes in a header.
 #[tauri::command]
 fn job_image(request: Request<'_>, jobs: State<Arc<Jobs>>) -> Result<serde_json::Value> {
@@ -699,6 +704,7 @@ fn main() {
             pack_cancel,
             pack_remove,
             hf_search,
+            hf_readme,
             job_image,
             job_add,
             job_move,
