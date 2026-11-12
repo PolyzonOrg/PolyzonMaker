@@ -252,6 +252,8 @@ export const core = {
 	addImage: (name: string, bytes: Uint8Array) =>
 		call<{ id: string; input: string }>('job_image', bytes, { headers: { 'x-name': encodeURIComponent(name) } }),
 	addJob: (job: Partial<Job>) => call<Job>('job_add', { job }),
+	/** A report for support, saved where the person chooses: its path, or null when they chose nowhere */
+	supportReport: (name: string) => call<string | null>('support_report', { name }),
 	saveFile: (name: string, bytes: Uint8Array) => call<string | null>('file_save', bytes, { headers: { 'x-name': encodeURIComponent(name) } }),
 	assistantStart: (id: string) => call<void>('assistant_start', { id }),
 	assistantChat: (id: string, messages: unknown) => call<void>('assistant_chat', { id, messages }),

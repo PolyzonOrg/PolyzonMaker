@@ -22,6 +22,7 @@ mod power;
 mod provenance;
 mod slicers;
 mod store;
+mod support;
 mod sys;
 mod telemetry;
 #[cfg(windows)]
@@ -234,6 +235,22 @@ async fn job_import(request: Request<'_>, app: AppHandle, jobs: State<'_, Arc<Jo
     let job = blocking(move || jobs.import(&title, &bytes)).await??;
     news(&app, "job", &job);
     Ok(job)
+}
+
+/// A report for support (support.rs), where the person chooses to save it; None when they chose nowhere.
+#[tauri::command]
+async fn support_report(app: AppHandle, store: State<'_, Arc<Store>>, jobs: State<'_, Arc<Jobs>>, name: String) -> Result<Option<String>> {
+    store::safe_name(&name)?;
+    let (store, list, version) = (store.inner().clone(), jobs.list(), app.package_info().version.to_string());
+    blocking(move || {
+        let home = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).unwrap_or_default();
+        let bytes = support::report(&store, &list, &hardware::detect(&store.packs()), &version, &home)?;
+        let Some(to) = app.dialog().file().set_file_name(&name).add_filter("ZIP", &["zip"]).blocking_save_file() else { return Ok(None) };
+        let to = to.into_path().map_err(text)?;
+        fs::write(&to, bytes).map_err(text)?;
+        Ok(Some(to.to_string_lossy().into_owned()))
+    })
+    .await?
 }
 
 /// A tool's file, where the person chooses to put it.
@@ -740,6 +757,7 @@ fn main() {
             file_save,
             tool_answer,
             tools_ready,
+            support_report,
             assistant_start,
             assistant_chat,
             assistant_cancel,

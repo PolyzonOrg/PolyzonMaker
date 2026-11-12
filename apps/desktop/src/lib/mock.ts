@@ -413,6 +413,8 @@ export async function invoke<T>(cmd: string, args?: unknown, options?: { headers
 			}
 			case 'file_save':
 				return true;
+			case 'support_report':
+				return String.raw`C:\Users\you\Downloads\ `.trim() + a.name;
 			case 'assistant_start':
 				return undefined;
 			case 'assistant_cancel':
