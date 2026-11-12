@@ -472,8 +472,8 @@
 			"kind": "3d",
 			"quality": 3,
 			"summary": {
-				"en": "Clean, closed shapes in half a minute.",
-				"ru": "Чистая замкнутая форма за полминуты."
+				"en": "Clean, closed shapes in about a minute.",
+				"ru": "Чистая замкнутая форма примерно за минуту."
 			},
 			"publisher": "Tencent",
 			"license": "Tencent Hunyuan Community",
@@ -577,7 +577,7 @@
 					"os": "windows",
 					"device": "cuda",
 					"status": "tested",
-					"ref_seconds": 32,
+					"ref_seconds": 67,
 					"min_vram_mb": 8000,
 					"min_ram_mb": 12000,
 					"disk_gb": 16
@@ -595,7 +595,7 @@
 					"os": "linux",
 					"device": "cuda",
 					"status": "experimental",
-					"ref_seconds": 32,
+					"ref_seconds": 67,
 					"min_vram_mb": 8000,
 					"min_ram_mb": 12000,
 					"disk_gb": 16
@@ -2033,7 +2033,7 @@
 					"os": "windows",
 					"device": "vulkan",
 					"status": "tested",
-					"ref_seconds": 27,
+					"ref_seconds": 16,
 					"min_vram_mb": 4000,
 					"min_ram_mb": 12000,
 					"disk_gb": 6

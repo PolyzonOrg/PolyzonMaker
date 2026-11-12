@@ -2,7 +2,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { cubicOut } from 'svelte/easing';
 	import { fly } from 'svelte/transition';
-	import { formatTime } from '../lib/catalog';
+	import { formatRange, formatTime, timeLeft } from '../lib/catalog';
 	import { core, fileUrl, type Slicer } from '../lib/core';
 	import { Geometry, type Opened, type Prepared } from '../lib/geometry';
 	import { keep, kept, KEPT_FILE } from '../lib/print-kept';
@@ -60,7 +60,17 @@
 	const elapsed = $derived(Math.max((now - (job?.started ? job.started * 1000 : opened_)) / 1000, 0));
 	// by the longer end of the estimate; it stops short of the end until the engine is really done
 	const expected = $derived(job ? jobExpected(job) : null);
-	const share = $derived(expected ? Math.min(elapsed / expected[1], 0.95) : 0);
+	/** A second seed is a second run, and the time counts from the first */
+	const twice = $derived(!!job?.notes?.includes('second_try'));
+	const share = $derived(expected ? Math.min(elapsed / (expected[1] * (twice ? 2 : 1)), 0.95) : 0);
+	/** What is left, by the estimate for this computer, in words */
+	const remaining = $derived.by(() => {
+		if (!expected) return '';
+		const l = timeLeft(elapsed, expected, twice);
+		if (l.kind === 'range') return t('job.leftAbout', { time: formatRange(l.seconds, lang.value) });
+		if (l.kind === 'upto') return t('job.leftUpTo', { time: formatTime(l.seconds, lang.value) });
+		return t('job.longer');
+	});
 	const stageKey = $derived((job?.state === 'queued' ? 'job.queued' : `job.${job?.stage || 'prepare'}`) as Key);
 
 	onMount(() => {
@@ -378,7 +388,7 @@
 			{#if job.state !== 'queued'}
 				<div class="bar" class:unknown={!share}><i style:width={share ? `${Math.round(share * 100)}%` : ''}></i></div>
 				{#if job.notes?.includes('second_try')}<p class="muted">{t('job.again')}</p>{/if}
-				<p class="faint">{t('job.elapsed', { time: formatTime(elapsed, lang.value) })}. {t('job.background_note')}</p>
+				<p class="faint">{t('job.elapsed', { time: formatTime(elapsed, lang.value) })}{remaining ? `, ${remaining}` : ''}. {t('job.background_note')}</p>
 			{:else}
 				<p class="faint">{t('job.background_note')}</p>
 			{/if}
