@@ -737,6 +737,9 @@ impl Jobs {
             self.update(app, &job.id, |j| j.peak_mb = j.peak_mb.max(watch.peak_mb));
         }
         let status = ended?;
+        // a process the engine started and left would hold its output open, and the job would wait on it for
+        // good, past the reach of the stop button (a compile worker of a crashed engine, say)
+        child.end_rest();
         for t in threads {
             let _ = t.join();
         }

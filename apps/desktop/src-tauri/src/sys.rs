@@ -107,7 +107,7 @@ fn flags(gentle: bool) -> u32 {
 pub struct Contained {
     pub child: Child,
     #[cfg(target_os = "windows")]
-    _job: Option<windows::Job>,
+    job: Option<windows::Job>,
 }
 
 impl std::ops::Deref for Contained {
@@ -123,6 +123,23 @@ impl std::ops::DerefMut for Contained {
     }
 }
 
+impl Contained {
+    /// What the engine left running when it ended stops too. It would hold the engine's output open, and
+    /// whoever waits for that output to end would wait as long, with nothing left to stop.
+    pub fn end_rest(&mut self) {
+        // the job ends with its handle, and what is in it with the job
+        #[cfg(target_os = "windows")]
+        drop(self.job.take());
+        #[cfg(not(target_os = "windows"))]
+        {
+            // SAFETY: a plain system call on the group `engine` made for it. The group outlives the engine while
+            // something is in it, and keeps its number; an empty one's number comes round to a new process only
+            // after the system has handed out all the others, which takes far longer than from its end to here.
+            unsafe { kill(-(self.child.id() as i32), SIGKILL) };
+        }
+    }
+}
+
 /// Starts an engine made by `engine`. A job that cannot be made leaves the engine running as before.
 pub fn start(c: &mut Command, gentle: bool) -> std::io::Result<Contained> {
     #[cfg(target_os = "windows")]
@@ -135,7 +152,7 @@ pub fn start(c: &mut Command, gentle: bool) -> std::io::Result<Contained> {
         let job = unsafe { windows::contain(child.as_raw_handle() as _, gentle) };
         // SAFETY: only the threads of the process just made, which is ours
         unsafe { windows::resume(child.id()) };
-        Ok(Contained { child, _job: job })
+        Ok(Contained { child, job })
     }
     #[cfg(not(target_os = "windows"))]
     {
@@ -215,6 +232,13 @@ mod windows {
     }
 }
 
+#[cfg(not(target_os = "windows"))]
+extern "C" {
+    fn kill(pid: i32, signal: i32) -> i32;
+}
+#[cfg(not(target_os = "windows"))]
+const SIGKILL: i32 = 9;
+
 /// Stops a process and everything it started.
 pub fn kill_tree(child: &mut Child) {
     #[cfg(target_os = "windows")]
@@ -222,10 +246,6 @@ pub fn kill_tree(child: &mut Child) {
     // the call itself and not the `kill` tool: procps reads `-123` as digits and signals group 1, which is everything
     #[cfg(not(target_os = "windows"))]
     {
-        extern "C" {
-            fn kill(pid: i32, signal: i32) -> i32;
-        }
-        const SIGKILL: i32 = 9;
         // SAFETY: a plain system call on the group `engine` made for this child, not yet reaped
         unsafe { kill(-(child.id() as i32), SIGKILL) };
     }
@@ -419,6 +439,41 @@ mod unix_tests {
         kill_tree(&mut child);
         thread::sleep(Duration::from_millis(200));
         assert!(!alive(started.trim()), "the engine's own child outlived it");
+    }
+}
+
+#[cfg(test)]
+mod ended_tests {
+    use super::*;
+    use std::{io::Read, process::Stdio, sync::mpsc, thread, time::Duration};
+
+    #[test]
+    fn what_an_ended_engine_left_running_stops_and_its_output_ends() {
+        // the engine says one line and ends at once; what it started holds its output for half a minute
+        #[cfg(target_os = "windows")]
+        let mut c = {
+            let mut c = engine("cmd", false);
+            c.args(["/c", "start /b ping -n 30 127.0.0.1 & echo started"]);
+            c
+        };
+        #[cfg(not(target_os = "windows"))]
+        let mut c = {
+            let mut c = engine("sh", false);
+            c.args(["-c", "sleep 30 & echo started"]);
+            c
+        };
+        let mut engine = start(c.stdout(Stdio::piped()), false).unwrap();
+        let mut out = engine.stdout.take().unwrap();
+        let (said, heard) = mpsc::channel();
+        thread::spawn(move || {
+            let mut text = String::new();
+            let _ = out.read_to_string(&mut text);
+            let _ = said.send(text);
+        });
+        assert!(engine.wait().unwrap().success());
+        engine.end_rest();
+        let text = heard.recv_timeout(Duration::from_secs(10)).expect("the output ends with the engine, not half a minute later");
+        assert!(text.contains("started"));
     }
 }
 
