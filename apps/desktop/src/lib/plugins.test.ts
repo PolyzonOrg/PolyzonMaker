@@ -1,3 +1,6 @@
+// loaded with the file, as drop.test.ts does: imported inside a test, the cold load of mesh-kit counted against
+// its 5 s and timed out on a busy computer
+import { analyze, readModel } from '@polyzon/mesh-kit';
 import { describe, expect, it, vi } from 'vitest';
 import type { Contributes, Plugin } from './core';
 import { answer, contributed, fetches, modelFile, pluginTheme, themeKey, type Doors } from './plugins';
@@ -60,7 +63,6 @@ describe('a model a plugin hands over', () => {
 		const stl = new DataView(new ArrayBuffer(134));
 		stl.setUint32(80, 1, true);
 		[0, 0, 0, 90, 0, 0, 0, 90, 4].forEach((v, i) => stl.setFloat32(96 + i * 4, v, true));
-		const { analyze, readModel } = await import('@polyzon/mesh-kit');
 		// read the way the result page reads every model
 		const { size } = analyze(await readModel('model.glb', await modelFile(new Uint8Array(stl.buffer)), { glbUnit: 'm' }));
 		[90, 90, 4].forEach((mm, axis) => expect(size[axis]).toBeCloseTo(mm, 3));
