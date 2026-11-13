@@ -83,10 +83,14 @@ pub fn inspect(zip: &Path) -> Result<Manifest, String> {
     if files.len() > MAX_FILES {
         return Err("TOO_LARGE".into());
     }
-    let (mut total, mut names) = (0u64, std::collections::HashSet::new());
+    let (mut total, mut names, mut files_on_disk) = (0u64, std::collections::HashSet::new(), std::collections::HashSet::new());
     for i in 0..files.len() {
         let entry = files.by_index(i).map_err(|e| e.to_string())?;
-        if entry.is_symlink() || entry.enclosed_name().is_none() {
+        let path = entry.enclosed_name().filter(|p| p.components().all(|c| matches!(c, std::path::Component::Normal(_))));
+        // One file, one name: no `.` or `..` in it, and none twice in another case, as a disk that ignores case takes
+        // them for one file. Otherwise an entry unpacked after it could write over the plugin.json checked here.
+        let file = path.map(|p| p.to_string_lossy().replace('\\', "/").to_lowercase());
+        if entry.is_symlink() || !file.is_some_and(|f| files_on_disk.insert(f)) {
             return Err("BAD_FILE".into());
         }
         total = total.saturating_add(entry.size());
@@ -145,12 +149,18 @@ pub fn folder(store: &Store) -> PathBuf {
     store.data().join("plugins")
 }
 
+/// The plugins installed. Each is checked again as it is read: what is on disk drives the catalog, installs and
+/// the fence, and a manifest changed since its install (or one in the wrong folder) is no plugin of ours.
 pub fn list(store: &Store) -> Vec<Manifest> {
-    let mut all: Vec<Manifest> = store::read_each(&folder(store), "plugin.json");
-    for m in &mut all {
-        m.page = folder(store).join(&m.id).join("index.html").is_file();
-    }
-    all
+    let dirs = fs::read_dir(folder(store)).into_iter().flatten().flatten();
+    dirs.filter_map(|e| {
+        let dir = e.path();
+        let mut m: Manifest = serde_json::from_slice(&fs::read(dir.join("plugin.json")).ok()?).ok()?;
+        m.page = dir.join("index.html").is_file();
+        let ours = e.file_name() == m.id.as_str() && check(&m, &|name| dir.join(name).is_file()).is_ok();
+        ours.then_some(m)
+    })
+    .collect()
 }
 
 /// Tells the catalog which models the plugins bring now: those of plugins that are on, whose program the
@@ -351,6 +361,33 @@ mod tests {
         let zip = zip_of(&d, &[("plugin.json", GOOD.as_bytes()), ("index.html", b""), ("../../evil.txt", b"x")]);
         assert_eq!(inspect(&zip).unwrap_err(), "BAD_FILE");
         assert!(!d.join("evil.txt").exists());
+    }
+
+    #[test]
+    fn a_second_name_for_the_checked_manifest_cannot_put_an_unchecked_one_in_its_place() {
+        let d = folder_for_test();
+        let store = opened(&d);
+        // what was checked asks for little; the copy behind it, written over it as it unpacked, for more
+        let other = r#"{"id":"stand","name":"Подставка","version":"1.2.0","permissions":["library.add","jobs.read"]}"#;
+        for second in ["x/../plugin.json", "./plugin.json", "PLUGIN.JSON"] {
+            let zip = zip_of(&d, &[("plugin.json", GOOD.as_bytes()), ("index.html", b"<p>hi"), (second, other.as_bytes())]);
+            assert_eq!(inspect(&zip).unwrap_err(), "BAD_FILE", "{second}");
+            assert!(install(&store, &zip).is_err());
+        }
+        assert!(!folder(&store).join("stand").exists());
+    }
+
+    #[test]
+    fn a_manifest_changed_on_disk_after_its_check_is_no_plugin() {
+        let d = folder_for_test();
+        let store = opened(&d);
+        install(&store, &zip_of(&d, &[("plugin.json", GOOD.as_bytes()), ("index.html", b"<p>hi")])).unwrap();
+        assert_eq!(list(&store).len(), 1);
+        let manifest = folder(&store).join("stand/plugin.json");
+        fs::write(&manifest, GOOD.replace("library.add", "everything")).unwrap();
+        assert!(list(&store).is_empty(), "it asks for what no plugin may");
+        fs::write(&manifest, GOOD.replace(r#""id":"stand""#, r#""id":"other""#)).unwrap();
+        assert!(list(&store).is_empty(), "it says it is another plugin than the one installed in its folder");
     }
 
     #[test]
