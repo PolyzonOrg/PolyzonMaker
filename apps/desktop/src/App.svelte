@@ -25,7 +25,8 @@
 	import TitleBar from './parts/TitleBar.svelte';
 	import Tip from './parts/Tip.svelte';
 	import Toasts from './parts/Toasts.svelte';
-	import { showToast } from './studio/toast';
+	import { dismissToast, showToast } from './studio/toast';
+	import { isModelFile, libraryFile, MAX_MODEL_BYTES } from './lib/drop';
 
 	let failed = $state('');
 	let closing = $state(false);
@@ -68,9 +69,24 @@
 		e.preventDefault();
 		dragging = 0;
 		const file = e.dataTransfer?.files[0];
-		if (file && app.settings?.onboarded) {
-			app.dropped = file;
-			go('create');
+		if (!file || !app.settings?.onboarded) return;
+		// a 3D model goes into the library, where its page prepares it for print; a picture to «Новая модель»
+		if (isModelFile(file.name)) return void addModel(file);
+		app.dropped = file;
+		go('create');
+	}
+
+	async function addModel(file: File) {
+		if (file.size > MAX_MODEL_BYTES) return void showToast(t('lib.tooLarge'), { kind: 'error', duration: 8000 });
+		const adding = showToast(t('lib.adding', { name: file.name }), { duration: 0 });
+		try {
+			const glb = await libraryFile(file.name, new Uint8Array(await file.arrayBuffer()));
+			go('result', (await core.importModel(file.name.replace(/.[^.]+$/, ''), glb)).id);
+		} catch (e) {
+			const why = e instanceof Error && e.name === 'MeshKitError' ? t('lib.unreadable') : problem(e);
+			showToast(t('lib.addFailed', { why }), { kind: 'error', duration: 10000 });
+		} finally {
+			dismissToast(adding);
 		}
 	}
 
