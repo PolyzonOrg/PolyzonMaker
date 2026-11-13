@@ -18,6 +18,7 @@ Several photos of one object lie beside --image as view-1.png, view-2.png and so
 import argparse
 import functools
 import gc
+import hashlib
 import importlib
 import json
 import os
@@ -25,7 +26,142 @@ import sys
 import threading
 import time
 import types
+from fnmatch import fnmatch
 from pathlib import Path
+
+# Each Hugging Face repository the engines take, at one commit, with the hash of every file taken from it.
+# An engine's config.yaml names the code it builds (Hunyuan3D, TripoSR), so a file that is not the one
+# pinned could run anything: what arrives is checked, from Hugging Face or its mirror alike. Made, and made
+# again for a new version of a model, by `node tools/bench/pins.mjs`.
+PINS = {  # made by pins.mjs
+    "tencent/Hunyuan3D-2mini": ("f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6", {
+        "hunyuan3d-dit-v2-mini-turbo/config.yaml": "git:70a77756aaa5429626f4106e2cd882ca494221ab",
+        "hunyuan3d-dit-v2-mini-turbo/model.fp16.ckpt": "sha256:9bc217e63c94b07d46b5b3ae3d4aac22455d388e947ae0b4ed15ac5192d1cd6a",
+        "hunyuan3d-dit-v2-mini-turbo/model.fp16.safetensors": "sha256:bdbcef30dd0149a281e17d5b5b1fdad1122c904e098a42f3100e04e03c247bc4",
+        "hunyuan3d-vae-v2-mini-turbo/config.yaml": "git:e27bf69954e893d82127624b2b646d73ee610c08",
+        "hunyuan3d-vae-v2-mini-turbo/model.fp16.ckpt": "sha256:d622fb7de282165a4aae2b5b9d6517ab1542c35a0808c5c4a0ac9244ad213bbe",
+        "hunyuan3d-vae-v2-mini-turbo/model.fp16.safetensors": "sha256:5dcaca67a8da9e7079fb7b55714a572d0651ac95983bb43099913feaf6738f94",
+    }),
+    "tencent/Hunyuan3D-2": ("9cd649ba6913f7a852e3286bad86bfa9a2d83dcf", {
+        "hunyuan3d-dit-v2-0-turbo/config.yaml": "git:e3c0f850dd87f0f1b59f604e396cf665966011a7",
+        "hunyuan3d-dit-v2-0-turbo/model.fp16.ckpt": "sha256:f04cecad6953ca9644f9e1d3a22cd0abb20665ce8be30fc4409451ce78d622f1",
+        "hunyuan3d-dit-v2-0-turbo/model.fp16.safetensors": "sha256:5ee5a81e4df08a1c65b79910bf5b145a90376e526794f4607a4d5d068d62f269",
+        "hunyuan3d-vae-v2-0-turbo/config.yaml": "git:d4bf4d5ee1874c8e828a5296ff5e44d4fcb5b349",
+        "hunyuan3d-vae-v2-0-turbo/model.fp16.ckpt": "sha256:bea74b1d912e245510b062ac62d938e5312760c07b122eadd0199e325e3d5343",
+        "hunyuan3d-vae-v2-0-turbo/model.fp16.safetensors": "sha256:66b7af697118db2de00c22f63a385c75f9049709739281971837af9e4ce31cb4",
+    }),
+    "tencent/Hunyuan3D-2mv": ("3a761b539b29fe4ff64714813aa9560fd66f5de0", {
+        "hunyuan3d-dit-v2-mv-turbo/config.yaml": "git:9d36691622a301b7962d11107e6e032ee411315d",
+        "hunyuan3d-dit-v2-mv-turbo/model.fp16.ckpt": "sha256:97979455b360c3b6f767c49ac6b4238a215d915b89d9611c19d2545bf664697f",
+        "hunyuan3d-dit-v2-mv-turbo/model.fp16.safetensors": "sha256:172d7a989b99f66af760da0080d8c6f6350c72609536cf0c55b87a4afa574e45",
+    }),
+    "tencent/Hunyuan3D-2.1": ("0b94677654c57bb9a6b6845cd7b704ccf551d327", {
+        "hunyuan3d-dit-v2-1/config.yaml": "git:695b7d5c6ba96a7f1f849430da23b21c682d8116",
+        "hunyuan3d-dit-v2-1/model.fp16.ckpt": "sha256:6b519fc7242f78e9b5f47ea4d55668fe3d944a2d27332f4ca68d29a6ff603f5e",
+    }),
+    "VAST-AI/TripoSG": ("2c1c516d22d58db486a058d98d31bb6177344e06", {
+        ".gitattributes": "git:b2fd9eefc9bc7f77fa55c60257a6bf150595a3d3",
+        "README.md": "git:d48215b406cdefabfc7c390b2a9a8d7801fe0394",
+        "feature_extractor_dinov2/preprocessor_config.json": "git:ff5b47c2edcd1d3556d63c01a65d93b58b9efce1",
+        "image_encoder_dinov2/config.json": "git:c3f240c5cdb94dca9e2a4062ac0270bbe3d3c2e6",
+        "image_encoder_dinov2/model.safetensors": "sha256:399fba97a95f22c36834418bc69373364a99af3a1153da1c0fb31db567c92e23",
+        "model_index.json": "git:0afa776ede6a8db5688a859f9d2d3e3bf7c0bb6c",
+        "scheduler/scheduler_config.json": "git:da0fa53502688a5768223aa7f446473365ca9b1d",
+        "transformer/config.json": "git:a21d98d45b148c4831a53e002a4be20744e82b37",
+        "transformer/diffusion_pytorch_model.safetensors": "sha256:9192b5923f7b605b394192809aa2ceb73bf0f4009674d8e3b999b45bb97d4bf2",
+        "vae/config.json": "git:c5d72c0a6aecccd736df57dcecd42212ed35c449",
+        "vae/diffusion_pytorch_model.safetensors": "sha256:a2e667c24927a5a35e5f19fcb4c75890e9399aa966b6db8131d7df733a750c8b",
+    }),
+    "briaai/RMBG-1.4": ("2ceba5a5efaec153162aedea169f76caf9b46cf8", {
+        ".gitattributes": "git:85d164dd4039759357c6f4f14bb467c6b86bbedd",
+        "MyConfig.py": "git:d50006abdaa687edd18dd39c9fb5ac9a31023773",
+        "MyPipe.py": "git:f98d8de2856793cb7d6ca894559366d979519e85",
+        "README.md": "git:9c1f4e48ad47f65971cb6258f2c781ddfc45a8fb",
+        "briarmbg.py": "git:da8591aafb1fd74c194a665302452a2aa591d161",
+        "config.json": "git:a587b1fea5d4c20cc7be9ce8790300e414ebed9d",
+        "example_inference.py": "git:bb627e1952de7701331168357d9510c7c00f9fd5",
+        "example_input.jpg": "git:4c51970914c075064c43b60c7e66b56be2c31463",
+        "model.pth": "sha256:893c16c340b1ddafc93e78457a4d94190da9b7179149f8574284c83caebf5e8c",
+        "model.safetensors": "sha256:46ef7fe46f2ae284d8f1aaa24bfa5fca5ef25a34e2c7caa890a0029eb100e87f",
+        "onnx/model.onnx": "sha256:8cafcf770b06757c4eaced21b1a88e57fd2b66de01b8045f35f01535ba742e0f",
+        "onnx/model_fp16.onnx": "sha256:9fdfdb41866d872e0acf4a010c35c1a8547bf0eebe0d1544406bbf1c824cb59d",
+        "onnx/model_quantized.onnx": "sha256:a6648479275dfd0ede0f3a8abc20aa5c437b394681b05e5af6d268250aaf40f3",
+        "onnx/quantize_config.json": "git:d0dd447b33c4757b5e90081b61a48cb2d65d4634",
+        "preprocessor_config.json": "git:ef29ef503ab28b350a34ea32785f8015af34b5c1",
+        "pytorch_model.bin": "sha256:59569acdb281ac9fc9f78f9d33b6f9f17f68e25086b74f9025c35bb5f2848967",
+        "requirements.txt": "git:24fc6e3706df0ed5e8bf8ece6d3a14bf261679d6",
+        "results.png": "sha256:2b7f08fc4c09db56b516186c0629f72523a5cbe328beaedda8b36349af4b04bc",
+        "t4.png": "sha256:43a9453f567d9bff7fe4481205575bbf302499379047ee6073247315452ba8fb",
+        "utilities.py": "git:77bf9e6f0ea22608c69a6e1c5528a3f225b48a63",
+    }),
+    "stabilityai/TripoSR": ("5b521936b01fbe1890f6f9baed0254ab6351c04a", {
+        ".gitattributes": "git:3217fd3833103daf6f13706bda7ffd0f686f0ef6",
+        "README.md": "git:e1bcca137e14a0aebb951187ffd3b2e71936aa7b",
+        "config.yaml": "git:fa3e59a701f02679bd1dca02fbaf97306174d291",
+        "figures/input800.mp4": "sha256:b2da16c42c2e03139e297d6930bcff7a99c595cc100b545861519793c662500f",
+        "figures/output_examples.mp4": "sha256:c63a5fe7afea93549cc412fab612a1c2e5a46844fa75c5ff4eee892b9d3bbc4e",
+        "model.ckpt": "sha256:429e2c6b22a0923967459de24d67f05962b235f79cde6b032aa7ed2ffcd970ee",
+    }),
+    "facebook/dino-vitb16": ("f205d5d8e640a89a2b8ef0369670dfc37cc07fc2", {
+        "config.json": "git:77374d76174bf4b940cc485b61568ff27fcbbc0d",
+        "preprocessor_config.json": "git:f1af49d6475dc195b4fd213692eefd721389283a",
+    }),
+    "facebook/map-anything-apache": ("00f9c245bbcb60522d1ed7f9e9d88462c6e3f38a", {
+        ".gitattributes": "git:a6344aac8c09253b3b630fb776ae94478aa0275b",
+        "README.md": "git:568b7d23ccd4345b425b08234e60812e98a7a27c",
+        "config.json": "git:750a549a1d733b14097cda7edb885a0559c0e08c",
+        "model.safetensors": "sha256:fa06c0fdccefc5048e072c85935d5789b1e36b307f3859033c17f9dcb9fd5201",
+    }),
+    "yyfz233/Pi3": ("ae722e7039287d0c8fde9f11f197f804f44b510c", {
+        ".gitattributes": "git:cbee9cdc508196884ee91e33efbfce8c220fd90c",
+        "README.md": "git:73d9dd6b801120f0117a67b2959182076a71e473",
+        "config.json": "git:21fc6d0b0cd68f0d269ff8bd13b934b980fd11e4",
+        "main.png": "sha256:59a8ec432247b5f7775e9bb48d9ef9cee0bc806a47838ecd8758f00bfbaa2eef",
+        "model.safetensors": "sha256:33580e4702ac671558aedeab1148fd08118f7ce45bdbeb99f3e3cf340062875d",
+    }),
+    "facebook/VGGT-1B": ("860abec7937da0a4c03c41d3c269c366e82abdf9", {
+        ".gitattributes": "git:a6344aac8c09253b3b630fb776ae94478aa0275b",
+        "README.md": "git:b8e9a3f570877961599dc5ca652630296467f7a5",
+        "config.json": "git:303bf21400e2723e8ff9c0c7ceb6d86859b1ddeb",
+        "model.pt": "sha256:d15bf50a8615c8225ed48b51ea5cac673d82442ec0309036df555a053253afe0",
+        "model.safetensors": "sha256:f164acf60724910d8fe1578bb499d800850c7bb0948db7555c413f9fbe60467e",
+    }),
+}
+
+
+def fetch(repo, patterns=None, **options):
+    """`repo` as PINS has it: at its commit, each file checked against its hash wherever it came from (HF_ENDPOINT
+    may be the mirror). One that is not the file pinned is deleted before an engine can read it, and the install
+    stops. The repository's `main` is then this commit: the engines ask for `main`, offline, when they run."""
+    from huggingface_hub import snapshot_download
+    sha, files = PINS[repo]
+    if patterns is not None:
+        options["allow_patterns"] = patterns
+    where = Path(snapshot_download(repo, revision=sha, **options))
+    for name, expected in files.items():
+        if patterns is not None and not any(fnmatch(name, p) for p in patterns):
+            continue
+        path = where / name
+        if path.is_file() and digest(path, expected.split(":")[0]) == expected:
+            continue
+        # the cache's file too, not only its link: it would be taken again as it is
+        for gone in {path.resolve(), path}:
+            gone.unlink(missing_ok=True)
+        raise SystemExit(f"{repo}/{name} is not the file pinned at {sha[:12]}: it was deleted, and the install stops")
+    if "local_dir" not in options:
+        refs = Path(os.environ["HF_HOME"]) / "hub" / f"models--{repo.replace('/', '--')}" / "refs"
+        refs.mkdir(parents=True, exist_ok=True)
+        (refs / "main").write_text(sha)
+    return str(where)
+
+
+def digest(path, kind):
+    """A file's hash as PINS writes it: sha256 for a large file, git's blob hash for a small one."""
+    h = hashlib.sha256() if kind == "sha256" else hashlib.sha1(b"blob %d\0" % path.stat().st_size)
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return f"{kind}:{h.hexdigest()}"
 
 
 class Clock:
@@ -155,13 +291,12 @@ def hunyuan(a, clock):
     Pipeline = importlib.import_module("hy3dshape.pipelines" if newer else "hy3dgen.shapegen").Hunyuan3DDiTFlowMatchingPipeline
 
     if a.prefetch:
-        from huggingface_hub import snapshot_download
         if newer:
-            snapshot_download(repo_id, allow_patterns=[f"{sub}/*"], local_dir=Path(os.environ["HY3DGEN_MODELS"]) / repo_id)
+            fetch(repo_id, [f"{sub}/*"], local_dir=Path(os.environ["HY3DGEN_MODELS"]) / repo_id)
         else:
             # enable_flashvdm below swaps in the turbo VAE from its own subfolder
-            snapshot_download(repo_id, allow_patterns=[f"{sub}/*"])
-            snapshot_download(vae_repo, allow_patterns=[f"{vae}/*"])
+            fetch(repo_id, [f"{sub}/*"])
+            fetch(vae_repo, [f"{vae}/*"])
         BackgroundRemover()  # rembg fetches its u2net model on first use
         return
     gpu = a.device != "cpu"
@@ -205,9 +340,11 @@ def triposg(a, clock):
     import trimesh
     from huggingface_hub import snapshot_download
 
-    weights, rmbg_dir = snapshot_download("VAST-AI/TripoSG"), snapshot_download("briaai/RMBG-1.4")
     if a.prefetch:
+        fetch("VAST-AI/TripoSG")
+        fetch("briaai/RMBG-1.4")
         return
+    weights, rmbg_dir = snapshot_download("VAST-AI/TripoSG"), snapshot_download("briaai/RMBG-1.4")  # offline: the pinned
     # diso (the flash decoder's marching cubes) is a CUDA extension with no Windows wheels; without it
     # TripoSG runs its own hierarchical decoder (scikit-image marching cubes) and never touches DiffDMC
     sys.modules["diso"] = types.SimpleNamespace(DiffDMC=None)
@@ -246,13 +383,12 @@ def triposr(a, clock):
     """Deterministic (no sampling), so --seed does not apply. Mirrors upstream run.py."""
     sys.path.insert(0, a.repo)
     import rembg
-    from huggingface_hub import snapshot_download
 
     if a.prefetch:
         # one file at a time: huggingface_hub 0.17 marks symlinks as supported before it tests them, so a
         # parallel download made a symlink anyway and failed on Windows without Developer Mode (WinError 1314)
-        snapshot_download("stabilityai/TripoSR", max_workers=1)
-        snapshot_download("facebook/dino-vitb16", allow_patterns=["*.json"], max_workers=1)  # the encoder's config
+        fetch("stabilityai/TripoSR", max_workers=1)
+        fetch("facebook/dino-vitb16", ["*.json"], max_workers=1)  # the encoder's config
         rembg.new_session()  # fetches u2net
         return
     import numpy as np
@@ -340,10 +476,9 @@ def photos(a, clock):
     import numpy as np
     import open3d as o3d
     import trimesh
-    from huggingface_hub import snapshot_download
 
     if a.prefetch:
-        snapshot_download(PHOTOS[a.variant][0])
+        fetch(PHOTOS[a.variant][0])
         return
     pictures = [str(p) for p in (Path(a.image), *views(a))]
     points = (by_wrapper if a.variant else by_mapanything)(a, pictures, clock)
