@@ -438,28 +438,34 @@ impl Jobs {
         let seconds = started.elapsed().as_secs_f64();
         // a result that stands is done, though a stop came for what ran after it (second_try)
         let cancelled = result.is_err() && self.cancel.load(Ordering::Relaxed);
+        let closing = self.queue.lock().unwrap().closing;
         let settings_error = match &result {
             Err(e) if !cancelled => Some(e.clone()),
             _ => None,
         };
+        let mut lost = String::new();
         self.update(app, &id, |j| {
             j.seconds = seconds;
+            lost = lost_code(j);
             j.stage.clear();
             match result {
                 Ok(output) => {
                     j.state = "succeeded".into();
                     j.output = output;
                 }
-                Err(_) if cancelled => j.state = "cancelled".into(),
                 Err((code, detail)) => {
-                    j.state = "failed".into();
-                    j.error = code;
-                    j.detail = detail;
+                    j.state = ended(cancelled, closing).into();
+                    if !cancelled {
+                        j.error = code;
+                        j.detail = detail;
+                    }
                 }
             }
         });
         let (event, code) = match settings_error {
             Some((code, detail)) => ("job_failed", self.how_it_went(&id, &failure_code(&code, &detail))),
+            // as a run the program closed under is told at the next start (Jobs::open)
+            None if cancelled && closing => ("job_lost", lost),
             None if cancelled => ("job_cancelled", String::new()),
             None => ("job_done", self.how_it_went(&id, "")),
         };
@@ -821,6 +827,17 @@ fn killed_for_memory(code: Option<i32>, signal: Option<i32>, low: bool) -> bool 
 }
 
 /// What a report says of a job lost when the program stopped: the stage, and whether memory was short then.
+/// How a run with no result ended. Stopped as the program closed (the Dock's Quit, the end of a session) it
+/// is interrupted, as if the program had closed under it: nobody pressed Stop, and «nothing was kept» would
+/// tell them they did.
+fn ended(stopped: bool, closing: bool) -> &'static str {
+    match (stopped, closing) {
+        (true, true) => "interrupted",
+        (true, false) => "cancelled",
+        (false, _) => "failed",
+    }
+}
+
 fn lost_code(job: &Job) -> String {
     if job.notes.iter().any(|n| n == "memory_low") { format!("{}_mem", job.stage) } else { job.stage.clone() }
 }
@@ -1113,6 +1130,14 @@ mod tests {
         assert!(Jobs::open(store.clone(), Arc::default()).next().is_none());
         jobs.pause(false).unwrap();
         assert_eq!(jobs.next().map(|j| j.id), Some("a".into()));
+    }
+
+    #[test]
+    fn a_run_the_program_stopped_as_it_closed_reads_interrupted_and_not_as_stopped_by_the_person() {
+        assert_eq!(ended(true, true), "interrupted", "the Dock's Quit, the end of a session: nobody pressed Stop");
+        assert_eq!(ended(true, false), "cancelled");
+        assert_eq!(ended(false, true), "failed", "it failed on its own, whatever came after");
+        assert_eq!(ended(false, false), "failed");
     }
 
     #[test]
