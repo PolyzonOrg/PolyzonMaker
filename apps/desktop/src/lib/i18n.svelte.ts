@@ -1439,7 +1439,9 @@ export function setLang(chosen: string) {
 }
 
 export function t(key: Key, params?: Record<string, string | number>): string {
-	let text: string = dictionaries[lang.value][key];
+	// a key made at run time (a stage, a device, a note the core names) may have no text yet: never «undefined»,
+	// the English one, else its own last word
+	let text: string = dictionaries[lang.value][key] ?? dictionaries.en[key] ?? key.split('.').pop() ?? key;
 	for (const [k, v] of Object.entries(params ?? {})) text = text.replace(`{${k}}`, String(v));
 	return text;
 }
