@@ -48,6 +48,29 @@ fn menu(app: &AppHandle, ru: bool) -> tauri::Result<Menu<Wry>> {
     Menu::with_items(app, &[&open, &PredefinedMenuItem::separator(app)?, &quit])
 }
 
+/// A Mac's ⌘Q: the app menu's own Quit ends the program at once, a running generation with it (tao asks
+/// nothing first), so it gives way to one that asks as the icon's Quit does. Its other lines stay as the
+/// system makes them, in English, and so does this one. The Dock's Quit still ends the program at once:
+/// main.rs stops what runs on RunEvent::Exit.
+#[cfg(target_os = "macos")]
+pub fn app_menu(app: &AppHandle) -> tauri::Result<()> {
+    let menu = Menu::default(app)?;
+    if let Some(first) = menu.items()?.first().and_then(|m| m.as_submenu().cloned()) {
+        let quit = first.items()?.into_iter().rev().find(|i| i.as_predefined_menuitem().and_then(|p| p.text().ok()).is_some_and(|t| t.starts_with("Quit")));
+        if let Some(quit) = quit {
+            first.remove(&quit)?;
+            first.append(&MenuItem::with_id(app, "app-quit", "Quit Polyzon Maker", true, Some("CmdOrCtrl+Q"))?)?;
+        }
+    }
+    app.set_menu(menu)?;
+    app.on_menu_event(|app, event| {
+        if event.id().as_ref() == "app-quit" {
+            leave(app);
+        }
+    });
+    Ok(())
+}
+
 /// The page's language, which the menu and the notices speak
 static RU: AtomicBool = AtomicBool::new(false);
 

@@ -734,6 +734,9 @@ fn main() {
             app.manage(Fetched::default());
             // no icon is no reason not to start: the close button then closes, as before
             let _ = tray::attach(app.handle());
+            // nor is the system's own menu, if ours cannot be made: its ⌘Q then quits at once, as before
+            #[cfg(target_os = "macos")]
+            let _ = tray::app_menu(app.handle());
             // The window is made hidden and shown here, where it already stands as it was left: shown at once it
             // opened in one place and jumped to the other. Back from an update that went in from the tray, it
             // stays there, as it was.
@@ -828,6 +831,10 @@ fn main() {
             if let tauri::RunEvent::Exit = event {
                 // nothing asks when no job runs, and a text model would stay in memory after the window
                 app.state::<Arc<assistant::Assistant>>().stop();
+                // nor does a Mac's Dock, or the end of a session: an engine started from here would go on alone (on
+                // Windows its job ends it; elsewhere only a Python engine looks whether its program is still there)
+                app.state::<Arc<Jobs>>().close();
+                app.state::<Packs>().stop();
                 install_on_close(app);
             }
         });
