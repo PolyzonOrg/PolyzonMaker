@@ -38,6 +38,8 @@ describe('what a person is told when a call failed', () => {
 
 	it('says a code it has no words for as details, and nothing said as a plain «did not work»', () => {
 		expect(problem('A_CODE_OF_A_NEWER_VERSION')).toBe('Details: A_CODE_OF_A_NEWER_VERSION');
+		// a word that happens to name one of the texts is not a code
+		expect(problem('detail')).toBe('Details: detail');
 		expect(problem('')).toBe('That did not work. Try again, and if it repeats, restart the program.');
 	});
 });

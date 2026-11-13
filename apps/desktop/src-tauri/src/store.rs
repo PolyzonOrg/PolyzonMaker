@@ -215,7 +215,10 @@ pub fn write_atomic(path: &Path, bytes: &[u8]) -> io::Result<()> {
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir)?;
     }
-    let tmp = path.with_extension("tmp");
+    // a name of its own each time: two writes of one file at once, or of print.json and print.stl, shared
+    // "print.tmp" and spoiled each other
+    let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let tmp = path.with_file_name(format!("{name}.{}.tmp", random_id()));
     let mut file = fs::File::create(&tmp)?;
     io::Write::write_all(&mut file, bytes)?;
     file.sync_all()?;
@@ -302,6 +305,28 @@ mod tests {
         assert_eq!((again.settings().analytics, again.settings().language.as_str()), (Some(false), "ru"));
         fs::write(d.join("c/settings.json"), "{ half a file").unwrap();
         assert!(Store::open(d.join("c"), d.join("d")).unwrap().settings().gentle);
+    }
+
+    #[test]
+    fn writes_at_once_to_one_file_or_to_files_of_one_stem_each_come_out_whole() {
+        let d = temp();
+        let writers: Vec<_> = (0..8u8)
+            .map(|k| {
+                let d = d.clone();
+                std::thread::spawn(move || {
+                    // print.json and print.stl once shared print.tmp
+                    let (file, other) = (d.join("print.json"), d.join(format!("print.{k}")));
+                    (0..20).all(|_| write_atomic(&file, &[k; 4096]).is_ok() && write_atomic(&other, &[k; 64]).is_ok())
+                })
+            })
+            .collect();
+        assert!(writers.into_iter().all(|w| w.join().unwrap()), "a write failed");
+        let last = fs::read(d.join("print.json")).unwrap();
+        assert!(last.len() == 4096 && last.iter().all(|b| *b == last[0]), "the file is a mix of two writes");
+        for k in 0..8u8 {
+            assert_eq!(fs::read(d.join(format!("print.{k}"))).unwrap(), [k; 64]);
+        }
+        assert!(fs::read_dir(&d).unwrap().flatten().all(|e| !e.file_name().to_string_lossy().ends_with(".tmp")), "a temporary file was left");
     }
 
     #[test]

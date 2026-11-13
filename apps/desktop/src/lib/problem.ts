@@ -12,7 +12,8 @@ export function problem(e: unknown, windows = /Windows/.test(globalThis.navigato
 	const said = e instanceof Error ? e.message : String(e);
 	if (!said.trim()) return t('app.actionFailed');
 	const number = /\(os error (\d+)\)/.exec(said)?.[1];
-	const code = number ? (windows ? WINDOWS : UNIX)[+number] : said;
+	// a code is a word in capitals (DISK_FULL): «detail», said as it is, is no key of ours
+	const code = number ? (windows ? WINDOWS : UNIX)[+number] : /^[A-Z][A-Z0-9_]+$/.test(said) ? said : '';
 	const key = `error.${code}`;
 	return allKeys.en.includes(key) ? t(key as Key) : t('error.detail', { said });
 }

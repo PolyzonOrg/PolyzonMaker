@@ -207,11 +207,14 @@ fn queue_after(jobs: State<Arc<Jobs>>, after: Option<power::After>) -> Result<po
 }
 
 /// A waiting job one place earlier or later in the queue.
+/// Each job it shifts is written to the disk, and synced: off the window's thread.
 #[tauri::command]
-fn job_move(app: AppHandle, jobs: State<Arc<Jobs>>, id: String, earlier: bool) {
-    for job in jobs.shift(&id, earlier) {
+async fn job_move(app: AppHandle, jobs: State<'_, Arc<Jobs>>, id: String, earlier: bool) -> Result<()> {
+    let jobs = jobs.inner().clone();
+    for job in blocking(move || jobs.shift(&id, earlier)).await? {
         news(&app, "job", &job);
     }
+    Ok(())
 }
 
 #[tauri::command]
@@ -244,7 +247,8 @@ async fn support_report(app: AppHandle, store: State<'_, Arc<Store>>, jobs: Stat
     let (store, list, version) = (store.inner().clone(), jobs.list(), app.package_info().version.to_string());
     blocking(move || {
         let home = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).unwrap_or_default();
-        let bytes = support::report(&store, &list, &hardware::detect(&store.packs()), &version, &home)?;
+        let user = std::env::var("USERNAME").or_else(|_| std::env::var("USER")).unwrap_or_default();
+        let bytes = support::report(&store, &list, &hardware::detect(&store.packs()), &version, &home, &user)?;
         let Some(to) = app.dialog().file().set_file_name(&name).add_filter("ZIP", &["zip"]).blocking_save_file() else { return Ok(None) };
         let to = to.into_path().map_err(text)?;
         fs::write(&to, bytes).map_err(text)?;
