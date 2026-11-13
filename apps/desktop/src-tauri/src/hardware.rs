@@ -470,7 +470,9 @@ mod tests {
     #[test]
     fn an_apple_chip_gives_its_graphics_as_system_profiler_names_them_without_asking_it() {
         let Some(name) = chip() else {
-            assert!(!cfg!(target_arch = "aarch64"), "an Apple chip whose name the kernel did not give");
+            if cfg!(target_arch = "aarch64") {
+                panic!("an Apple chip whose name the kernel did not give");
+            }
             return;
         };
         assert_eq!(system_gpus().iter().map(|g| (g.vendor.as_str(), g.name.as_str())).collect::<Vec<_>>(), [("apple", name.as_str())]);
