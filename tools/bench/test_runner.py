@@ -145,6 +145,21 @@ def test_hunyuan_2_1_stays_inside_the_pack(hunyuan21, tmp_path):
     assert Path(options["local_dir"]).is_relative_to(tmp_path), "never into the person's home"
 
 
+@pytest.mark.parametrize("variant", ["mini", "2", "mv"])
+def test_a_turbo_model_takes_the_checkpoint_it_reads_and_not_its_ckpt_twin(hunyuan21, monkeypatch, variant):
+    # each turbo folder holds its weights twice, .ckpt and .safetensors; built with use_safetensors (and
+    # enable_flashvdm's VAE with it), the engine reads only config.yaml and model.fp16.safetensors
+    monkeypatch.setitem(sys.modules, "hy3dgen", types.ModuleType("hy3dgen"))
+    monkeypatch.setitem(sys.modules, "hy3dgen.rembg", types.SimpleNamespace(BackgroundRemover=lambda: None))
+    monkeypatch.setitem(sys.modules, "hy3dgen.shapegen", types.SimpleNamespace(Hunyuan3DDiTFlowMatchingPipeline=None))
+    runner.hunyuan(args(variant=variant, prefetch=True), Clock())
+    repo, sub, vae_repo, vae = runner.HUNYUAN[variant]
+    asked = {(r, tuple(o["allow_patterns"])) for r, o in hunyuan21["downloads"]}
+    assert asked == {(repo, (f"{sub}/config.yaml", f"{sub}/model.fp16.safetensors")), (vae_repo, (f"{vae}/config.yaml", f"{vae}/model.fp16.safetensors"))}
+    for r, folder in ((repo, sub), (vae_repo, vae)):
+        assert {f"{folder}/config.yaml", f"{folder}/model.fp16.safetensors"} <= runner.PINS[r][1].keys(), "and it is pinned"
+
+
 class Numbers(np.ndarray):
     """Enough of a tensor for what the adapter asks of one."""
 

@@ -580,7 +580,7 @@
 					"ref_seconds": 67,
 					"min_vram_mb": 8000,
 					"min_ram_mb": 12000,
-					"disk_gb": 16
+					"disk_gb": 12
 				},
 				{
 					"os": "windows",
@@ -589,7 +589,7 @@
 					"ref_seconds": 7260,
 					"min_vram_mb": 0,
 					"min_ram_mb": 16000,
-					"disk_gb": 12
+					"disk_gb": 8
 				},
 				{
 					"os": "linux",
@@ -598,7 +598,7 @@
 					"ref_seconds": 67,
 					"min_vram_mb": 8000,
 					"min_ram_mb": 12000,
-					"disk_gb": 16
+					"disk_gb": 12
 				},
 				{
 					"os": "macos",
@@ -607,7 +607,7 @@
 					"ref_seconds": 1337,
 					"min_vram_mb": 0,
 					"min_ram_mb": 16000,
-					"disk_gb": 12
+					"disk_gb": 8
 				}
 			]
 		},
@@ -726,7 +726,7 @@
 					"ref_seconds": 64,
 					"min_vram_mb": 8000,
 					"min_ram_mb": 12000,
-					"disk_gb": 16
+					"disk_gb": 11
 				},
 				{
 					"os": "windows",
@@ -735,7 +735,7 @@
 					"ref_seconds": 14520,
 					"min_vram_mb": 0,
 					"min_ram_mb": 16000,
-					"disk_gb": 12
+					"disk_gb": 7
 				},
 				{
 					"os": "linux",
@@ -744,7 +744,7 @@
 					"ref_seconds": 64,
 					"min_vram_mb": 8000,
 					"min_ram_mb": 12000,
-					"disk_gb": 16
+					"disk_gb": 11
 				},
 				{
 					"os": "macos",
@@ -753,7 +753,7 @@
 					"ref_seconds": 600,
 					"min_vram_mb": 16000,
 					"min_ram_mb": 16000,
-					"disk_gb": 12
+					"disk_gb": 7
 				}
 			]
 		},
@@ -1761,7 +1761,7 @@
 					"ref_seconds": 64,
 					"min_vram_mb": 8000,
 					"min_ram_mb": 12000,
-					"disk_gb": 16
+					"disk_gb": 11
 				},
 				{
 					"os": "windows",
@@ -1770,7 +1770,7 @@
 					"ref_seconds": 14520,
 					"min_vram_mb": 0,
 					"min_ram_mb": 16000,
-					"disk_gb": 12
+					"disk_gb": 7
 				},
 				{
 					"os": "linux",
@@ -1779,7 +1779,7 @@
 					"ref_seconds": 64,
 					"min_vram_mb": 8000,
 					"min_ram_mb": 12000,
-					"disk_gb": 16
+					"disk_gb": 11
 				},
 				{
 					"os": "macos",
@@ -1788,7 +1788,7 @@
 					"ref_seconds": 600,
 					"min_vram_mb": 16000,
 					"min_ram_mb": 16000,
-					"disk_gb": 12
+					"disk_gb": 7
 				}
 			],
 			"photos": true

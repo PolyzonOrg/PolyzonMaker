@@ -9,11 +9,14 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+/** A turbo folder's config and the checkpoint the engine reads of the two it holds (runner.py hunyuan) */
+const turbo = (...folders) => folders.flatMap((f) => [`${f}/config.yaml`, `${f}/model.fp16.safetensors`]);
+
 /** What runner.py takes from each repository: the patterns it passes to snapshot_download, or all of it */
 const WANTED = {
-	'tencent/Hunyuan3D-2mini': ['hunyuan3d-dit-v2-mini-turbo/*', 'hunyuan3d-vae-v2-mini-turbo/*'],
-	'tencent/Hunyuan3D-2': ['hunyuan3d-dit-v2-0-turbo/*', 'hunyuan3d-vae-v2-0-turbo/*'],
-	'tencent/Hunyuan3D-2mv': ['hunyuan3d-dit-v2-mv-turbo/*'],
+	'tencent/Hunyuan3D-2mini': turbo('hunyuan3d-dit-v2-mini-turbo', 'hunyuan3d-vae-v2-mini-turbo'),
+	'tencent/Hunyuan3D-2': turbo('hunyuan3d-dit-v2-0-turbo', 'hunyuan3d-vae-v2-0-turbo'),
+	'tencent/Hunyuan3D-2mv': turbo('hunyuan3d-dit-v2-mv-turbo'),
 	'tencent/Hunyuan3D-2.1': ['hunyuan3d-dit-v2-1/*'],
 	'VAST-AI/TripoSG': null,
 	'briaai/RMBG-1.4': null,
