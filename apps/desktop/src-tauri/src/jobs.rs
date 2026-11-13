@@ -25,7 +25,7 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 const MODEL_FILE: &str = "model.glb";
 const PICTURE_FILE: &str = "picture.png";
@@ -482,6 +482,11 @@ impl Jobs {
         if !job.input.is_empty() && !dir.join(&job.input).exists() {
             return Err(fail("INVALID_INPUT", format!("{} is gone", job.input)));
         }
+        // a model on its way in again (for another device, say) has its files changed under it: it is run once
+        // the install is over, or found broken if the install failed
+        let packs = app.state::<packs::Packs>();
+        let say = || self.update(app, &job.id, |j| j.stage = "install".into());
+        wait_for_install(|| packs.installing(&job.model), &self.cancel, say, Duration::from_millis(500))?;
         let root = packs::dir(&self.store, &job.model);
         let pack = packs::find(&self.store, &job.model).filter(|p| !p.broken).ok_or_else(|| fail("PACKAGE_INCOMPLETE", job.model.clone()))?;
         let gentle = self.store.settings().gentle;
@@ -827,6 +832,22 @@ fn killed_for_memory(code: Option<i32>, signal: Option<i32>, low: bool) -> bool 
 }
 
 /// What a report says of a job lost when the program stopped: the stage, and whether memory was short then.
+/// Waits while `installing` says the job's model is being installed, telling the page once; a stop ends the wait.
+fn wait_for_install(installing: impl Fn() -> bool, cancel: &AtomicBool, mut say: impl FnMut(), every: Duration) -> Result<(), Failure> {
+    let mut told = false;
+    while installing() {
+        if cancel.load(Ordering::Relaxed) {
+            return Err(("CANCELLED".into(), String::new()));
+        }
+        if !told {
+            say();
+            told = true;
+        }
+        std::thread::sleep(every);
+    }
+    Ok(())
+}
+
 /// How a run with no result ended. Stopped as the program closed (the Dock's Quit, the end of a session) it
 /// is interrupted, as if the program had closed under it: nobody pressed Stop, and «nothing was kept» would
 /// tell them they did.
@@ -1130,6 +1151,21 @@ mod tests {
         assert!(Jobs::open(store.clone(), Arc::default()).next().is_none());
         jobs.pause(false).unwrap();
         assert_eq!(jobs.next().map(|j| j.id), Some("a".into()));
+    }
+
+    #[test]
+    fn a_job_whose_model_is_being_installed_waits_for_the_install_and_a_stop_ends_the_wait() {
+        let (left, said) = (std::cell::Cell::new(3u32), std::cell::Cell::new(0));
+        let installing = || {
+            left.set(left.get().saturating_sub(1));
+            left.get() > 0
+        };
+        let waited = wait_for_install(installing, &AtomicBool::new(false), || said.set(said.get() + 1), Duration::ZERO);
+        assert!(waited.is_ok() && left.get() == 0, "it went on once the install was over");
+        assert_eq!(said.get(), 1, "the page heard once what it waits for");
+        assert!(wait_for_install(|| false, &AtomicBool::new(false), || panic!("nothing to wait for"), Duration::ZERO).is_ok());
+        let stopped = wait_for_install(|| true, &AtomicBool::new(true), || {}, Duration::ZERO);
+        assert_eq!(stopped.unwrap_err().0, "CANCELLED");
     }
 
     #[test]

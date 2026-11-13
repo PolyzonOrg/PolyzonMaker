@@ -566,7 +566,12 @@ fn plugin_network(store: State<Arc<Store>>, id: String, allow: bool) -> Result<S
 }
 
 #[tauri::command]
-async fn plugin_remove(store: State<'_, Arc<Store>>, id: String) -> Result<Settings> {
+async fn plugin_remove(store: State<'_, Arc<Store>>, jobs: State<'_, Arc<Jobs>>, packs: State<'_, Packs>, id: String) -> Result<Settings> {
+    // as pack_remove: a model of its on its way in would write its folder again, one at work holds its files
+    let running = jobs.running_model();
+    if plugins::model_ids(&store, &id).iter().any(|m| packs.installing(m) || running.as_deref() == Some(m.as_str())) {
+        return Err("BUSY".into());
+    }
     let store = store.inner().clone();
     blocking(move || {
         plugins::remove(&store, &id)?;

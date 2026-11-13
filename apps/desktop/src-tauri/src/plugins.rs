@@ -162,15 +162,19 @@ pub fn refresh(store: &Store) {
     crate::catalog::set_plugin_models(models);
 }
 
-/// The plugin, its models and its fence. The settings are the caller's.
+/// The packs of the models a plugin adds.
+pub fn model_ids(store: &Store, id: &str) -> Vec<String> {
+    let plugin = list(store).into_iter().find(|m| m.id == id);
+    let models = plugin.iter().flat_map(|m| m.contributes.models.iter());
+    models.filter_map(|model| model.get("id").and_then(|v| v.as_str())).map(|own| contributions::model_id(id, own)).collect()
+}
+
+/// The plugin, its models and its fence. The settings are the caller's, and so is making sure none of its
+/// models runs or installs now (main.rs plugin_remove).
 pub fn remove(store: &Store, id: &str) -> Result<(), String> {
     store::safe_name(id)?;
-    if let Some(m) = list(store).into_iter().find(|m| m.id == id) {
-        for model in &m.contributes.models {
-            if let Some(own) = model.get("id").and_then(|v| v.as_str()) {
-                crate::packs::remove(store, &contributions::model_id(id, own))?;
-            }
-        }
+    for model in model_ids(store, id) {
+        crate::packs::remove(store, &model)?;
     }
     crate::fence::forget(&crate::fence::name(id));
     let dir = folder(store).join(id);
