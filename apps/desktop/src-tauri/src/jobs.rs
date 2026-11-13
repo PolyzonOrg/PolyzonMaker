@@ -422,7 +422,8 @@ impl Jobs {
             let _ = provenance::mark(&self.store.jobs().join(&id).join(output), &provenance::Made::now(&system));
         }
         let seconds = started.elapsed().as_secs_f64();
-        let cancelled = self.cancel.load(Ordering::Relaxed);
+        // a result that stands is done, though a stop came for what ran after it (second_try)
+        let cancelled = result.is_err() && self.cancel.load(Ordering::Relaxed);
         let settings_error = match &result {
             Err(e) if !cancelled => Some(e.clone()),
             _ => None,
@@ -493,7 +494,8 @@ impl Jobs {
         if !first.failed() {
             return Ok(());
         }
-        if !seeded(run.model) {
+        // a stop that came while the first was finishing: no second run is started to be stopped
+        if !seeded(run.model) || self.cancel.load(Ordering::Relaxed) {
             self.update(app, &job.id, |j| j.notes.push("flat".into()));
             return Ok(());
         }
@@ -505,17 +507,14 @@ impl Jobs {
             j.notes.push("second_try".into());
         });
         let tried = self.generate(app, &again, run).and_then(|()| verify(&path, "model"));
-        if self.cancel.load(Ordering::Relaxed) {
-            let _ = fs::rename(&kept, &path);
-            return tried;
-        }
+        let stopped = self.cancel.load(Ordering::Relaxed);
         let second = tried.ok().and_then(|()| shape_of(&path));
-        let best = match second {
-            Some(shape) if shape.better_than(first) => {
+        let best = match second.filter(|&s| second_wins(s, first, stopped)) {
+            Some(shape) => {
                 let _ = fs::remove_file(&kept);
                 shape
             }
-            _ => {
+            None => {
                 fs::rename(&kept, &path).map_err(|e| ("DISK_FULL".to_string(), e.to_string()))?;
                 self.update(app, &job.id, |j| j.seed = job.seed);
                 first
@@ -937,6 +936,12 @@ fn subject_notes(subject: &serde_json::Value) -> (Vec<&'static str>, bool) {
     (notes, share < EMPTY_PICTURE)
 }
 
+/// Whether a second seed's result takes the first one's place. Stopping the second run stops only
+/// the extra try: the first is a finished result and stays.
+fn second_wins(second: glb::Shape, first: glb::Shape, stopped: bool) -> bool {
+    !stopped && second.better_than(first)
+}
+
 /// Does another seed give another result? Models without sampling give the same again.
 fn seeded(model: &Model) -> bool {
     !matches!(&model.runtime, Runtime::Python { engine, .. } if engine == "triposr" || engine == "photos")
@@ -1282,6 +1287,15 @@ mod tests {
         assert_eq!(told("good", &job("", &[], "")), "good");
         assert_eq!(told("GPU_OOM", &job("1024", &[], "sequential")), "GPU_OOM_1024_seq");
         assert_eq!(told("", &job("1024", &[], "")), "1024");
+    }
+
+    #[test]
+    fn a_second_seed_stopped_halfway_leaves_the_first_result_and_a_better_one_takes_its_place() {
+        let plate = glb::Shape { faces: 5000, flat: 0.99 };
+        let good = glb::Shape { faces: 5000, flat: 0.2 };
+        assert!(second_wins(good, plate, false));
+        assert!(!second_wins(good, plate, true), "stopped: the first, a finished result, stays");
+        assert!(!second_wins(plate, good, false), "no better");
     }
 
     #[test]
