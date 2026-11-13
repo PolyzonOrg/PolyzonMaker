@@ -188,7 +188,21 @@ async function runJob(job: Job) {
 	update({ state: params.get('fail') ? 'failed' : 'succeeded', stage: '', seconds: 34, output: job.kind === 'model' ? 'model.glb' : 'picture.png', error: params.get('fail') ?? '', detail: params.get('fail') ? 'torch.cuda.OutOfMemoryError: CUDA out of memory.' : '' });
 }
 
+/** Models on their way in, as packs.rs `installing` knows them */
+const installingNow = new Set<string>();
+/** A model at work is not installed again, nor one on its way in removed: BUSY, as main.rs answers */
+const runningModel = () => state.jobs.find((j) => ['preparing', 'running', 'finalizing'].includes(j.state))?.model;
+
 async function runInstall(id: string, device: string) {
+	installingNow.add(id);
+	try {
+		await installing(id, device);
+	} finally {
+		installingNow.delete(id);
+	}
+}
+
+async function installing(id: string, device: string) {
 	const total = 4_000_000_000;
 	for (const stage of ['tool', 'runtime', 'python', 'torch', 'packages']) {
 		emit('pack', { id, state: 'running', stage, done: 0, total: 0, error: '' });
@@ -301,6 +315,7 @@ export async function invoke<T>(cmd: string, args?: unknown, options?: { headers
 			case 'packs_installed':
 				return state.installed;
 			case 'pack_install':
+				if (runningModel() === a.id) throw 'BUSY';
 				void runInstall(a.id, a.device);
 				return null;
 			case 'hf_readme':
@@ -327,6 +342,7 @@ export async function invoke<T>(cmd: string, args?: unknown, options?: { headers
 				return id;
 			}
 			case 'pack_remove':
+				if (installingNow.has(a.id) || runningModel() === a.id) throw 'BUSY';
 				state.installed = state.installed.filter((p) => p.id !== (a.id as string));
 				persist();
 				return null;

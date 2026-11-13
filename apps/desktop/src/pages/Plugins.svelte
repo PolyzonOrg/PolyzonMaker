@@ -16,7 +16,8 @@
 		NOT_A_PLUGIN: 'plugins.error.notPlugin',
 		BAD_MANIFEST: 'plugins.error.manifest',
 		BAD_FILE: 'plugins.error.file',
-		TOO_LARGE: 'plugins.error.large'
+		TOO_LARGE: 'plugins.error.large',
+		BUSY: 'plugins.error.busy'
 	};
 
 	let asking = $state<{ path: string; manifest: Plugin } | null>(null);
@@ -85,6 +86,8 @@
 		busy = true;
 		try {
 			await pluginsChanged(await core.removePlugin(removing!.id));
+		} catch (e) {
+			problem(e);
 		} finally {
 			removing = null;
 			busy = false;
