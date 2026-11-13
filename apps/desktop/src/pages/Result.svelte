@@ -487,7 +487,8 @@
 						<button class="btn small" class:on={height === h} onclick={() => (height = h)}>{h}</button>
 					{/each}
 				</div>
-				<p class="faint">{t('print.dims', { x: dims[0], y: dims[1], z: dims[2] })}</p>
+				<!-- held in place, unseen, until the model is measured: «0 × 0 × 0 мм» was no size -->
+				<p class="faint" class:unmeasured={!opened}>{t('print.dims', { x: dims[0], y: dims[1], z: dims[2] })}</p>
 			</section>
 
 			{#if job && job.kind === 'model' && !finished}
@@ -820,6 +821,10 @@
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
 		gap: 6px;
+	}
+
+	.unmeasured {
+		visibility: hidden;
 	}
 
 	.heights .on {
