@@ -89,6 +89,8 @@ struct Queue {
     active: Option<String>,
     /// What the computer does when the queue runs out (power.rs)
     after: After,
+    /// The program is closing: nothing new starts, since its engine would outlive the program
+    closing: bool,
 }
 
 pub struct Jobs {
@@ -124,7 +126,7 @@ impl Jobs {
     /// Reads what is on disk; a job that was running when Polyzon Maker stopped becomes interrupted.
     pub fn open(store: Arc<Store>, assistant: Arc<Assistant>) -> Self {
         let jobs = store::read_each(&store.jobs(), "job.json");
-        let this = Self { store, queue: Mutex::new(Queue { jobs, active: None, after: After::Nothing }), wake: Condvar::new(), cancel: AtomicBool::new(false), assistant };
+        let this = Self { store, queue: Mutex::new(Queue { jobs, active: None, after: After::Nothing, closing: false }), wake: Condvar::new(), cancel: AtomicBool::new(false), assistant };
         let mut q = this.queue.lock().unwrap();
         for job in q.jobs.iter_mut().filter(|j| is_active(&j.state)) {
             telemetry::event(&this.store, "job_lost", &job.model, &job.device, &lost_code(job), 0.0);
@@ -171,9 +173,10 @@ impl Jobs {
         Ok(job)
     }
 
-    /// What the engine takes next: the first of the smallest place, as `waiting` lists them; nothing while paused.
+    /// What the engine takes next: the first of the smallest place, as `waiting` lists them; nothing while
+    /// paused or closing.
     fn next_in(&self, q: &Queue) -> Option<Job> {
-        if self.store.settings().queue_paused {
+        if q.closing || self.store.settings().queue_paused {
             return None;
         }
         q.jobs.iter().filter(|j| j.state == "queued").min_by_key(|j| place(j)).cloned()
@@ -317,13 +320,23 @@ impl Jobs {
         self.queue.lock().unwrap().active.is_some()
     }
 
-    /// Stops what runs and what waits, and waits for it, so that no engine outlives the app.
+    /// Stops what runs and what waits, and waits for it: the person quit, and said yes to losing them.
     pub fn stop(&self) {
         for job in self.queue.lock().unwrap().jobs.iter_mut().filter(|j| j.state == "queued") {
             job.state = "cancelled".into();
             save(&self.store, job);
         }
+        self.close();
+    }
+
+    /// Stops what runs and starts nothing more, and waits for it, so that no engine outlives the program.
+    /// What waits stays in line for the next start.
+    pub fn close(&self) {
+        let mut q = self.queue.lock().unwrap();
+        q.closing = true;
+        // under the lock the worker takes its next job with: a job taken just now is stopped too
         self.cancel.store(true, Ordering::Relaxed);
+        drop(q);
         for _ in 0..40 {
             if !self.busy() {
                 return;
@@ -381,12 +394,13 @@ impl Jobs {
                     loop {
                         if let Some(job) = self.next_in(&q) {
                             q.active = Some(job.id.clone());
+                            // under the lock, as `cancel` and `close` set it: a stop that comes right after is not undone
+                            self.cancel.store(false, Ordering::Relaxed);
                             break job;
                         }
                         q = self.wake.wait(q).unwrap();
                     }
                 };
-                self.cancel.store(false, Ordering::Relaxed);
                 let awake = sys::Awake::hold();
                 let id = job.id.clone();
                 self.run(&app, job);
@@ -1096,6 +1110,16 @@ mod tests {
         assert!(Jobs::open(store.clone(), Arc::default()).next().is_none());
         jobs.pause(false).unwrap();
         assert_eq!(jobs.next().map(|j| j.id), Some("a".into()));
+    }
+
+    #[test]
+    fn a_program_that_closes_starts_nothing_new_and_what_waits_runs_at_the_next_start() {
+        let store = store();
+        let jobs = Jobs::open(store.clone(), Arc::default());
+        jobs.add(Job { id: "a".into(), ..Job::default() }).unwrap();
+        jobs.close();
+        assert!(jobs.next().is_none(), "no engine is started that would outlive the program");
+        assert_eq!(Jobs::open(store, Arc::default()).next().map(|j| j.id), Some("a".into()));
     }
 
     #[test]
