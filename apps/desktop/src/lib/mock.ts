@@ -105,6 +105,9 @@ if (import.meta.env.DEV)
 const key = (id: string, name: string) => `${id}/${name}`;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const params = new URLSearchParams(location.search);
+// ?unfinished: a Hugging Face download stopped halfway, as packs.rs `unfinished` lists one
+if (params.has('unfinished') && !state.installed.some((p) => p.id === 'hf-city96-flux-1-dev-gguf'))
+	state.installed.push({ id: 'hf-city96-flux-1-dev-gguf', device: '', version: 0, at: 0, name: '', file: 'flux1-dev-Q4_K_S.gguf', kind: '', vision: false, broken: true });
 
 /** Other computers for the stand: ?gpu=none|nvidia6|amd8|intel|apple&ram=8&disk=4 */
 const GPUS: Record<string, Hardware['gpus']> = {
