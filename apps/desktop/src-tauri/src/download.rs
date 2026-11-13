@@ -703,6 +703,9 @@ mod tests {
                         Some((from, to)) => {
                             let to = to.map_or(body.len() - 1, |t| t.min(body.len() - 1));
                             seen.asked.lock().unwrap().push((from, to));
+                            // a piece takes a while, as over a real line: a stop at a third finds most still to come
+                            // (on a fast computer every piece had landed before the stop was looked at)
+                            thread::sleep(Duration::from_millis(20));
                             let _ = stream.write_all(format!("HTTP/1.1 206 Partial Content\r\nAccept-Ranges: bytes\r\nETag: {tag}\r\nContent-Range: bytes {from}-{to}/{}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len(), to + 1 - from).as_bytes());
                             let _ = stream.write_all(&body[from..=to]);
                             return;
@@ -719,8 +722,8 @@ mod tests {
         (url, seen)
     }
 
-    /// Stops a fetch once `at` bytes have come, leaving its part (and its plan) behind.
-    fn stopped_at(url: &str, dest: &Path, at: u64) {
+    /// Stops a fetch of a file of `of` bytes once `at` have come, leaving its part (and its plan) behind.
+    fn stopped_at(url: &str, dest: &Path, at: u64, of: usize) {
         let cancel = AtomicBool::new(false);
         let got = fetch(&agent(), &[url.to_string()], dest, "", &cancel, &mut |done, _| {
             if done > at {
@@ -728,6 +731,9 @@ mod tests {
             }
         });
         assert!(matches!(got, Err(Failure::Cancelled)) && part_of(dest).exists(), "the part stays for later");
+        let part = part_of(dest);
+        let missing = read_plan(&part).map_or_else(|| fs::metadata(&part).unwrap().len() < of as u64, |plan| plan.landed.contains(&false));
+        assert!(missing, "the stop came while some of the file was still to come");
     }
 
     #[test]
@@ -742,7 +748,7 @@ mod tests {
         for (old, new) in [(big(), flip(&big())), (small.clone(), flip(&small)), (big(), shorter)] {
             *now.lock().unwrap() = (old.clone(), "\"old\"".into());
             let dest = temp().join("file.bin");
-            stopped_at(&url, &dest, old.len() as u64 / 3);
+            stopped_at(&url, &dest, old.len() as u64 / 3, old.len());
             *now.lock().unwrap() = (new.clone(), "\"new\"".into());
             fetch(&agent(), std::slice::from_ref(&url), &dest, "", &AtomicBool::new(false), &mut |_, _| {}).unwrap();
             assert!(fs::read(&dest).unwrap() == new, "the new file whole, not the old one's start and the new one's end ({} bytes)", new.len());
@@ -756,7 +762,7 @@ mod tests {
         let (url, seen) = serve_versions(now);
         let dest = temp().join("file.bin");
         let half = big().len() as u64 / 2;
-        stopped_at(&url, &dest, half);
+        stopped_at(&url, &dest, half, big().len());
         seen.asked_bytes();
         fetch(&agent(), &[url], &dest, &sha(&big()), &AtomicBool::new(false), &mut |_, _| {}).unwrap();
         assert_eq!(fs::read(&dest).unwrap(), big());
