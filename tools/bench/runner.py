@@ -36,23 +36,18 @@ from pathlib import Path
 PINS = {  # made by pins.mjs
     "tencent/Hunyuan3D-2mini": ("f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6", {
         "hunyuan3d-dit-v2-mini-turbo/config.yaml": "git:70a77756aaa5429626f4106e2cd882ca494221ab",
-        "hunyuan3d-dit-v2-mini-turbo/model.fp16.ckpt": "sha256:9bc217e63c94b07d46b5b3ae3d4aac22455d388e947ae0b4ed15ac5192d1cd6a",
         "hunyuan3d-dit-v2-mini-turbo/model.fp16.safetensors": "sha256:bdbcef30dd0149a281e17d5b5b1fdad1122c904e098a42f3100e04e03c247bc4",
         "hunyuan3d-vae-v2-mini-turbo/config.yaml": "git:e27bf69954e893d82127624b2b646d73ee610c08",
-        "hunyuan3d-vae-v2-mini-turbo/model.fp16.ckpt": "sha256:d622fb7de282165a4aae2b5b9d6517ab1542c35a0808c5c4a0ac9244ad213bbe",
         "hunyuan3d-vae-v2-mini-turbo/model.fp16.safetensors": "sha256:5dcaca67a8da9e7079fb7b55714a572d0651ac95983bb43099913feaf6738f94",
     }),
     "tencent/Hunyuan3D-2": ("9cd649ba6913f7a852e3286bad86bfa9a2d83dcf", {
         "hunyuan3d-dit-v2-0-turbo/config.yaml": "git:e3c0f850dd87f0f1b59f604e396cf665966011a7",
-        "hunyuan3d-dit-v2-0-turbo/model.fp16.ckpt": "sha256:f04cecad6953ca9644f9e1d3a22cd0abb20665ce8be30fc4409451ce78d622f1",
         "hunyuan3d-dit-v2-0-turbo/model.fp16.safetensors": "sha256:5ee5a81e4df08a1c65b79910bf5b145a90376e526794f4607a4d5d068d62f269",
         "hunyuan3d-vae-v2-0-turbo/config.yaml": "git:d4bf4d5ee1874c8e828a5296ff5e44d4fcb5b349",
-        "hunyuan3d-vae-v2-0-turbo/model.fp16.ckpt": "sha256:bea74b1d912e245510b062ac62d938e5312760c07b122eadd0199e325e3d5343",
         "hunyuan3d-vae-v2-0-turbo/model.fp16.safetensors": "sha256:66b7af697118db2de00c22f63a385c75f9049709739281971837af9e4ce31cb4",
     }),
     "tencent/Hunyuan3D-2mv": ("3a761b539b29fe4ff64714813aa9560fd66f5de0", {
         "hunyuan3d-dit-v2-mv-turbo/config.yaml": "git:9d36691622a301b7962d11107e6e032ee411315d",
-        "hunyuan3d-dit-v2-mv-turbo/model.fp16.ckpt": "sha256:97979455b360c3b6f767c49ac6b4238a215d915b89d9611c19d2545bf664697f",
         "hunyuan3d-dit-v2-mv-turbo/model.fp16.safetensors": "sha256:172d7a989b99f66af760da0080d8c6f6350c72609536cf0c55b87a4afa574e45",
     }),
     "tencent/Hunyuan3D-2.1": ("0b94677654c57bb9a6b6845cd7b704ccf551d327", {
@@ -294,9 +289,13 @@ def hunyuan(a, clock):
         if newer:
             fetch(repo_id, [f"{sub}/*"], local_dir=Path(os.environ["HY3DGEN_MODELS"]) / repo_id)
         else:
-            # enable_flashvdm below swaps in the turbo VAE from its own subfolder
-            fetch(repo_id, [f"{sub}/*"])
-            fetch(vae_repo, [f"{vae}/*"])
+            # Each turbo folder holds its weights twice, as .ckpt and as .safetensors. Built with use_safetensors
+            # below, the engine reads only these two (hy3dgen smart_load_model, variant fp16), the turbo VAE
+            # enable_flashvdm swaps in too: without the .ckpt the download is half as big (4.2 to 5.3 GB less).
+            # Offline, the engine's ask for the whole folder gives what is here.
+            taken = lambda folder: [f"{folder}/config.yaml", f"{folder}/model.fp16.safetensors"]
+            fetch(repo_id, taken(sub))
+            fetch(vae_repo, taken(vae))
         BackgroundRemover()  # rembg fetches its u2net model on first use
         return
     gpu = a.device != "cpu"
