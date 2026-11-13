@@ -53,16 +53,6 @@ fn settled(open: bool, online: impl FnOnce() -> bool) -> bool {
     open || online()
 }
 
-#[cfg(test)]
-mod look_tests {
-    #[test]
-    fn a_fence_found_closed_while_offline_is_looked_at_again() {
-        assert!(super::settled(true, || panic!("open is open, online or not")));
-        assert!(super::settled(false, || true), "closed with the internet there: closed");
-        assert!(!super::settled(false, || false), "closed with no internet: nothing is known yet");
-    }
-}
-
 #[cfg(windows)]
 pub use inside::{forget, grant, launch};
 
@@ -401,5 +391,15 @@ mod inside {
             quoted(OsStr::new(r"C:\a b\"), &mut spaced);
             assert_eq!(String::from_utf16_lossy(&spaced), r#""C:\a b\\""#);
         }
+    }
+}
+
+#[cfg(test)]
+mod look_tests {
+    #[test]
+    fn a_fence_found_closed_while_offline_is_looked_at_again() {
+        assert!(super::settled(true, || panic!("open is open, online or not")));
+        assert!(super::settled(false, || true), "closed with the internet there: closed");
+        assert!(!super::settled(false, || false), "closed with no internet: nothing is known yet");
     }
 }
