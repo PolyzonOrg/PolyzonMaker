@@ -125,7 +125,12 @@ async fn packs_installed(store: State<'_, Arc<Store>>) -> Result<Vec<packs::Inst
 }
 
 #[tauri::command]
-fn pack_install(app: AppHandle, store: State<Arc<Store>>, packs: State<Packs>, id: String, device: String) -> Result<()> {
+fn pack_install(app: AppHandle, store: State<Arc<Store>>, packs: State<Packs>, jobs: State<Arc<Jobs>>, id: String, device: String) -> Result<()> {
+    // a repair or another device puts new files under the engine that runs: Windows keeps its loaded ones, and
+    // what is left is half the old and half the new
+    if jobs.running_model().as_deref() == Some(id.as_str()) {
+        return Err("BUSY".into());
+    }
     packs.install(app, store.inner().clone(), id, device)
 }
 
@@ -150,7 +155,11 @@ fn pack_cancel(packs: State<Packs>, id: String) {
 }
 
 #[tauri::command]
-async fn pack_remove(store: State<'_, Arc<Store>>, jobs: State<'_, Arc<Jobs>>, assistant: State<'_, Arc<assistant::Assistant>>, id: String) -> Result<()> {
+async fn pack_remove(store: State<'_, Arc<Store>>, jobs: State<'_, Arc<Jobs>>, packs: State<'_, Packs>, assistant: State<'_, Arc<assistant::Assistant>>, id: String) -> Result<()> {
+    // on its way in, its folder would be written again as it went: it is stopped first
+    if packs.installing(&id) {
+        return Err("BUSY".into());
+    }
     if jobs.running_model().as_deref() == Some(id.as_str()) {
         return Err("BUSY".into()); // its files are in use, and Windows would stop halfway through them
     }
@@ -706,6 +715,8 @@ fn main() {
             let store = Arc::new(Store::open(app.path().app_config_dir()?, app.path().app_local_data_dir()?)?);
             telemetry::note_crashes(store.data());
             plugins::refresh(&store);
+            // before any install can start, so none goes on from a part this takes away
+            packs::sweep_downloads(&store);
             let assistant = Arc::new(assistant::Assistant::default());
             assistant.clone().let_go_when_idle();
             let jobs = Arc::new(Jobs::open(store.clone(), assistant.clone()));

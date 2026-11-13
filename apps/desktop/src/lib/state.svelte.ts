@@ -429,7 +429,8 @@ export function installModel(model: Model) {
 	const device = fit(model, app.hw!, benchOf()).target?.device;
 	if (!device) return;
 	app.packs[model.id] = { id: model.id, state: 'running', stage: 'tool', done: 0, total: 0, error: '' };
-	void core.install(model.id, device);
+	// refused at once (the model is generating: its files are in use): said on its row, not left «installing»
+	core.install(model.id, device).catch((e) => (app.packs[model.id] = { id: model.id, state: 'failed', stage: '', done: 0, total: 0, error: e === 'BUSY' ? 'busy' : String(e) }));
 }
 
 export function installing(id: string) {
