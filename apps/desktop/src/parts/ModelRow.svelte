@@ -149,7 +149,7 @@
 			{:else if pack?.state === 'failed' && pack.error === 'fence: FENCE_MISSING'}
 				<p class="note bad">{t('error.FENCE_MISSING')}</p>
 			{:else if pack?.state === 'failed'}
-				<p class="note bad">{t(/^build:/.test(pack.error) ? 'models.failedBuild' : /^disk:.*(space|os error (112|28))/i.test(pack.error) ? 'models.failedDisk' : 'models.failed')}</p>
+				<p class="note bad">{t(pack.error === 'busy' ? 'models.installBusy' : /^build:/.test(pack.error) ? 'models.failedBuild' : /^disk:.*(space|os error (112|28))/i.test(pack.error) ? 'models.failedDisk' : 'models.failed')}</p>
 				{#if pack.error}
 					<details class="faint">
 						<summary>{t('job.details')}</summary>

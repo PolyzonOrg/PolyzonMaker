@@ -185,7 +185,30 @@ fn unfinished(folder: &Path) -> Vec<Installed> {
     let started = |path: &Path| !path.join("installed.json").exists() && fs::read_dir(path).is_ok_and(|mut d| d.next().is_some());
     let entries = fs::read_dir(folder).into_iter().flatten().flatten();
     let halves = entries.filter(|e| started(&e.path())).map(|e| e.file_name().to_string_lossy().into_owned());
-    halves.filter(|id| catalog::model(id).is_some()).map(|id| Installed { id, broken: true, ..Installed::default() }).collect()
+    // a Hugging Face one too: its parts can be gigabytes, and only a listed model can be removed
+    halves.filter(|id| catalog::model(id).is_some() || id.starts_with("hf-")).map(|id| Installed { id, broken: true, ..Installed::default() }).collect()
+}
+
+/// What downloads left a week ago and more: parts of an install that was stopped or failed, an archive of a
+/// version since replaced. Nothing else ever took them away, so they held gigabytes for good. Newer ones stay,
+/// for an install to go on from where it stopped; all of them are downloads, fetched again when needed. A
+/// folder of pieces is as old as the newest of them.
+pub fn sweep_downloads(store: &Store) {
+    let week = Duration::from_secs(7 * 24 * 3600);
+    let newest = |p: &Path| -> Option<std::time::SystemTime> {
+        if !p.is_dir() {
+            return fs::metadata(p).and_then(|m| m.modified()).ok();
+        }
+        fs::read_dir(p).ok()?.flatten().filter_map(|e| e.metadata().and_then(|m| m.modified()).ok()).max()
+    };
+    for dir in store.pack_folders().into_iter().map(|f| f.join(".downloads")) {
+        for path in fs::read_dir(&dir).into_iter().flatten().flatten().map(|e| e.path()) {
+            if !newest(&path).and_then(|t| t.elapsed().ok()).is_some_and(|age| age > week) {
+                continue;
+            }
+            let _ = if path.is_dir() { fs::remove_dir_all(&path) } else { fs::remove_file(&path) };
+        }
+    }
 }
 
 pub fn find(store: &Store, id: &str) -> Option<Installed> {
@@ -269,44 +292,7 @@ fn relink(env: &Path, python: &Path) -> bool {
 impl Packs {
     pub fn install(&self, app: AppHandle, store: Arc<Store>, id: String, device: String) -> Result<(), String> {
         let model = catalog::model(&id).ok_or("no such model")?;
-        let cancel = Arc::new(AtomicBool::new(false));
-        {
-            let mut running = self.running.lock().unwrap();
-            if running.contains_key(&id) {
-                return Ok(()); // already on its way
-            }
-            running.insert(id.clone(), cancel.clone());
-        }
-        let (keep, line) = (app.clone(), self.line.clone());
-        std::thread::spawn(move || {
-            let _turn = line.lock().unwrap_or_else(|e| e.into_inner());
-            let heard = Mutex::new(Heard::default());
-            let emit = |p: Progress| {
-                heard.lock().unwrap().tell(&p);
-                crate::news(&keep, "pack", p);
-            };
-            let started = std::time::Instant::now();
-            let job = Install { store: &store, model: &model, device: &device, cancel: &cancel, emit: &emit };
-            let result = patiently(&cancel, &heard, &emit, &online, &|| job.run());
-            let state = match &result {
-                Ok(()) => "done",
-                Err(Failure::Cancelled) => "cancelled",
-                Err(_) => "failed",
-            };
-            let error = result.err().map_or(String::new(), |e| e.to_string());
-            let seconds = started.elapsed().as_secs_f64();
-            match state {
-                "failed" => {
-                    let code = error.split(':').next().unwrap_or("").replace(' ', "_");
-                    crate::telemetry::event(&store, "install_failed", &id, &device, &code, seconds);
-                }
-                "done" => crate::telemetry::event(&store, "install_done", &id, &device, "", seconds),
-                _ => {}
-            }
-            emit(Progress { id: id.clone(), state: state.into(), error, ..Progress::default() });
-            let packs: tauri::State<Packs> = tauri::Manager::state(&keep);
-            packs.running.lock().unwrap().remove(&id);
-        });
+        self.start(app, store, id, device, model, true, |job| job.run());
         Ok(())
     }
 
@@ -317,30 +303,10 @@ impl Packs {
             return Err("only .safetensors and .gguf files".into());
         }
         let id = format!("hf-{}", repo.replace(['/', '.'], "-").to_lowercase());
-        let cancel = Arc::new(AtomicBool::new(false));
-        self.running.lock().unwrap().insert(id.clone(), cancel.clone());
-        let (keep, pack, line) = (app.clone(), id.clone(), self.line.clone());
-        std::thread::spawn(move || {
-            let _turn = line.lock().unwrap_or_else(|e| e.into_inner());
-            let heard = Mutex::new(Heard::default());
-            let emit = |p: Progress| {
-                heard.lock().unwrap().tell(&p);
-                crate::news(&keep, "pack", p);
-            };
-            let engine = catalog::model(PICTURE_ENGINE).expect("the catalog has a picture engine");
-            let job = Install { store: &store, model: &Model { id: pack.clone(), ..engine.clone() }, device: &device, cancel: &cancel, emit: &emit };
-            let name = file.rsplit('/').next().unwrap_or(&file).to_string();
-            let weights = [catalog::Weight { url: format!("https://huggingface.co/{repo}/resolve/main/{file}"), sha256: String::new(), size: 0, name }];
-            let result = patiently(&cancel, &heard, &emit, &online, &|| job.custom(&repo, &weights, ""));
-            let state = match &result {
-                Ok(()) => "done",
-                Err(Failure::Cancelled) => "cancelled",
-                Err(_) => "failed",
-            };
-            emit(Progress { id: pack.clone(), state: state.into(), error: result.err().map_or(String::new(), |e| e.to_string()), ..Progress::default() });
-            let packs: tauri::State<Packs> = tauri::Manager::state(&keep);
-            packs.running.lock().unwrap().remove(&pack);
-        });
+        let engine = catalog::model(PICTURE_ENGINE).expect("the catalog has a picture engine");
+        let name = file.rsplit('/').next().unwrap_or(&file).to_string();
+        let weights = [catalog::Weight { url: format!("https://huggingface.co/{repo}/resolve/main/{file}"), sha256: String::new(), size: 0, name }];
+        self.start(app, store, id.clone(), device, Model { id: id.clone(), ..engine.clone() }, false, move |job| job.custom(&repo, &weights, ""));
         Ok(id)
     }
 
@@ -350,29 +316,61 @@ impl Packs {
             return Err("only .gguf files with a hash".into());
         }
         let id = text_pack_id(&repo, &files[0].name);
+        let engine = catalog::model(TEXT_ENGINE).expect("the catalog has a text engine");
+        let weights: Vec<catalog::Weight> = files.iter().map(|f| catalog::Weight { url: format!("https://huggingface.co/{repo}/resolve/main/{}", f.name), sha256: f.sha256.clone(), size: f.size, name: f.name.rsplit('/').next().unwrap_or(&f.name).to_string() }).collect();
+        self.start(app, store, id.clone(), device, Model { id: id.clone(), ..engine.clone() }, false, move |job| job.custom(&repo, &weights, "text"));
+        Ok(id)
+    }
+
+    /// Every install goes through here, on its own thread and after the others: they share downloads, tools and
+    /// half-written files. A second ask for one already on its way is that one. The Hugging Face installs once
+    /// skipped the line and this check, so two could write one file at once and the second could not be stopped.
+    /// `told`: a catalog model's install goes into the anonymous reports; one chosen on Hugging Face does not.
+    #[allow(clippy::too_many_arguments)]
+    fn start(&self, app: AppHandle, store: Arc<Store>, id: String, device: String, model: Model, told: bool, work: impl Fn(&Install) -> Result<(), Failure> + Send + 'static) {
         let cancel = Arc::new(AtomicBool::new(false));
-        self.running.lock().unwrap().insert(id.clone(), cancel.clone());
-        let (keep, pack) = (app.clone(), id.clone());
+        {
+            let mut running = self.running.lock().unwrap();
+            if running.contains_key(&id) {
+                return;
+            }
+            running.insert(id.clone(), cancel.clone());
+        }
+        let line = self.line.clone();
         std::thread::spawn(move || {
+            let _turn = line.lock().unwrap_or_else(|e| e.into_inner());
             let heard = Mutex::new(Heard::default());
             let emit = |p: Progress| {
                 heard.lock().unwrap().tell(&p);
-                crate::news(&keep, "pack", p);
+                crate::news(&app, "pack", p);
             };
-            let engine = catalog::model(TEXT_ENGINE).expect("the catalog has a text engine");
-            let job = Install { store: &store, model: &Model { id: pack.clone(), ..engine.clone() }, device: &device, cancel: &cancel, emit: &emit };
-            let weights: Vec<catalog::Weight> = files.iter().map(|f| catalog::Weight { url: format!("https://huggingface.co/{repo}/resolve/main/{}", f.name), sha256: f.sha256.clone(), size: f.size, name: f.name.rsplit('/').next().unwrap_or(&f.name).to_string() }).collect();
-            let result = patiently(&cancel, &heard, &emit, &online, &|| job.custom(&repo, &weights, "text"));
+            let started = std::time::Instant::now();
+            let job = Install { store: &store, model: &model, device: &device, cancel: &cancel, emit: &emit };
+            let result = patiently(&cancel, &heard, &emit, &online, &|| work(&job));
             let state = match &result {
                 Ok(()) => "done",
                 Err(Failure::Cancelled) => "cancelled",
                 Err(_) => "failed",
             };
-            emit(Progress { id: pack.clone(), state: state.into(), error: result.err().map_or(String::new(), |e| e.to_string()), ..Progress::default() });
-            let packs: tauri::State<Packs> = tauri::Manager::state(&keep);
-            packs.running.lock().unwrap().remove(&pack);
+            let error = result.err().map_or(String::new(), |e| e.to_string());
+            let seconds = started.elapsed().as_secs_f64();
+            match state {
+                "failed" if told => {
+                    let code = error.split(':').next().unwrap_or("").replace(' ', "_");
+                    crate::telemetry::event(&store, "install_failed", &id, &device, &code, seconds);
+                }
+                "done" if told => crate::telemetry::event(&store, "install_done", &id, &device, "", seconds),
+                _ => {}
+            }
+            emit(Progress { id: id.clone(), state: state.into(), error, ..Progress::default() });
+            let packs: tauri::State<Packs> = tauri::Manager::state(&app);
+            packs.running.lock().unwrap().remove(&id);
         });
-        Ok(id)
+    }
+
+    /// A model on its way in: its folder is being written
+    pub fn installing(&self, id: &str) -> bool {
+        self.running.lock().unwrap().contains_key(id)
     }
 
     pub fn busy(&self) -> bool {
@@ -544,7 +542,11 @@ impl Install<'_> {
             let arc = self.store.downloads().join(format!("{}-repo.zip", self.model.id));
             self.fetch(vec![repo_url.clone()], &arc, "", "runtime", 0, 0)?;
             let _ = fs::remove_dir_all(&repo);
-            download::unpack(&arc, &repo).map_err(Failure::Disk)?;
+            // no hash to check it by: one that will not unpack goes, or every try after would fail on it
+            if let Err(e) = download::unpack(&arc, &repo) {
+                let _ = fs::remove_file(&arc);
+                return Err(Failure::Disk(e));
+            }
             let _ = fs::remove_file(&arc);
             Ok(())
         })?;
@@ -1222,6 +1224,40 @@ mod tests {
         let d = std::env::temp_dir().join(format!("maker-packs-{}", store::random_id()));
         let s = Store::open(d.join("c"), d.join("d")).unwrap();
         (d, s)
+    }
+
+    #[test]
+    fn a_hugging_face_install_stopped_halfway_is_listed_so_it_can_be_removed() {
+        let (_d, s) = scratch();
+        fs::create_dir_all(s.packs().join("hf-someone-model/weights")).unwrap();
+        fs::write(s.packs().join("hf-someone-model/weights/model.gguf.part"), b"gigabytes").unwrap();
+        // the app's own folders are no model
+        fs::create_dir_all(s.downloads()).unwrap();
+        fs::write(s.downloads().join("x.part"), b"half").unwrap();
+        let half = installed(&s);
+        assert_eq!(half.iter().map(|p| (p.id.as_str(), p.broken)).collect::<Vec<_>>(), [("hf-someone-model", true)]);
+        remove(&s, "hf-someone-model").unwrap();
+        assert!(!s.packs().join("hf-someone-model").exists());
+    }
+
+    #[test]
+    fn downloads_left_a_week_go_and_newer_ones_stay_to_go_on_from() {
+        let (_d, s) = scratch();
+        let downloads = s.downloads();
+        fs::create_dir_all(downloads.join("hunyuan.zip.pieces")).unwrap();
+        for name in ["old.zip.part", "new.zip.part", "hunyuan.zip.pieces/0"] {
+            fs::write(downloads.join(name), b"half").unwrap();
+        }
+        let week_ago = std::time::SystemTime::now() - Duration::from_secs(8 * 24 * 3600);
+        for name in ["old.zip.part", "hunyuan.zip.pieces/0"] {
+            fs::File::options().write(true).open(downloads.join(name)).unwrap().set_modified(week_ago).unwrap();
+        }
+        // a folder is as old as the newest thing in it
+        fs::File::options().write(true).open(downloads.join("hunyuan.zip.pieces/0")).unwrap();
+        sweep_downloads(&s);
+        assert!(!downloads.join("old.zip.part").exists(), "a part left for a week stays");
+        assert!(!downloads.join("hunyuan.zip.pieces").exists(), "pieces left for a week stay");
+        assert!(downloads.join("new.zip.part").exists(), "a recent part went: it could go on from where it stopped");
     }
 
     /// An environment as this system makes one: its Python in Scripts on Windows, in bin elsewhere
