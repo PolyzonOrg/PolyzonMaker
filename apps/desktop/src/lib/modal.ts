@@ -13,25 +13,30 @@ export function wrap(count: number, at: number, back: boolean): number | null {
 	return null;
 }
 
+/** Where focus goes as it opens: the first button, unless the dialog marks another */
+const first = (node: HTMLElement) => node.querySelector<HTMLElement>('[data-autofocus]') ?? node.querySelector<HTMLElement>('button:not([disabled])') ?? node;
+
+/** Tab inside: round past either end; a modal with nothing to stop at keeps the focus itself. */
+function tab(node: HTMLElement, e: KeyboardEvent) {
+	const stops = [...node.querySelectorAll<HTMLElement>(TABBABLE)].filter((el) => el.getClientRects().length > 0);
+	const to = stops.length ? wrap(stops.length, stops.indexOf(document.activeElement as HTMLElement), e.shiftKey) : -1;
+	if (to === null) return;
+	e.preventDefault();
+	(stops[to] ?? node).focus();
+}
+
 /** `{@attach modal(() => onclose())}` on the element with role="dialog" */
 export const modal = (close: () => void) => (node: HTMLElement) => {
 	const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 	open.push(node);
-	// as it was: the first button, unless the dialog marks another
-	queueMicrotask(() => (node.querySelector<HTMLElement>('[data-autofocus]') ?? node.querySelector<HTMLElement>('button:not([disabled])') ?? node).focus());
+	queueMicrotask(() => first(node).focus());
 
 	function keys(e: KeyboardEvent) {
 		if (open.at(-1) !== node || e.defaultPrevented) return;
 		if (e.key === 'Escape') {
 			e.preventDefault();
 			close();
-		} else if (e.key === 'Tab') {
-			const stops = [...node.querySelectorAll<HTMLElement>(TABBABLE)].filter((el) => el.getClientRects().length > 0);
-			const to = stops.length ? wrap(stops.length, stops.indexOf(document.activeElement as HTMLElement), e.shiftKey) : -1;
-			if (to === null) return;
-			e.preventDefault();
-			(stops[to] ?? node).focus();
-		}
+		} else if (e.key === 'Tab') tab(node, e);
 	}
 
 	document.addEventListener('keydown', keys);
