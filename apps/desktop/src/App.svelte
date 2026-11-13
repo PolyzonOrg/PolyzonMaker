@@ -35,6 +35,8 @@
 	let showUpdate = $state(false);
 	/** Over the window with a file: enter and leave come in pairs for every element crossed */
 	let dragging = $state(0);
+	/** …and now over a field that takes the file itself, a tool's */
+	let overField = $state(false);
 	let resizing = $state(false);
 
 	const SCOPES: Partial<Record<Page, Scope>> = { cad: 'cad', result: 'result' };
@@ -66,8 +68,10 @@
 	}
 
 	function dropped(e: DragEvent) {
-		e.preventDefault();
 		dragging = 0;
+		// a file field of a tool's took it: it is that tool's, and not a new model for the library
+		if (e.defaultPrevented) return;
+		e.preventDefault();
 		const file = e.dataTransfer?.files[0];
 		if (!file || !app.settings?.onboarded) return;
 		// a 3D model goes into the library, where its page prepares it for print; a picture to «Новая модель»
@@ -174,7 +178,11 @@
 <svelte:window
 	ondragenter={(e) => e.dataTransfer?.types.includes('Files') && dragging++}
 	ondragleave={() => dragging && dragging--}
-	ondragover={(e) => e.preventDefault()}
+	ondragover={(e) => {
+		// over a field that takes the file itself the window's sheet steps aside: it would hide that field
+		overField = e.defaultPrevented;
+		e.preventDefault();
+	}}
 	ondrop={dropped}
 	onkeydown={shortcut}
 />
@@ -360,7 +368,7 @@
 	</Dialog>
 {/if}
 
-{#if dragging && app.settings?.onboarded}
+{#if dragging && !overField && app.settings?.onboarded}
 	<div class="dropping"><Icon name="image" size={28} /><strong>{t('create.dropHere')}</strong></div>
 {/if}
 
