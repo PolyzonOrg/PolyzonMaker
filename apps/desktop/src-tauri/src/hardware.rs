@@ -477,8 +477,9 @@ mod tests {
         };
         assert_eq!(system_gpus().iter().map(|g| (g.vendor.as_str(), g.name.as_str())).collect::<Vec<_>>(), [("apple", name.as_str())]);
         let profiler: Vec<String> = profiler_gpus().into_iter().map(|g| g.name).collect();
-        // a Mac in a virtual machine shows paravirtual graphics; on a real one they are the chip's
-        if !profiler.iter().any(|n| n.contains("Paravirtual")) {
+        // on a real Mac they are the chip's; in a virtual one system_profiler names paravirtual graphics, or none
+        // at all (GitHub's Mac runner), where the chip's are Metal's as on any other
+        if !profiler.is_empty() && !profiler.iter().any(|n| n.contains("Paravirtual")) {
             assert_eq!(profiler, [name], "system_profiler named them otherwise");
         }
     }
