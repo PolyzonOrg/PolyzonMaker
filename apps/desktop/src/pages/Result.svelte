@@ -409,7 +409,7 @@
 				<FenceOpen plugin={pluginOf} then={() => core.retryJob(id)} />
 			{:else}
 				<p class="muted text">
-					{#if job.state === 'failed'}{t(`error.${job.error}` as Key)}{:else if job.state === 'cancelled'}{t('job.cancelledText')}{:else}{t(job.notes?.includes('memory_low') ? 'job.interruptedMemoryText' : 'job.interruptedText')}{/if}
+					{#if job.state === 'failed'}{problem(job.error)}{:else if job.state === 'cancelled'}{t('job.cancelledText')}{:else}{t(job.notes?.includes('memory_low') ? 'job.interruptedMemoryText' : 'job.interruptedText')}{/if}
 				</p>
 			{/if}
 			<div class="buttons">

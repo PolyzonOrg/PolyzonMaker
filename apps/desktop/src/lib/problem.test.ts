@@ -35,4 +35,9 @@ describe('what a person is told when a call failed', () => {
 		lang.value = 'ru';
 		expect(problem('the job is running')).toBe('Подробности: the job is running');
 	});
+
+	it('says a code it has no words for as details, and nothing said as a plain «did not work»', () => {
+		expect(problem('A_CODE_OF_A_NEWER_VERSION')).toBe('Details: A_CODE_OF_A_NEWER_VERSION');
+		expect(problem('')).toBe('That did not work. Try again, and if it repeats, restart the program.');
+	});
 });

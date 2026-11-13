@@ -10,6 +10,7 @@ const UNIX: Record<number, string> = { 1: 'DENIED', 2: 'NOT_FOUND', 13: 'DENIED'
  *  code or the system's error in words, else what was said, as details. */
 export function problem(e: unknown, windows = /Windows/.test(globalThis.navigator?.userAgent ?? '')): string {
 	const said = e instanceof Error ? e.message : String(e);
+	if (!said.trim()) return t('app.actionFailed');
 	const number = /\(os error (\d+)\)/.exec(said)?.[1];
 	const code = number ? (windows ? WINDOWS : UNIX)[+number] : said;
 	const key = `error.${code}`;
