@@ -16,7 +16,9 @@ fn file(store: &Store, id: &str) -> Result<PathBuf, String> {
 /// file that cannot be read is left alone, not shown.
 pub fn list(store: &Store) -> Vec<Value> {
     let Ok(entries) = fs::read_dir(store.data().join("chats")) else { return vec![] };
-    let chats = entries.flatten().filter_map(|e| serde_json::from_slice::<Value>(&fs::read(e.path()).ok()?).ok());
+    // the chats only, not a save on its way in
+    let files = entries.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "json"));
+    let chats = files.filter_map(|p| serde_json::from_slice::<Value>(&fs::read(p).ok()?).ok());
     let mut found: Vec<Value> = chats.map(|c| json!({ "id": c["id"], "title": c["title"], "updated": c["updated"] })).collect();
     found.sort_by_key(|c| std::cmp::Reverse(c["updated"].as_u64().unwrap_or(0)));
     found

@@ -26,7 +26,9 @@ fn file(store: &Store, id: &str) -> Result<PathBuf, String> {
 /// Newest first. A file that cannot be read is left alone, not shown.
 pub fn list(store: &Store) -> Vec<Program> {
     let Ok(entries) = fs::read_dir(store.data().join("programs")) else { return vec![] };
-    let mut found: Vec<Program> = entries.flatten().filter_map(|e| serde_json::from_slice(&fs::read(e.path()).ok()?).ok()).collect();
+    // the programs only, not a save on its way in
+    let files = entries.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "json"));
+    let mut found: Vec<Program> = files.filter_map(|p| serde_json::from_slice(&fs::read(p).ok()?).ok()).collect();
     found.sort_by(|a, b| b.updated.cmp(&a.updated).then_with(|| a.id.cmp(&b.id)));
     found
 }

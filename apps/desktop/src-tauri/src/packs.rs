@@ -167,6 +167,10 @@ pub fn dir(store: &Store, id: &str) -> PathBuf {
 }
 
 pub fn installed(store: &Store) -> Vec<Installed> {
+    // one at a time: reading can mend an environment (mend_env writes into it), and two at once, as the page
+    // can ask off the window's thread, tripped each other and called a whole model broken
+    static ONE: Mutex<()> = Mutex::new(());
+    let _one = ONE.lock().unwrap_or_else(|e| e.into_inner());
     let folders = store.pack_folders();
     let records = folders.iter().flat_map(|f| store::read_each::<Installed>(f, "installed.json")).collect::<Vec<_>>();
     // the same model can lie in two folders: the one that runs is the first, as in `dir`

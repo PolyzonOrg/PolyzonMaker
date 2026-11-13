@@ -263,7 +263,8 @@
 	const slicer = $derived(app.slicers.find((s) => s.path === app.settings.slicer) ?? app.slicers[0]);
 
 	async function prepare() {
-		if (!geometry) return;
+		// one at a time: the keys (Mod+P) could start another while the files of the first were being written
+		if (!geometry || preparing) return;
 		preparing = true;
 		failed = '';
 		saved = '';
