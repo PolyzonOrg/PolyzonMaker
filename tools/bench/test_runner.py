@@ -97,6 +97,8 @@ def hunyuan21(tmp_path, monkeypatch):
     monkeypatch.setitem(sys.modules, "hy3dshape", types.ModuleType("hy3dshape"))
     monkeypatch.setitem(sys.modules, "torch", torch)
     module("huggingface_hub", snapshot_download=lambda repo, **options: calls.setdefault("downloads", []).append((repo, options)))
+    # what it fetches, as it asks for it: fetch's own checks have tests of their own
+    monkeypatch.setattr(runner, "fetch", lambda repo, patterns=None, **options: calls.setdefault("downloads", []).append((repo, {"allow_patterns": patterns, **options})))
     monkeypatch.setenv("HF_HOME", str(tmp_path))
     monkeypatch.setattr(sys, "path", list(sys.path))
     image = tmp_path / "in.png"
@@ -179,10 +181,72 @@ def test_each_photo_model_fetches_its_own_weights(variant, weights, monkeypatch)
     monkeypatch.setitem(sys.modules, "numpy", np)
     monkeypatch.setitem(sys.modules, "open3d", types.SimpleNamespace())
     monkeypatch.setitem(sys.modules, "trimesh", types.SimpleNamespace())
-    monkeypatch.setitem(sys.modules, "huggingface_hub", types.SimpleNamespace(snapshot_download=got.append))
+    monkeypatch.setattr(runner, "fetch", lambda repo, *_, **__: got.append(repo))
     monkeypatch.setattr(sys, "path", list(sys.path))
     runner.photos(args(variant=variant, prefetch=True), Clock())
     assert got == [weights]
+
+
+def pinned(tmp_path, monkeypatch, served):
+    """A repository pinned at one commit, and a hub that serves `served` over the right files: what it was asked
+    for is returned."""
+    import hashlib
+    weights, config = b"weights", b"model: hy3dgen.shapegen.models.Model\n"
+    blob = hashlib.sha1(b"blob %d\0" % len(config) + config).hexdigest()
+    monkeypatch.setattr(runner, "PINS", {"me/model": ("c0ffee", {
+        "dit/model.bin": f"sha256:{hashlib.sha256(weights).hexdigest()}",
+        "dit/config.yaml": f"git:{blob}",
+        "other/never.bin": "sha256:" + "0" * 64,
+    })})
+    asked = []
+
+    def snapshot_download(repo, revision, allow_patterns=None, **options):
+        asked.append((repo, revision, allow_patterns))
+        where = Path(options.get("local_dir") or tmp_path / "snapshots" / revision)
+        for name, data in {"dit/model.bin": weights, "dit/config.yaml": config, **served}.items():
+            (where / name).parent.mkdir(parents=True, exist_ok=True)
+            (where / name).write_bytes(data)
+        return str(where)
+
+    monkeypatch.setitem(sys.modules, "huggingface_hub", types.SimpleNamespace(snapshot_download=snapshot_download))
+    monkeypatch.setenv("HF_HOME", str(tmp_path / "hf"))
+    return asked
+
+
+def test_a_model_comes_at_its_pinned_commit_and_main_is_that_commit_for_the_offline_runs(tmp_path, monkeypatch):
+    asked = pinned(tmp_path, monkeypatch, {})
+    where = Path(runner.fetch("me/model", ["dit/*"]))
+    assert asked == [("me/model", "c0ffee", ["dit/*"])], "never main, which its owner can change"
+    assert (where / "dit/model.bin").read_bytes() == b"weights"
+    assert (tmp_path / "hf/hub/models--me--model/refs/main").read_text() == "c0ffee"
+    # into a folder of its own it is checked the same
+    runner.fetch("me/model", ["dit/*"], local_dir=tmp_path / "here")
+    assert (tmp_path / "here/dit/config.yaml").is_file()
+
+
+@pytest.mark.parametrize("served", [{"dit/model.bin": b"other weights"}, {"dit/config.yaml": b"model: os.system\n"}])
+def test_a_file_that_is_not_the_one_pinned_is_deleted_and_the_install_stops(tmp_path, monkeypatch, served):
+    pinned(tmp_path, monkeypatch, served)
+    with pytest.raises(SystemExit, match="is not the file pinned"):
+        runner.fetch("me/model", ["dit/*"])
+    assert not (tmp_path / "snapshots/c0ffee" / next(iter(served))).exists(), "no engine can read it"
+    assert not (tmp_path / "hf/hub/models--me--model/refs/main").exists()
+
+
+def test_a_pinned_file_that_did_not_come_stops_the_install(tmp_path, monkeypatch):
+    pinned(tmp_path, monkeypatch, {})
+    with pytest.raises(SystemExit, match="other/never.bin"):
+        runner.fetch("me/model")
+
+
+def test_every_repository_an_engine_takes_is_pinned_to_a_commit_with_each_file_hashed():
+    import re
+    source = Path(runner.__file__).read_text(encoding="utf-8")
+    taken = set(re.findall(r'fetch\("([^"]+)"', source)) | {r for r, _, v, _ in runner.HUNYUAN.values()} | {v for _, _, v, _ in runner.HUNYUAN.values() if v} | {r for r, _ in runner.PHOTOS.values()}
+    assert taken <= runner.PINS.keys(), taken - runner.PINS.keys()
+    for repo, (sha, files) in runner.PINS.items():
+        assert re.fullmatch(r"[0-9a-f]{40}", sha), repo
+        assert files and all(re.fullmatch(r"sha256:[0-9a-f]{64}|git:[0-9a-f]{40}", h) for h in files.values()), repo
 
 
 def test_the_cut_writes_what_it_found_beside_the_picture(tmp_path, monkeypatch):
