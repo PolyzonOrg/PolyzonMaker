@@ -293,8 +293,32 @@ fn registry_number(bytes: &[u8]) -> u64 {
     u64::from_le_bytes(wide)
 }
 
+/// Apple's chips: the graphics are the chip's own, named as it is ("Apple M4 Pro"), and the kernel says that at
+/// once, where system_profiler took a second or more each look. An Intel Mac's cards still come from it.
 #[cfg(target_os = "macos")]
 fn system_gpus() -> Vec<Gpu> {
+    let Some(name) = chip() else { return profiler_gpus() };
+    let mut s = System::new();
+    s.refresh_memory();
+    // unified memory: the chip and the processor share it, so it is not a second budget
+    vec![Gpu { vendor: "apple".into(), name, vram_mb: s.total_memory() >> 20, driver: String::new(), cuda: 0.0 }]
+}
+
+/// The chip's name, where it is Apple's
+#[cfg(target_os = "macos")]
+fn chip() -> Option<String> {
+    extern "C" {
+        fn sysctlbyname(name: *const std::ffi::c_char, old: *mut std::ffi::c_void, len: *mut usize, new: *mut std::ffi::c_void, new_len: usize) -> i32;
+    }
+    let (mut buf, mut len) = ([0u8; 128], 128usize);
+    // SAFETY: writes at most `len` bytes into `buf` and says in `len` how many
+    let read = unsafe { sysctlbyname(c"machdep.cpu.brand_string".as_ptr(), buf.as_mut_ptr().cast(), &mut len, std::ptr::null_mut(), 0) };
+    let name = String::from_utf8_lossy(&buf[..len.min(buf.len())]).trim_end_matches('\0').trim().to_string();
+    (read == 0 && name.starts_with("Apple")).then_some(name)
+}
+
+#[cfg(target_os = "macos")]
+fn profiler_gpus() -> Vec<Gpu> {
     let Some(out) = quiet("system_profiler", &["SPDisplaysDataType", "-json"]) else { return vec![] };
     let Ok(json) = serde_json::from_str::<serde_json::Value>(&out) else { return vec![] };
     let mut s = System::new();
@@ -441,6 +465,24 @@ pub fn measure(threads: usize, dir: &Path, step: impl Fn(&str)) -> Measured {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn an_apple_chip_gives_its_graphics_as_system_profiler_names_them_without_asking_it() {
+        let Some(name) = chip() else {
+            if cfg!(target_arch = "aarch64") {
+                panic!("an Apple chip whose name the kernel did not give");
+            }
+            return;
+        };
+        assert_eq!(system_gpus().iter().map(|g| (g.vendor.as_str(), g.name.as_str())).collect::<Vec<_>>(), [("apple", name.as_str())]);
+        let profiler: Vec<String> = profiler_gpus().into_iter().map(|g| g.name).collect();
+        // on a real Mac they are the chip's; in a virtual one system_profiler names paravirtual graphics, or none
+        // at all (GitHub's Mac runner), where the chip's are Metal's as on any other
+        if !profiler.is_empty() && !profiler.iter().any(|n| n.contains("Paravirtual")) {
+            assert_eq!(profiler, [name], "system_profiler named them otherwise");
+        }
+    }
 
     #[test]
     fn vendors_come_from_the_names_systems_really_report() {
