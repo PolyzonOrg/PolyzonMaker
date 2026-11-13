@@ -24,4 +24,10 @@ describe('a file dropped on the window', () => {
 		expect(await libraryFile('scan.glb', glb)).toBe(glb);
 		await expect(libraryFile('broken.stl', new Uint8Array([1, 2, 3]))).rejects.toThrow();
 	});
+
+	it('refuses a GLB its page could not open: cut off, or another file renamed', async () => {
+		const glb = await libraryFile('part.stl', stl);
+		for (const bad of [glb.subarray(0, glb.length - 16), new TextEncoder().encode('solid t\nendsolid t\n')])
+			await expect(libraryFile('scan.glb', bad)).rejects.toMatchObject({ name: 'MeshKitError' });
+	});
 });
