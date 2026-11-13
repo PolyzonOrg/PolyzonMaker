@@ -54,7 +54,10 @@
 		].filter((g) => g.models.length);
 	});
 	const downloaded = $derived(onDisk(app.models, app.installed, app.packs).filter(matches));
-	const yours = $derived(app.installed.filter((p) => p.file));
+	// a download stopped halfway is here too, to be finished or removed; one still on its way is not stopped
+	const yours = $derived(app.installed.filter((p) => p.file && !(p.broken && installing(p.id))));
+	/** Why the last removal from «С Hugging Face» did not happen, and of which */
+	let removeProblem = $state<{ id: string; why: Key } | null>(null);
 	const visible = $derived((s.results ?? []).filter((m) => app.settings.show_mature || !isMature(m)));
 	const hidden = $derived((s.results?.length ?? 0) - visible.length);
 
@@ -105,8 +108,13 @@
 	});
 
 	async function removeFile(id: string) {
-		await core.remove(id);
-		delete app.packs[id];
+		removeProblem = null;
+		try {
+			await core.remove(id);
+			delete app.packs[id];
+		} catch (e) {
+			removeProblem = { id, why: e === 'BUSY' ? 'models.removeBusy' : 'models.removeFailed' };
+		}
 		await refreshInstalled();
 	}
 
@@ -194,7 +202,7 @@
 					{#each yours as p (p.id)}
 						<button class="item" aria-current={isShown('yours', p.id)} onclick={(e) => pick('yours', p.id, e)}>
 							<span class="tile"><Icon name="image" size={18} /></span>
-							<span class="words"><span class="top"><span class="name">{p.name}</span></span><span class="sub">{p.file}</span></span>
+							<span class="words"><span class="top"><span class="name">{p.name || p.file}</span></span><span class="sub">{p.broken ? t('models.unfinished') : p.file}</span></span>
 						</button>
 					{/each}
 				{/if}
@@ -240,10 +248,11 @@
 			<HfDetail m={shownHf} onshow={(id) => ((tab = 'recommended'), (query = ''), pick('model', id))} />
 		{:else if shownYours}
 			<article class="yours">
-				<h2 class="selectable">{shownYours.name}</h2>
-				<p class="faint selectable">{shownYours.file}</p>
-				<p class="note warn">{t('models.notTested')}</p>
+				<h2 class="selectable">{shownYours.name || shownYours.file}</h2>
+				{#if shownYours.name}<p class="faint selectable">{shownYours.file}</p>{/if}
+				<p class="note warn">{t(shownYours.broken ? 'models.unfinishedText' : 'models.notTested')}</p>
 				<div><button class="btn small" onclick={() => removeFile(shownYours.id)}><Icon name="trash" size={15} />{t('models.remove')}</button></div>
+				{#if removeProblem?.id === shownYours.id}<p class="note warn" role="alert">{t(removeProblem.why)}</p>{/if}
 			</article>
 		{:else}
 			<p class="muted pick">{t('models.pickOne')}</p>

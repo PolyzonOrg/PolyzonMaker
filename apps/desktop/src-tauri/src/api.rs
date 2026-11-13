@@ -148,8 +148,10 @@ impl Door {
     }
 
     fn models(&self) -> Reply {
+        // what can run: one with files missing, or a download stopped halfway, would only fail as a job
         let rows: Vec<Value> = packs::installed(&self.store)
             .iter()
+            .filter(|p| !p.broken)
             .map(|p| {
                 let model = catalog::model(&p.id);
                 let presets: Vec<&str> = model.iter().flat_map(|m| m.presets.iter().map(|x| x.id.as_str())).collect();
@@ -661,7 +663,11 @@ mod tests {
     fn it_lists_what_is_installed() {
         let s = Stand::new();
         s.install("trellis2", "vulkan");
+        // a download stopped halfway is on disk, and no model to run: an agent that picked it would only fail
+        std::fs::create_dir_all(s.store.packs().join("hf-someone-model/weights")).unwrap();
+        std::fs::write(s.store.packs().join("hf-someone-model/weights/model.gguf.part"), b"half").unwrap();
         let (_, list) = s.ask("GET", "/v1/models", b"");
+        assert_eq!(list.as_array().unwrap().len(), 1, "{list}");
         assert_eq!(list[0]["id"], "trellis2");
         assert_eq!(list[0]["kind"], "3d");
         assert!(list[0]["presets"].as_array().unwrap().contains(&json!("512")));

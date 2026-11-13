@@ -185,8 +185,21 @@ fn unfinished(folder: &Path) -> Vec<Installed> {
     let started = |path: &Path| !path.join("installed.json").exists() && fs::read_dir(path).is_ok_and(|mut d| d.next().is_some());
     let entries = fs::read_dir(folder).into_iter().flatten().flatten();
     let halves = entries.filter(|e| started(&e.path())).map(|e| e.file_name().to_string_lossy().into_owned());
-    // a Hugging Face one too: its parts can be gigabytes, and only a listed model can be removed
-    halves.filter(|id| catalog::model(id).is_some() || id.starts_with("hf-")).map(|id| Installed { id, broken: true, ..Installed::default() }).collect()
+    // a Hugging Face one too: its parts can be gigabytes, and only a listed model can be removed. It is known
+    // by the file it was getting, as a finished one is.
+    halves
+        .filter(|id| catalog::model(id).is_some() || id.starts_with("hf-"))
+        .map(|id| {
+            let file = if id.starts_with("hf-") { getting(&folder.join(&id)) } else { String::new() };
+            Installed { id, file, broken: true, ..Installed::default() }
+        })
+        .collect()
+}
+
+/// The file an install of one stopped halfway: the first in its weights, without the `.part` of one not whole.
+fn getting(pack: &Path) -> String {
+    let first = fs::read_dir(pack.join("weights")).into_iter().flatten().flatten().next();
+    first.map_or(String::new(), |e| e.file_name().to_string_lossy().trim_end_matches(".part").to_string())
 }
 
 /// What downloads left a week ago and more: parts of an install that was stopped or failed, an archive of a
@@ -1236,6 +1249,7 @@ mod tests {
         fs::write(s.downloads().join("x.part"), b"half").unwrap();
         let half = installed(&s);
         assert_eq!(half.iter().map(|p| (p.id.as_str(), p.broken)).collect::<Vec<_>>(), [("hf-someone-model", true)]);
+        assert_eq!(half[0].file, "model.gguf", "the file it was getting, which the person knows it by");
         remove(&s, "hf-someone-model").unwrap();
         assert!(!s.packs().join("hf-someone-model").exists());
     }
