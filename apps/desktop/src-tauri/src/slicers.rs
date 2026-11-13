@@ -191,7 +191,7 @@ pub fn open(chosen: &str, file: &Path) -> std::io::Result<()> {
     {
         // a flatpak or a launcher with arguments
         let mut words = chosen.split_whitespace();
-        return sys::hidden(words.next().unwrap_or(chosen)).args(words).arg(file).spawn().map(|_| ());
+        sys::hidden(words.next().unwrap_or(chosen)).args(words).arg(file).spawn().map(|_| ())
     }
     #[cfg(target_os = "windows")]
     sys::hidden(chosen).arg(file).spawn().map(|_| ())

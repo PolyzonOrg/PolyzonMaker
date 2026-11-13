@@ -1220,9 +1220,11 @@ mod tests {
         (d, s)
     }
 
+    /// An environment as this system makes one: its Python in Scripts on Windows, in bin elsewhere
     fn env_pointing_at(root: &Path, home: &str) {
-        fs::create_dir_all(root.join("env/Scripts")).unwrap();
-        fs::write(root.join("env/Scripts/python.exe"), "the old path built in").unwrap();
+        let python = python_in(&root.join("env"));
+        fs::create_dir_all(python.parent().unwrap()).unwrap();
+        fs::write(&python, "the old path built in").unwrap();
         fs::write(root.join("env/pyvenv.cfg"), format!("home = {home}\nimplementation = CPython\nversion_info = 3.10.22\n")).unwrap();
     }
 
@@ -1251,6 +1253,8 @@ mod tests {
         assert!(cfg.contains("version_info = 3.10.22"), "the rest of the file stays");
         if cfg!(windows) {
             assert_eq!(fs::read_to_string(root.join("env/Scripts/python.exe")).unwrap(), "starts Python by pyvenv.cfg");
+        } else {
+            assert_eq!(fs::read_link(python_in(&root.join("env"))).unwrap(), home.join("python3"));
         }
     }
 
