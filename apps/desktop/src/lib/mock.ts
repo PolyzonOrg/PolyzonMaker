@@ -148,6 +148,8 @@ async function somePicture(seed: number) {
 const placeOf = (job: Job) => job.turn || job.created * 1000;
 const waiting = () => state.jobs.filter((j) => j.state === 'queued').sort((a, b) => placeOf(a) - placeOf(b));
 let running = false;
+/** The job whose second seed was stopped: it ends with its first result, as jobs.rs second_wins says */
+let keepFirst = '';
 async function lineUp(_job?: Job) {
 	const next = running || state.settings.queue_paused ? undefined : waiting()[0];
 	if (!next) return;
@@ -163,10 +165,20 @@ async function runJob(job: Job) {
 		persist();
 		emit('job', { ...job });
 	};
-	for (const [state_, stage] of [['preparing', 'prepare'], ['running', 'load'], ['running', 'generate'], ['finalizing', 'export']] as const) {
+	// ?again: the first result comes out flat and a second seed runs (jobs.rs second_try)
+	const once = [['preparing', 'prepare'], ['running', 'load'], ['running', 'generate']] as const;
+	const again = params.has('again') && job.kind === 'model';
+	const steps = [...once, ...(again ? once.slice(1) : []), ['finalizing', 'export'] as const];
+	for (const [i, [state_, stage]] of steps.entries()) {
+		if (again && i === once.length) update({ notes: [...(job.notes ?? []), 'second_try'] });
 		update({ state: state_, stage, started: job.started || Math.floor(Date.now() / 1000) });
 		await sleep(STEP_MS);
 		if (job.state === 'cancelled') return;
+		if (keepFirst === job.id) {
+			keepFirst = '';
+			update({ notes: [...(job.notes ?? []), 'flat'] });
+			break;
+		}
 	}
 	if (job.kind === 'model') files.set(key(job.id, 'model.glb'), boxGlb());
 	else files.set(key(job.id, 'picture.png'), await somePicture(job.seed));
@@ -361,6 +373,10 @@ export async function invoke<T>(cmd: string, args?: unknown, options?: { headers
 			}
 			case 'job_cancel': {
 				const job = state.jobs.find((j) => j.id === (a.id as string));
+				if (job?.notes?.includes('second_try') && ['running', 'finalizing'].includes(job.state)) {
+					keepFirst = job.id; // a stop during the second seed keeps the first result
+					return null;
+				}
 				if (job) {
 					job.state = 'cancelled';
 					emit('job', { ...job });

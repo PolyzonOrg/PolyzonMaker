@@ -398,7 +398,12 @@
 			{:else}
 				<p class="faint">{t('job.background_note')}</p>
 			{/if}
-			<button class="btn" onclick={() => core.cancelJob(id)}><Icon name="x" size={16} />{t('job.cancel')}</button>
+			<!-- stopping the extra try keeps the first, finished result (jobs.rs second_wins) -->
+			{#if twice}
+				<button class="btn" onclick={() => core.cancelJob(id)}><Icon name="check" size={16} />{t('job.keepFirst')}</button>
+			{:else}
+				<button class="btn" onclick={() => core.cancelJob(id)}><Icon name="x" size={16} />{t('job.cancel')}</button>
+			{/if}
 		</div>
 	</div>
 {:else if !done}
