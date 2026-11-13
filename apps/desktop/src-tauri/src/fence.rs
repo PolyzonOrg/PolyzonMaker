@@ -40,8 +40,17 @@ pub fn open_here(name: &str, folder: &Path, python: &Path) -> bool {
     c.args(["-I", "-S", "-c", "import socket; socket.create_connection(('1.1.1.1', 443), 4)"]);
     c.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
     let open = c.status().is_ok_and(|s| s.success());
-    OPEN.lock().unwrap().get_or_insert_with(HashMap::new).insert(name.to_string(), open);
+    let online = || std::net::TcpStream::connect_timeout(&std::net::SocketAddr::from(([1, 1, 1, 1], 443)), std::time::Duration::from_secs(4)).is_ok();
+    if settled(open, online) {
+        OPEN.lock().unwrap().get_or_insert_with(HashMap::new).insert(name.to_string(), open);
+    }
     open
+}
+
+/// Whether what a look found holds for the rest of the session. «Closed» counts only when this computer is
+/// online: offline, nothing gets through, fence or not, and the network may come back open to the fence.
+fn settled(open: bool, online: impl FnOnce() -> bool) -> bool {
+    open || online()
 }
 
 #[cfg(windows)]
@@ -382,5 +391,15 @@ mod inside {
             quoted(OsStr::new(r"C:\a b\"), &mut spaced);
             assert_eq!(String::from_utf16_lossy(&spaced), r#""C:\a b\\""#);
         }
+    }
+}
+
+#[cfg(test)]
+mod look_tests {
+    #[test]
+    fn a_fence_found_closed_while_offline_is_looked_at_again() {
+        assert!(super::settled(true, || panic!("open is open, online or not")));
+        assert!(super::settled(false, || true), "closed with the internet there: closed");
+        assert!(!super::settled(false, || false), "closed with no internet: nothing is known yet");
     }
 }

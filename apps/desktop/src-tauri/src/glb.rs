@@ -52,13 +52,16 @@ fn chunks(bytes: &[u8]) -> Option<(&[u8], &[u8])> {
 fn items<'a>(doc: &Value, bin: &'a [u8], accessor: usize, size: usize) -> Option<(&'a [u8], usize, usize)> {
     let a = &doc["accessors"][accessor];
     let view = &doc["bufferViews"][a["bufferView"].as_u64()? as usize];
-    let start = view["byteOffset"].as_u64().unwrap_or(0) as usize + a["byteOffset"].as_u64().unwrap_or(0) as usize;
-    let stride = view["byteStride"].as_u64().unwrap_or(size as u64) as usize;
-    let count = a["count"].as_u64()? as usize;
+    // the file's numbers are outside data: a sum of them that does not fit is no file, not a wrap round to a
+    // slice too short for what is read from it next
+    let start = usize::try_from(view["byteOffset"].as_u64().unwrap_or(0)).ok()?.checked_add(usize::try_from(a["byteOffset"].as_u64().unwrap_or(0)).ok()?)?;
+    let stride = usize::try_from(view["byteStride"].as_u64().unwrap_or(size as u64)).ok()?;
+    let count = usize::try_from(a["count"].as_u64()?).ok()?;
     if count == 0 {
         return Some((&[], stride, 0));
     }
-    Some((bin.get(start..start + stride * (count - 1) + size)?, stride, count))
+    let end = stride.checked_mul(count - 1)?.checked_add(size)?.checked_add(start)?;
+    Some((bin.get(start..end)?, stride, count))
 }
 
 fn points_of(doc: &Value, bin: &[u8], accessor: usize) -> Option<Vec<[f32; 3]>> {
@@ -251,6 +254,28 @@ mod tests {
             }
         }
         (points, corners)
+    }
+
+    #[test]
+    fn a_file_whose_numbers_reach_past_its_end_is_no_shape_and_no_crash() {
+        // a program's output, a plugin's say, is outside data: a stride this big wrapped round and panicked,
+        // and with panic = "abort" the whole program closed
+        let (points, corners) = ball(4);
+        let good = glb(&points, &corners);
+        let json_length = u32::from_le_bytes(good[12..16].try_into().unwrap()) as usize;
+        let mut doc: serde_json::Value = serde_json::from_slice(&good[20..20 + json_length]).unwrap();
+        doc["bufferViews"][0]["byteStride"] = serde_json::json!(1u64 << 62);
+        let mut json = doc.to_string().into_bytes();
+        json.resize(json.len().div_ceil(4) * 4, b' ');
+        let bin = &good[20 + json_length..];
+        let mut bad = b"glTF".to_vec();
+        bad.extend(2u32.to_le_bytes());
+        bad.extend(((20 + json.len() + bin.len()) as u32).to_le_bytes());
+        bad.extend((json.len() as u32).to_le_bytes());
+        bad.extend(b"JSON");
+        bad.extend(json);
+        bad.extend(bin);
+        assert!(read(&bad).is_none());
     }
 
     #[test]
