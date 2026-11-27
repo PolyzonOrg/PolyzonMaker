@@ -1624,7 +1624,7 @@
 					"ref_seconds": 60,
 					"min_vram_mb": 8000,
 					"min_ram_mb": 16000,
-					"disk_gb": 18
+					"disk_gb": 13
 				},
 				{
 					"os": "linux",
@@ -1633,7 +1633,7 @@
 					"ref_seconds": 60,
 					"min_vram_mb": 8000,
 					"min_ram_mb": 16000,
-					"disk_gb": 18
+					"disk_gb": 13
 				},
 				{
 					"os": "macos",
@@ -1642,7 +1642,7 @@
 					"ref_seconds": 300,
 					"min_vram_mb": 0,
 					"min_ram_mb": 16000,
-					"disk_gb": 18
+					"disk_gb": 13
 				}
 			]
 		},

@@ -202,6 +202,24 @@ def test_each_photo_model_fetches_its_own_weights(variant, weights, monkeypatch)
     assert got == [weights]
 
 
+def test_a_hub_model_takes_its_config_and_safetensors_and_none_of_its_other_copies(monkeypatch):
+    # PyTorchModelHubMixin (VGGT, BriaRMBG) reads config.json and model.safetensors, and pytorch_model.bin only
+    # where there is no model.safetensors: VGGT-1B's model.pt (5 GB) and RMBG-1.4's five other copies of its
+    # one model were downloaded for nothing
+    got = []
+    monkeypatch.setattr(runner, "fetch", lambda repo, patterns=None, **_: got.append((repo, patterns)))
+    for name in ("numpy", "open3d", "trimesh", "torch"):
+        monkeypatch.setitem(sys.modules, name, np if name == "numpy" else types.SimpleNamespace())
+    monkeypatch.setitem(sys.modules, "huggingface_hub", types.SimpleNamespace(snapshot_download=lambda *_, **__: None))
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    runner.photos(args(variant="vggt", prefetch=True), Clock())
+    runner.triposg(args(prefetch=True), Clock())
+    assert got == [("facebook/VGGT-1B", runner.MIXIN), ("VAST-AI/TripoSG", None), ("briaai/RMBG-1.4", runner.MIXIN)]
+    assert runner.MIXIN == ["config.json", "model.safetensors"]
+    for repo in ("facebook/VGGT-1B", "briaai/RMBG-1.4"):
+        assert set(runner.PINS[repo][1]) == set(runner.MIXIN), "what it takes is what is pinned"
+
+
 def pinned(tmp_path, monkeypatch, served):
     """A repository pinned at one commit, and a hub that serves `served` over the right files: what it was asked
     for is returned."""
@@ -257,7 +275,7 @@ def test_a_pinned_file_that_did_not_come_stops_the_install(tmp_path, monkeypatch
 def test_every_repository_an_engine_takes_is_pinned_to_a_commit_with_each_file_hashed():
     import re
     source = Path(runner.__file__).read_text(encoding="utf-8")
-    taken = set(re.findall(r'fetch\("([^"]+)"', source)) | {r for r, _, v, _ in runner.HUNYUAN.values()} | {v for _, _, v, _ in runner.HUNYUAN.values() if v} | {r for r, _ in runner.PHOTOS.values()}
+    taken = set(re.findall(r'fetch\("([^"]+)"', source)) | {r for r, _, v, _ in runner.HUNYUAN.values()} | {v for _, _, v, _ in runner.HUNYUAN.values() if v} | {r for r, *_ in runner.PHOTOS.values()}
     assert taken <= runner.PINS.keys(), taken - runner.PINS.keys()
     for repo, (sha, files) in runner.PINS.items():
         assert re.fullmatch(r"[0-9a-f]{40}", sha), repo
