@@ -12,6 +12,9 @@ import { fileURLToPath } from 'node:url';
 /** A turbo folder's config and the checkpoint the engine reads of the two it holds (runner.py hunyuan) */
 const turbo = (...folders) => folders.flatMap((f) => [`${f}/config.yaml`, `${f}/model.fp16.safetensors`]);
 
+/** What a PyTorchModelHubMixin model reads of its repository (runner.py MIXIN) */
+const MIXIN = ['config.json', 'model.safetensors'];
+
 /** What runner.py takes from each repository: the patterns it passes to snapshot_download, or all of it */
 const WANTED = {
 	'tencent/Hunyuan3D-2mini': turbo('hunyuan3d-dit-v2-mini-turbo', 'hunyuan3d-vae-v2-mini-turbo'),
@@ -19,12 +22,12 @@ const WANTED = {
 	'tencent/Hunyuan3D-2mv': turbo('hunyuan3d-dit-v2-mv-turbo'),
 	'tencent/Hunyuan3D-2.1': ['hunyuan3d-dit-v2-1/*'],
 	'VAST-AI/TripoSG': null,
-	'briaai/RMBG-1.4': null,
+	'briaai/RMBG-1.4': MIXIN,
 	'stabilityai/TripoSR': null,
 	'facebook/dino-vitb16': ['*.json'],
 	'facebook/map-anything-apache': null,
 	'yyfz233/Pi3': null,
-	'facebook/VGGT-1B': null
+	'facebook/VGGT-1B': MIXIN
 };
 
 const HUB = 'https://huggingface.co';

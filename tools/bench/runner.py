@@ -33,6 +33,11 @@ from pathlib import Path
 # An engine's config.yaml names the code it builds (Hunyuan3D, TripoSR), so a file that is not the one
 # pinned could run anything: what arrives is checked, from Hugging Face or its mirror alike. Made, and made
 # again for a new version of a model, by `node tools/bench/pins.mjs`.
+#
+# A model built by huggingface_hub's PyTorchModelHubMixin (VGGT, BriaRMBG) reads only these two, and
+# pytorch_model.bin where there is no model.safetensors: the other copies a repository holds of the same model
+# (VGGT-1B's model.pt, RMBG-1.4's .pth, .bin and ONNX ones) are never read.
+MIXIN = ["config.json", "model.safetensors"]
 PINS = {  # made by pins.mjs
     "tencent/Hunyuan3D-2mini": ("f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6", {
         "hunyuan3d-dit-v2-mini-turbo/config.yaml": "git:70a77756aaa5429626f4106e2cd882ca494221ab",
@@ -68,26 +73,8 @@ PINS = {  # made by pins.mjs
         "vae/diffusion_pytorch_model.safetensors": "sha256:a2e667c24927a5a35e5f19fcb4c75890e9399aa966b6db8131d7df733a750c8b",
     }),
     "briaai/RMBG-1.4": ("2ceba5a5efaec153162aedea169f76caf9b46cf8", {
-        ".gitattributes": "git:85d164dd4039759357c6f4f14bb467c6b86bbedd",
-        "MyConfig.py": "git:d50006abdaa687edd18dd39c9fb5ac9a31023773",
-        "MyPipe.py": "git:f98d8de2856793cb7d6ca894559366d979519e85",
-        "README.md": "git:9c1f4e48ad47f65971cb6258f2c781ddfc45a8fb",
-        "briarmbg.py": "git:da8591aafb1fd74c194a665302452a2aa591d161",
         "config.json": "git:a587b1fea5d4c20cc7be9ce8790300e414ebed9d",
-        "example_inference.py": "git:bb627e1952de7701331168357d9510c7c00f9fd5",
-        "example_input.jpg": "git:4c51970914c075064c43b60c7e66b56be2c31463",
-        "model.pth": "sha256:893c16c340b1ddafc93e78457a4d94190da9b7179149f8574284c83caebf5e8c",
         "model.safetensors": "sha256:46ef7fe46f2ae284d8f1aaa24bfa5fca5ef25a34e2c7caa890a0029eb100e87f",
-        "onnx/model.onnx": "sha256:8cafcf770b06757c4eaced21b1a88e57fd2b66de01b8045f35f01535ba742e0f",
-        "onnx/model_fp16.onnx": "sha256:9fdfdb41866d872e0acf4a010c35c1a8547bf0eebe0d1544406bbf1c824cb59d",
-        "onnx/model_quantized.onnx": "sha256:a6648479275dfd0ede0f3a8abc20aa5c437b394681b05e5af6d268250aaf40f3",
-        "onnx/quantize_config.json": "git:d0dd447b33c4757b5e90081b61a48cb2d65d4634",
-        "preprocessor_config.json": "git:ef29ef503ab28b350a34ea32785f8015af34b5c1",
-        "pytorch_model.bin": "sha256:59569acdb281ac9fc9f78f9d33b6f9f17f68e25086b74f9025c35bb5f2848967",
-        "requirements.txt": "git:24fc6e3706df0ed5e8bf8ece6d3a14bf261679d6",
-        "results.png": "sha256:2b7f08fc4c09db56b516186c0629f72523a5cbe328beaedda8b36349af4b04bc",
-        "t4.png": "sha256:43a9453f567d9bff7fe4481205575bbf302499379047ee6073247315452ba8fb",
-        "utilities.py": "git:77bf9e6f0ea22608c69a6e1c5528a3f225b48a63",
     }),
     "stabilityai/TripoSR": ("5b521936b01fbe1890f6f9baed0254ab6351c04a", {
         ".gitattributes": "git:3217fd3833103daf6f13706bda7ffd0f686f0ef6",
@@ -115,10 +102,7 @@ PINS = {  # made by pins.mjs
         "model.safetensors": "sha256:33580e4702ac671558aedeab1148fd08118f7ce45bdbeb99f3e3cf340062875d",
     }),
     "facebook/VGGT-1B": ("860abec7937da0a4c03c41d3c269c366e82abdf9", {
-        ".gitattributes": "git:a6344aac8c09253b3b630fb776ae94478aa0275b",
-        "README.md": "git:b8e9a3f570877961599dc5ca652630296467f7a5",
         "config.json": "git:303bf21400e2723e8ff9c0c7ceb6d86859b1ddeb",
-        "model.pt": "sha256:d15bf50a8615c8225ed48b51ea5cac673d82442ec0309036df555a053253afe0",
         "model.safetensors": "sha256:f164acf60724910d8fe1578bb499d800850c7bb0948db7555c413f9fbe60467e",
     }),
 }
@@ -341,7 +325,7 @@ def triposg(a, clock):
 
     if a.prefetch:
         fetch("VAST-AI/TripoSG")
-        fetch("briaai/RMBG-1.4")
+        fetch("briaai/RMBG-1.4", MIXIN)
         return
     weights, rmbg_dir = snapshot_download("VAST-AI/TripoSG"), snapshot_download("briaai/RMBG-1.4")  # offline: the pinned
     # diso (the flash decoder's marching cubes) is a CUDA extension with no Windows wheels; without it
@@ -421,11 +405,12 @@ def triposr(a, clock):
     clock.mark("export")
 
 
-# Weights and, for models MapAnything only hosts, the wrapper in its code. Those wrappers need CUDA.
+# Weights, for models MapAnything only hosts the wrapper in its code (those wrappers need CUDA), and what of the
+# weights' repository is read when not all of it.
 PHOTOS = {
-    "": ("facebook/map-anything-apache", None),  # the Apache 2.0 weights
-    "pi3": ("yyfz233/Pi3", "Pi3Wrapper"),
-    "vggt": ("facebook/VGGT-1B", "VGGTWrapper"),
+    "": ("facebook/map-anything-apache", None, None),  # the Apache 2.0 weights
+    "pi3": ("yyfz233/Pi3", "Pi3Wrapper", None),
+    "vggt": ("facebook/VGGT-1B", "VGGTWrapper", MIXIN),
 }
 
 
@@ -477,7 +462,7 @@ def photos(a, clock):
     import trimesh
 
     if a.prefetch:
-        fetch(PHOTOS[a.variant][0])
+        fetch(PHOTOS[a.variant][0], PHOTOS[a.variant][2])
         return
     pictures = [str(p) for p in (Path(a.image), *views(a))]
     points = (by_wrapper if a.variant else by_mapanything)(a, pictures, clock)
